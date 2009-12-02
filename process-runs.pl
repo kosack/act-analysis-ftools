@@ -6,10 +6,10 @@ use File::Basename;
 $Dryrun=0;
 $CenterRA = 83.633333;
 $CenterDec= 22.014444;
-$GeomX = 300;
-$GeomY = 300;
-$FOVX = 10.0;
-$FOVY = 10.0;
+$GeomX = 256;
+$GeomY = 256;
+$FOVX = 6.0;
+$FOVY = 6.0;
 
 $outdir = "/home/kkosack/Analysis/FITSEventLists/Analysis";
 

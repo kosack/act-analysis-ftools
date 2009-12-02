@@ -110,12 +110,26 @@ def makeAcceptanceFromEvents(events,image,mask=None):
     Y = events.data.field("DETY")
     D = sqrt(X**2 + Y**2)
 
-    scatter(X,Y)
+    subplot(211)
+    h,ed = histogram( D*D,bins=20, range=[0,7])
+    scatter( ed,h )
+    subplot(212)
+    scatter(X,Y,s=1)
     show()
+
+ 
 
     return D
     
 
+def dumpImagePixels(image):
+    wcs = astWCS.WCS( image.header, mode='pyfits' )
+    ia = arange(image.data.shape[0])
+    ja = arange(image.data.shape[0])
+
+    for ii in ia:
+        for jj in ja:
+            print ii,jj,wcs.pix2wcs( ii,jj ),data[ii,jj]
 
 
 if __name__ == "__main__":
