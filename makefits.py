@@ -1,4 +1,4 @@
-#!/usr/bin/python2.4
+#!/usr/bin/python
 
 import pyfits
 from numpy import *
@@ -47,14 +47,12 @@ def makeFITS(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
     hdu.header.update( "BSCALE", 1.0 )
     hdu.header.update( "BZERO", 0.0 )
     
-    print hdu.header.items();
-    
     if output:
         pyfits.writeto(output, header=hdu.header, data=hdu.data )
         
     return hdu
 
-def makeCountMap(hdu, ra,dec, output=None):
+def makeCountMap(hdu, ra,dec, output=None, verbose=False):
     """
     Arguments:
     - `hdu`: hdu containing data array and header with proper WCS info 
@@ -74,15 +72,17 @@ def makeCountMap(hdu, ra,dec, output=None):
     imrange = zip( (0,0), bins) # TODO: probably need some half bins here to make it
                                                 # right?  check
                                                 # histogram code
-    print "range: ",imrange
+    if verbose:
+        print "range: ",imrange
     
     
     H, xedges, yedges = histogram2d( coords[:,0],coords[:,1],
                                      bins=bins, range=imrange )
     
-    print "   H: ", H.shape
-    print "data: ", hdu.data.shape
-
+    if verbose:
+        print "   H: ", H.shape
+        print "data: ", hdu.data.shape
+        
     if output:
         print "Writing count map:",output
         pyfits.writeto(output, header=hdu.header, data=H, clobber=True )
@@ -142,7 +142,9 @@ if __name__ == "__main__":
     parser.add_option( "-o","--output", dest="output", help="output filename")
     parser.add_option( "-p","--projection", dest="proj", help="projection",
                        default="CAR")
+    parser.add_option( "-v","--verbose", dest="verbose", help="more output")
     parser.set_usage("makefits.py [options] eventsfile.fits")
+
 
 
     (options, args) = parser.parse_args()
@@ -156,17 +158,16 @@ if __name__ == "__main__":
     if (options.center):
         center = array(options.center.split(",")).astype(float)
 
-    print "ARGV:",args
-
     if len(sys.argv)>1:
         inputfile = args.pop()
     else:
         print "Please specify at least an input file. See --help";
         sys.exit(1)
 
-    print "CENTER:",center
-    print "  GEOM:",geom
-    print "   FOV:",FOV
+    if options.verbose:
+        print "CENTER:",center
+        print "  GEOM:",geom
+        print "   FOV:",FOV
 
     # generate blank output image:
     hdu = makeFITS( centerRADec=center, geom=geom, FOV=FOV,projection=options.proj)
@@ -180,7 +181,8 @@ if __name__ == "__main__":
 
     # make count map:
 
-    newdata = makeCountMap( hdu, ra,dec, output=options.output )
+    newdata = makeCountMap( hdu, ra,dec, output=options.output,
+                            verbose=options.verbose)
 
     #display it
     if options.display:

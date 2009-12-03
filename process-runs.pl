@@ -11,11 +11,14 @@ $GeomY = 256;
 $FOVX = 6.0;
 $FOVY = 6.0;
 
-$outdir = "/home/kkosack/Analysis/FITSEventLists/Analysis";
+$outdir = "$ENV{HOME}/Analysis/FITSEventLists/Analysis";
 
-$isfirst=1;
+unlink "$outdir/cmap_sum.fits";
+unlink "$outdir/cmap_sum_masked.fits";
 
-foreach $evlist (<~/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
+$PYTHON="python2.6";
+
+foreach $evlist (<$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
     
     $bname=basename($evlist,"_eventlist.fits.gz");
     $bname="$outdir/$bname";
@@ -57,8 +60,6 @@ foreach $evlist (<~/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
     updateSum( "$outdir/cmap_sum.fits", $cmapname );
     updateSum( "$outdir/cmap_sum_masked.fits", $maskcmapname );
 
-    $isfirst=0;
-
 }
 
 sub makeMap($$) {
@@ -68,7 +69,7 @@ sub makeMap($$) {
      
     if (! -e $mapname ) {
 	print "CMAP: --> $mapname\n";
-	runtool( "makefits.py $args --output $mapname $eventlist" );
+	runtool( "$PYTHON makefits.py $args --output $mapname $eventlist" );
     }
 
 }
@@ -81,9 +82,10 @@ sub updateSum($$){
 
     print "SUM: $sumname\n";
 
-    if ($isfirst) {
+    if (! -e $sumname) {
 	system( "cp $input $sumname");
 	unlink $tmp if (-e $tmp);
+	print "CREATED $sumname on first iteration\n";
     }
     else {
 	runtool("ftpixcalc $tmp 'A+B' a=$sumname b=$input clobber=true");
