@@ -90,7 +90,7 @@ def makeCountMap(hdu, ra,dec, output=None):
     return H
 
 
-def makeAcceptanceFromEvents(events,image,mask=None):
+def makeAcceptanceFromEvents(events,image,bins=20,range=[0,7]):
     """ 
     Generates an acceptance map from the events of a single run
     (doesn't use lookups, just a simple accepance-from-data
@@ -111,25 +111,13 @@ def makeAcceptanceFromEvents(events,image,mask=None):
     D = sqrt(X**2 + Y**2)
 
     subplot(211)
-    h,ed = histogram( D*D,bins=20, range=[0,7])
+    h,ed = histogram( D*D,bins=bins, range=range)
     scatter( ed,h )
     subplot(212)
     scatter(X,Y,s=1)
     show()
 
- 
-
     return D
-    
-
-def dumpImagePixels(image):
-    wcs = astWCS.WCS( image.header, mode='pyfits' )
-    ia = arange(image.data.shape[0])
-    ja = arange(image.data.shape[0])
-
-    for ii in ia:
-        for jj in ja:
-            print ii,jj,wcs.pix2wcs( ii,jj ),data[ii,jj]
 
 
 if __name__ == "__main__":
