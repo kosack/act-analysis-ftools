@@ -162,5 +162,6 @@ if __name__ == "__main__":
                                   cutLevels=["relative", 99.5], 
                                   colorMapName="jet"   )
         img.draw()
-        title("Crab Nebula")
         show()
+
+
