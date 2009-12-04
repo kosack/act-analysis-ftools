@@ -6,7 +6,7 @@ from pylab import *
 from astLib import astWCS
 from astLib import astCoords
 
-def makeRadialProfile(events,bins=20,range=[0,7]):
+def makeRadialProfile(events,bins=10,range=[0,7]):
     """ 
     Generates an radial profile from the events given in Detector
     coordinates (which are assumed to have (0,0) as the origin)
@@ -29,20 +29,29 @@ def makeRadialProfile(events,bins=20,range=[0,7]):
     Y = events.data.field("DETY")
     D = sqrt(X**2 + Y**2)
 
-    h,ed = histogram( D*D,bins=bins, range=range,normed=False)
+    th2hist,ed = histogram( D*D,bins=bins, range=range,normed=False, new=True)
+    print "  HIST: ",th2hist
+
+    nevents = sum(th2hist)
+    area = math.pi*(ed[1]-ed[0])*bins
+    th2hist /= area  # TODO: really should correct by exclusion area
+
+    print "total events in list: ",len(X)
+    print "total events in hist: ",nevents
+    print "SC HIST: ",th2hist
 
 #    scatter( ed, h )
 #    show()
 
 
-    return h,ed
+    return th2hist,ed
 
 def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
     """
     Returns an acceptance map
     
     Arguments:
-    - `events`: hdu containing eventlist
+    - `events`: hdu containing *excluded* eventlist
     - `imagehdu`: hdu for the source image 
     """
     runhdr = events.header
@@ -52,9 +61,11 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
 
     # TODO: need to correct the profile for exclusion regions! Use
     # make-flat-eventlist.py and pass events through the region
-    # filter?
+    # filter? For now it's just ignored...
 
     wcs = astWCS.WCS( imagehdu.header, mode='pyfits' )
+    binarea = wcs.getXPixelSizeDeg() * wcs.getYPixelSizeDeg()
+    print "BINAREA: ",binarea
 
     outhdu = imagehdu.copy()
     acc = outhdu.data
@@ -65,8 +76,15 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
     ia,ja = np.mgrid[0:nx,0:ny]+0.5
     z=(ia+ja*1j).flatten() 
 
+    # transform pixel grid to RA/Dec coordinates and calculate angular
+    # separation
     radec=array(wcs.pix2wcs( z.real,z.imag ))
 
+    # have to do a loop here since calcAngSepDeg only takes a
+    # scalar.. could use map() maybe, but it's reasonably fast.  Note
+    # that calcAngSepDeg only works for RA/Dec coordinates and assumes
+    # a tangent projection (see astLib documentation). SHould be done
+    # properly in 3D!
 
     dists2 = zeros(radec.shape[0])
     for ii in range(radec.shape[0]):
@@ -76,13 +94,7 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
     print dists2.shape,ia.shape
     dists2.shape = ia.shape
 
-    # need to to wcs transform and get angular distance to obspos here...
-
-    
-    acc = np.interp( dists2,  edges[:edges.shape[0]-1], profile )
-#    acc /= acc[nx/2,ny/2] # 1.0 at center
-
-
+    acc = np.interp( dists2,  edges[:edges.shape[0]-1], profile ) * binarea
     
     if (debug):
         testx=arange(0,5.5,0.1)**2
@@ -91,6 +103,7 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
         scatter( edges,profile )
         scatter( testx, testa, color='r' )
         show()
+
 
     return acc
 
@@ -118,3 +131,5 @@ if __name__ == "__main__":
 
     if (opts.output):
         pyfits.writeto( opts.output, header=imhdu.header, data=A,clobber=True )
+        
+
