@@ -13,8 +13,9 @@ $FOVY = 6.0;
 
 $outdir = "$ENV{HOME}/Analysis/FITSEventLists/Analysis";
 
-unlink "$outdir/cmap_sum.fits";
-unlink "$outdir/cmap_sum_masked.fits";
+unlink "$outdir/sum_cmap.fits";
+unlink "$outdir/sum_cmap_masked.fits";
+unlink "$outdir/sum_acc.fits";
 
 $PYTHON="python2.6";
 if (system("python2.6 -V")){
@@ -87,9 +88,9 @@ foreach $evlist (<$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
 
     # update the summed countmap
     
-    updateSum( "$outdir/cmap_sum.fits", $cmapname );
-    updateSum( "$outdir/cmap_sum_masked.fits", $maskcmapname );
-    updateSum( "$outdir/acc_sum.fits", $accname );
+    updateSum( "$outdir/sum_cmap.fits", $cmapname );
+    updateSum( "$outdir/sum_cmap_masked.fits", $maskcmapname );
+    updateSum( "$outdir/sum_acc.fits", $accname );
 
     $is_first_iter=0
 
@@ -136,7 +137,17 @@ sub runtool($) {
 	print "$command\n";
     }
     else {
-	system($command) ;#or die "Command failed: '$command'\n";
+	system($command);
+	if ($? == -1) {
+	    die "failed to execute: $!\n";
+	}
+	elsif ($? & 127) {
+	    die "!"x70,"\nKilled at command: \n $command\n";
+	}
+	else {
+	    sprintf("child exited with value %d\n", $? >> 8);
+	}
+
     }
 
 }
