@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import pyfits
-from numpy import *
+import numpy as np
 
 from pylab import *
 from astLib import astPlots
@@ -90,34 +90,6 @@ def makeCountMap(hdu, ra,dec, output=None, verbose=False):
     return H
 
 
-def makeAcceptanceFromEvents(events,image,bins=20,range=[0,7]):
-    """ 
-    Generates an acceptance map from the events of a single run
-    (doesn't use lookups, just a simple accepance-from-data
-    
-    Arguments:
-    - `eventshdu`: hdu of cut and masked eventlist (uses header and event info)
-    - `imagehdu`: hdu of output image
-    """
-    
-    # build 1D histogram in detector coordinates (pointing dir is 0,0,
-    # and distances are in degrees from center)
-
-    runhdr = events.header
-    obspos = array([runhdr.get("RA_PNT"), runhdr.get("DEC_PNT")])
-    
-    X = events.data.field("DETX")
-    Y = events.data.field("DETY")
-    D = sqrt(X**2 + Y**2)
-
-    subplot(211)
-    h,ed = histogram( D*D,bins=bins, range=range)
-    scatter( ed,h )
-    subplot(212)
-    scatter(X,Y,s=1)
-    show()
-
-    return D
 
 
 if __name__ == "__main__":

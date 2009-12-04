@@ -17,6 +17,11 @@ unlink "$outdir/cmap_sum.fits";
 unlink "$outdir/cmap_sum_masked.fits";
 
 $PYTHON="python2.6";
+if (system("python2.6 -V")){
+    $PYTHON="python2.4";
+}
+
+$is_first_iter = 1;
 
 foreach $evlist (<$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
     
@@ -41,10 +46,10 @@ foreach $evlist (<$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
     # but it works)
 
     $maskname = "${bname}_event_masked.fits.gz";
-    $mask = "regfilter(\"excluded.reg\",RA,DEC)";
+    $exclmask = "regfilter(\"excluded.reg\",RA,DEC)";
     if (! -e $maskname) {
 	print "EXCLUDE: --> $maskname \n";
-	runtool( "ftselect $selname $maskname '$mask'")
+	runtool( "ftselect $selname $maskname '$exclmask'")
     }
    
     # make a countmap
@@ -55,10 +60,38 @@ foreach $evlist (<$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab/*.fits.gz>) {
     makeMap( $cmapname, $selname );
     makeMap( $maskcmapname, $maskname );
 
+    # generate exclusion map
+    $flatlistname ="$outdir/flatlist.fits";
+    $excllistname ="$outdir/excllist.fits";
+    $flatmapname = "$outdir/flatmap.fits";
+    $exclmapname = "$outdir/exclmap.fits";
+    if ($is_first_iter) {
+	unlink $flatlistname;
+	unlink $excllistname;
+
+	# make flat eventlist
+	runtool("$PYTHON make-flat-eventlist.py -s 1 $cmapname $flatlistname");
+	# make excluded flat eventlist
+	runtool("ftselect $flatlistname $excllistname '$exclmask'");
+	# make exclusion map and flat map
+	makeMap( $flatmapname, $flatlistname );
+	makeMap( $exclmapname, $excllistname );
+    }
+
+    # generate acceptance map
+
+    $accname = "${bname}_acc.fits";
+    if (! -e $accname ){ 
+       	runtool( "$PYTHON acceptance.py --output $accname $maskname $cmapname" );
+    }
+
     # update the summed countmap
     
     updateSum( "$outdir/cmap_sum.fits", $cmapname );
     updateSum( "$outdir/cmap_sum_masked.fits", $maskcmapname );
+    updateSum( "$outdir/acc_sum.fits", $accname );
+
+    $is_first_iter=0
 
 }
 
