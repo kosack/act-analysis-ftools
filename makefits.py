@@ -7,8 +7,16 @@ from pylab import *
 from astLib import astPlots
 from astLib import astWCS
 
-def makeFITS(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
-             output=None):
+
+#
+# TODO:
+#    - add a makeCube() function, with logEnergy as the 3rd dimension
+#
+
+
+
+def makeImage(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
+              output=None):
     """
     Generate a blank FITS image. Returns a HDU with the given geometry
     (so far in RA/Dec only). 
@@ -69,9 +77,10 @@ def makeCountMap(hdu, ra,dec, output=None, verbose=False):
     pixsize = array( (wcs.getXPixelSizeDeg(),wcs.getYPixelSizeDeg()))
     
     
-    imrange = zip( (0,0), bins) # TODO: probably need some half bins here to make it
+    imrange = zip( (0,0), bins) # TODO: probably need some half bins
+                                                # here to make it
                                                 # right?  check
-                                                # histogram code
+                                                # histogram2d code
     if verbose:
         print "range: ",imrange
     
@@ -142,7 +151,7 @@ if __name__ == "__main__":
         print "   FOV:",FOV
 
     # generate blank output image:
-    hdu = makeFITS( centerRADec=center, geom=geom, FOV=FOV,projection=options.proj)
+    hdu = makeImage( centerRADec=center, geom=geom, FOV=FOV,projection=options.proj)
     wcs = astWCS.WCS( hdu.header, mode='pyfits' )
 
     # get events

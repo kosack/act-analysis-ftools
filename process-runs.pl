@@ -6,8 +6,8 @@ use strict 'vars';
 my $Dryrun=0;
 my $CenterRA = 83.633333;
 my $CenterDec= 22.014444;
-my $GeomX = 256;
-my $GeomY = 256;
+my $GeomX = 151;
+my $GeomY = 151;
 my $FOVX = 6.0;
 my $FOVY = 6.0;
 
@@ -35,13 +35,15 @@ my $is_first_iter = 1;
 
 MAIN: {
 
+    my $count =0;
+
     foreach my $evlist (@infilelist) {
 
 	my $run=0;
 	$_ = $evlist; 
 	$run = $1+0 if (/.*run_([0-9]+).*/);
-	print "RUN: $run\n";
-	
+	$count++;
+
 	my $subdir = sprintf("run%06d", $run );
 
 	my $bname=basename($evlist,"_eventlist.fits.gz");
@@ -49,6 +51,7 @@ MAIN: {
 	mkdir("$outdir/$subdir") if (! -e "$outdir/$subdir");
 
 	print "="x70,"\n";
+	print " RUN $run: $count of ",scalar(@infilelist)," ...\n";
 	print " $evlist \n";
 	print "="x70,"\n";
 
@@ -73,6 +76,18 @@ MAIN: {
 	    runtool( "ftselect $selname $maskname '$exclmask'")
 	}
 
+	# generate a 1-D reflected-region background selector:
+	if ($PYTHON ne "python2.4")  {
+	    my $refregionname = "${bname}_OFF.reg";
+	    if (!-e $refregionname) {
+		my $oldcwd;
+		chomp($oldcwd = `pwd`);
+		chdir("$outdir/$subdir");
+		runtool("$PYTHON $oldcwd/regionbg.py 0.01 $evlist");
+		chdir($oldcwd);
+	    }
+	}
+
 	# make a countmap
 
 	my $cmapname="${bname}_cmap.fits";
@@ -83,7 +98,8 @@ MAIN: {
 
 	# generate exclusion map, which is just a binned version of
 	# the exclusion mask. This can be used for example to
-	# calcualate the area covered by masked regions
+	# calculate the area covered by masked regions
+
 	my $flatlistname ="$outdir/flatlist.fits";
 	my $excllistname ="$outdir/excllist.fits";
 	my $flatmapname = "$outdir/flatmap.fits";
@@ -92,11 +108,13 @@ MAIN: {
 	    unlink $flatlistname;
 	    unlink $excllistname;
 
+	    print "FLAT EVENTLISTS: $flatlistname \n";
 	    # make flat eventlist
 	    runtool("$PYTHON make-flat-eventlist.py -s 1 $cmapname $flatlistname");
 	    # make excluded flat eventlist
 	    runtool("ftselect $flatlistname $excllistname '$exclmask'");
 	    # make exclusion map and flat map
+	    print "EXCLUSION MAP: $exclmapname \n";
 	    makeMap( $flatmapname, $flatlistname );
 	    makeMap( $exclmapname, $excllistname );
 	}
@@ -105,6 +123,7 @@ MAIN: {
 
 	my $accname = "${bname}_acc.fits";
 	if (! -e $accname ){ 
+	    print "ACCEPTANCE MAP: $accname \n";
 	    runtool( "$PYTHON acceptance.py --output $accname ".
 		     "$maskname $cmapname" );
 	}
@@ -127,14 +146,21 @@ MAIN: {
 	updateSum( $sum{acc}, $accname );
 	updateSum( $sum{fov_excess}, $excessname );
 
-	$is_first_iter=0
+	$is_first_iter=0;
+
+	# debug:
+#	print "DEBUG: FINISHING ON FIRST RUN !!!!!! \n";
+#	last; 
 
     }
 
     # make fov excess map from sums:
     my $fovexcessname = "$outdir/excess_fov.fits";
+    my $fovexcessnamemasked = "$outdir/excess_fov_masked.fits";
     print "FOV EXCESS MAP: ";
     runtool("ftpixcalc $fovexcessname 'A-B' a=$sum{cmap} b=$sum{acc} clobber=true");
+    runtool("ftpixcalc $fovexcessnamemasked 'A-B' ".
+	    "a=$sum{cmap_masked} b=$sum{acc} clobber=true");
 
 }
 
@@ -177,7 +203,7 @@ sub runtool($) {
     my $command = shift();
     
     if ($Dryrun) {
-	print "$command\n";
+	print "\% $command\n";
     }
     else {
 	system($command);

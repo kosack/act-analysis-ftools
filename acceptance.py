@@ -31,13 +31,19 @@ def makeRadialProfile(events,bins=10,range=[0,7]):
 
     th2hist,ed = histogram( D*D,bins=bins, range=range,normed=False, new=True)
     print "  HIST: ",th2hist
+    th2hist = th2hist.astype(np.float64)
 
     nevents = sum(th2hist)
-    area = math.pi*(ed[1]-ed[0])*bins
-    th2hist /= area  # TODO: really should correct by exclusion area
+    areaperbin = math.pi*(ed[1]) # ed[1]=r^2 (each bin has equal 2D area)
+    th2hist /= areaperbin      # now in units of counts/deg^2 (density)
 
+    # TODO: really should correct by exclusion area
+
+    print "edges in t^2: ", ed
+    print "edges in   t: ", sqrt(ed)
     print "total events in list: ",len(X)
     print "total events in hist: ",nevents
+    print " area per radial bin: ", areaperbin,"deg^2"
     print "SC HIST: ",th2hist
 
 #    scatter( ed, h )
@@ -65,7 +71,7 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
 
     wcs = astWCS.WCS( imagehdu.header, mode='pyfits' )
     binarea = wcs.getXPixelSizeDeg() * wcs.getYPixelSizeDeg()
-    print "BINAREA: ",binarea
+    print "2D BIN AREA:",binarea, "deg^2"
 
     outhdu = imagehdu.copy()
     acc = outhdu.data
@@ -94,14 +100,29 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
     print dists2.shape,ia.shape
     dists2.shape = ia.shape
 
-    acc = np.interp( dists2,  edges[:edges.shape[0]-1], profile ) * binarea
+    # interpolate the squared distances to each bin from the radial
+    # profile. 
+
+    acc = np.interp( dists2,  edges[:edges.shape[0]-1], profile ) 
+
+    # [counts/area] * area = [counts]"
+    acc *= binarea
+
+    # want integrals to match: sum(acc) = sum(profile)
+    print "INTEGRALS: profile=",sum(profile), " acc=", sum(acc)
     
+
     if (debug):
-        testx=arange(0,5.5,0.1)**2
+        testx=dists2[dists2.shape[0]/2] #arange(0,5.5,0.1)**2
         testa = np.interp( testx, edges[:edges.shape[0]-1], profile )
-        print zip(testx,testa)
-        scatter( edges,profile )
-        scatter( testx, testa, color='r' )
+        reala = acc[dists2.shape[0]/2]/binarea
+        #print zip(testx,testa)
+        scatter( edges,profile,label='Radial Acc' )
+        scatter( testx, testa, color='r', s=1, label='Interpolated' )
+        scatter( testx, reala, color='g', s=1, label='2D Interpolated' )
+        xlabel("$\Theta^2$")
+        ylabel("$Counts/deg^2$")
+        legend()
         show()
 
 
