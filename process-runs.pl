@@ -21,15 +21,20 @@ $sum{cmap_masked} = "$outdir/sum_cmap_masked.fits";
 $sum{acc} = "$outdir/sum_acc.fits";
 $sum{fov_excess} = "$outdir/sum_fov_excess.fits";
 
-foreach my $map (keys %sum) {
-    print "Clearing sum: $map\n";
-    unlink $sum{$map};
-}
+die "Please init your FTOOLS distribution!\n" if system("fversion");
+
 
 my $PYTHON="python2.6";
 if (system("python2.6 -V")){
     $PYTHON="python2.4";
 }
+
+foreach my $map (keys %sum) {
+    print "Clearing sum: $map\n";
+    unlink $sum{$map};
+}
+
+
 
 my $is_first_iter = 1;
 
