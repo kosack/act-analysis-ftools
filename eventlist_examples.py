@@ -142,16 +142,26 @@ def display_events(events):
     # arbitrary projections.
 
     subplot(2,2,1)
-    X = events.data.field("DETX")
-    Y = events.data.field("DETY")
+    try:
+        X = events.data.field("DETX")
+        Y = events.data.field("DETY")
+    except:
+        X = events.data.field("SKYX")
+        Y = events.data.field("SKYY")
+
     (h2d,xe,ye) = histogram2d( X,Y, bins=(50,50), range=[(-3,3),(-3,3)] )
     pcolor( xe,-ye, h2d.transpose() )
     colorbar();
     title("No Cuts")
 
     plt = subplot(2,2,2)
-    X = cutdata.field("DETX")
-    Y = cutdata.field("DETY")
+    try:
+        X = cutdata.field("DETX")
+        Y = cutdata.field("DETY")
+    except:
+        X = cutdata.field("SKYX")
+        Y = cutdata.field("SKYY")
+
     (h2d,xe,ye) = histogram2d( X,Y, bins=(50,50), range=[(-3,3),(-3,3)] )
     pcolor( xe,-ye, h2d.transpose() )
     colorbar();
@@ -239,10 +249,27 @@ def display_sim(events):
         xlim(-2,2)
         ylim(0,1)
 
+def display_array(telarray):
+
+
+    if (telarray.data == None):
+        return
+
+    X = telarray.data.field("POSX")
+    Y = telarray.data.field("POSY")
+    Z = telarray.data.field("POSZ")
+    
+    scatter( X,Y )
+    title( "Telescope positions" )
+
+
+
 def display(filename):
     """ perform all displays on the eventlist given """
 
-    hdu = pyfits.open(filename)['EVENTS']
+    ff = pyfits.open(filename)
+    hdu = ff['EVENTS']
+    tel = ff['TELARRAY']
 
     figure()
     display_telescope_pattern( hdu )
@@ -254,8 +281,15 @@ def display(filename):
     display_events(hdu)
 
     figure()
+    display_array( tel )
+
+    figure()
     if (hasSimulationData( hdu) ):
         display_sim( hdu )
+
+
+
+
 
 def enableSim():
     def get_cut_data(hdu):

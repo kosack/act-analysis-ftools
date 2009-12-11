@@ -6,6 +6,11 @@
 # Author: Karl Kosack <karl.kosack@cea.fr>
 #
 
+#
+# TODO: 
+#   - use WCS info for angular distances
+#   - allow user-specified source position (currently uses the object in the header)
+
 from __future__ import with_statement
 import pyfits
 import sys
