@@ -6,8 +6,8 @@ use strict 'vars';
 my $Dryrun=0;
 my $CenterRA = 83.633333;
 my $CenterDec= 22.014444;
-my $GeomX = 151;
-my $GeomY = 151;
+my $GeomX = 301;
+my $GeomY = 301;
 my $FOVX = 6.0;
 my $FOVY = 6.0;
 
@@ -15,16 +15,8 @@ my $indir= "$ENV{HOME}/Analysis/FITSEventLists/HESS_Crab";
 my $outdir = "$ENV{HOME}/Analysis/FITSEventLists/Analysis";
 my @infilelist = <$indir/*.fits.gz>; # list of input eventlist files
 
-my %sum;
-$sum{cmap} = "$outdir/sum_cmap.fits";
-$sum{cmap_masked} = "$outdir/sum_cmap_masked.fits";
-$sum{acc} = "$outdir/sum_acc.fits";
-$sum{fov_excess} = "$outdir/sum_fov_excess.fits";
 
-foreach my $map (keys %sum) {
-    print "Clearing sum: $map\n";
-    unlink $sum{$map};
-}
+my %sumlist;
 
 my $PYTHON="python2.6";
 if (system("python2.6 -V")){
@@ -77,15 +69,13 @@ MAIN: {
 	}
 
 	# generate a 1-D reflected-region background selector:
-	if ($PYTHON ne "python2.4")  {
-	    my $refregionname = "${bname}_OFF.reg";
-	    if (!-e $refregionname) {
-		my $oldcwd;
-		chomp($oldcwd = `pwd`);
-		chdir("$outdir/$subdir");
-		runtool("$PYTHON $oldcwd/regionbg.py 0.01 $evlist");
-		chdir($oldcwd);
-	    }
+	my $refregionname = "${bname}_OFF.reg";
+	if (!-e $refregionname) {
+	    my $oldcwd;
+	    chomp($oldcwd = `pwd`);
+	    chdir("$outdir/$subdir");
+	    runtool("python $oldcwd/regionbg.py 0.01 $evlist");
+	    chdir($oldcwd);
 	}
 
 	# make a countmap
@@ -140,11 +130,16 @@ MAIN: {
 	}
 
 	# update the maps that should be summed over runs:
+	
+	push @{$sumlist{cmap}}, $cmapname;
+	push @{$sumlist{cmap_masked}}, $maskcmapname;
+	push @{$sumlist{acc}}, $accname;
+	push @{$sumlist{fov_excess}}, $excessname;
 
-	updateSum( $sum{cmap}, $cmapname );
-	updateSum( $sum{cmap_masked}, $maskcmapname );
-	updateSum( $sum{acc}, $accname );
-	updateSum( $sum{fov_excess}, $excessname );
+#	updateSum( $sum{cmap}, $cmapname );
+#	updateSum( $sum{cmap_masked}, $maskcmapname );
+#	updateSum( $sum{acc}, $accname );
+#	updateSum( $sum{fov_excess}, $excessname );
 
 	$is_first_iter=0;
 
@@ -152,15 +147,43 @@ MAIN: {
 #	print "DEBUG: FINISHING ON FIRST RUN !!!!!! \n";
 #	last; 
 
+    } # end of run loop
+
+
+    # Now do all the sums
+
+    my %sum;
+    foreach my $sumname (keys %sumlist) {
+	$sum{$sumname} = "sum_$sumname.fits";
+
+	if (!-e $sum{$sumname}) {
+	    print "SUMMING: $sumname ...\n";
+	    foreach my $map (@{$sumlist{$sumname}}) {
+		print "\t$map\n";
+		
+		updateSum( $sum{$sumname}, $map );
+	    }
+	}
     }
+
 
     # make fov excess map from sums:
     my $fovexcessname = "$outdir/excess_fov.fits";
-    my $fovexcessnamemasked = "$outdir/excess_fov_masked.fits";
-    print "FOV EXCESS MAP: ";
+    print "FOV EXCESS MAP: $fovexcessname \n";
     runtool("ftpixcalc $fovexcessname 'A-B' a=$sum{cmap} b=$sum{acc} clobber=true");
-    runtool("ftpixcalc $fovexcessnamemasked 'A-B' ".
-	    "a=$sum{cmap_masked} b=$sum{acc} clobber=true");
+
+
+    # make a significance map from sums: (for FOV model, the error is
+    # the error on N_off, and alpha=1, so the formula is very simple:)
+    my $fovsigname = "$outdir/significance_fov.fits";
+    my $fovexcessname_cor = "$outdir/excess_fov_cor.fits";
+    my $acc_cor = "$outdir/sum_acc_cor.fits";
+    runtool("fboxcar $fovexcessname $fovexcessname_cor 10 10 clobber=yes");
+    runtool("fboxcar $sum{acc} $acc_cor 10 10 clobber=yes");
+
+    print "FOV SIGNIF MAP: $fovsigname \n";
+    runtool( "ftpixcalc $fovsigname 'A/(sqrt(B))' a=$fovexcessname_cor b=$acc_cor clobber=true" );
+
 
 }
 
@@ -183,12 +206,12 @@ sub updateSum($$){
     my $input = shift();
     my $tmp = "$outdir/temp_sum.fits";
 
-    print "SUM: $sumname <- $input\n";
+    #print "SUM: $sumname <- $input\n";
 
     if (! -e $sumname) {
 	system( "cp $input $sumname");
 	unlink $tmp if (-e $tmp);
-	print "CREATED $sumname on first iteration\n";
+	print "\tCREATED $sumname on first iteration\n";
     }
     else {
 	runtool("ftpixcalc $tmp 'A+B' a=$sumname b=$input clobber=true");
