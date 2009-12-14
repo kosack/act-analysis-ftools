@@ -25,17 +25,17 @@ REDIRECT= >> output.log 2>&1 # set to blank to get all output
 
 EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' # spatial exclusion filter
 
-# parameters passed to MAKEFITS to generate the images
+# parameters passed to MAKEMAP to generate the images
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC))
 
 PYTHON=python
 TOOLSDIR=$(HOME)/Source/PyFITSTools
-MAKEFITS=$(PYTHON) $(TOOLSDIR)/make-fits-image.py
+MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
 ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py
 SUMMER=$(TOOLSDIR)/sum_maps.pl
-FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py -s 1 
+FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
@@ -61,12 +61,12 @@ all:  fov_excess.fits
 # countmap 
 %_cmap.fits: %_event_selected.fits
 	@echo COUNT MAP $*
-	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
-#excluded count map
+# excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits
 	@echo  EXCLUDED COUNT MAP $*
-	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 # acceptance map
 %_accmap.fits: %_event_excluded.fits %_cmap.fits 
@@ -107,11 +107,11 @@ flatlist_excluded.fits: flatlist.fits
 
 exclmap.fits: flatlist_excluded.fits
 	@echo "EXCLUSION MAP: $@"
-	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 flatmap.fits: flatlist.fits
 	@echo "FLAT MAP: $@"
-	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 
 # Field-of-view background model map (background is assumed to be the
