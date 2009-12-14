@@ -3,22 +3,24 @@
 # summaps.pl -o <sumfile> file1 [file2 ...]
 
 use Getopt::Std;
-$opt{o} = "sum.fits";
-getopt('o:', \%opt);
+getopts('o:v');
 
-print "Output: $opt{o}\n";
+$output = "sum.fits";
+$output = $opt_o if $opt_o;
 
-$output = $opt{o};
+print "SUMMING: $output \n" if $opt_v;
 
 foreach $image (@ARGV) {
     if (-e $output) {
-	print "ADDING $image to $output...\n";
-	system( "ftpixcalc temp_$output 'A+B' a=$output b=$image clobber=true");
+	print "ADDING $image to $output...\n" if $opt_v;
+	$cmd = "ftpixcalc temp_$output 'A+B' a=$output b=$image clobber=true";
+	print `$cmd`; #	    or die "Failed to run: $cmd\n";
 	rename( "temp_$output", $output);
     }
     else {
-	rename $image, $output;
-	print "CREATED $output from $image\n";
+	system("cp $image $output");
+	print "CREATED $output from $image\n" if $opt_v;
     }
 }
 
+unlink "temp_$output"; 

@@ -11,13 +11,14 @@ GEOMY=301
 CENTERRA=83.633333
 CENTERDEC=22.014444
 
+
+REDIRECT= >> output.log 2>&1 # set to blank to get all output
+
 # =========================================================================
 # runlist
 # =========================================================================
 LISTS=$(wildcard $(SOURCEDIR)/*.fits.gz)
 BASERUNS=$(patsubst %_eventlist.fits,%,$(basename $(notdir $(LISTS))))
-RUNS=$(addsuffix _accmap.fits,$(BASERUNS))
-RUNS_CMAP=$(addsuffix _cmap.fits,$(BASERUNS))
 
 # =========================================================================
 # utility parameters
@@ -25,9 +26,12 @@ RUNS_CMAP=$(addsuffix _cmap.fits,$(BASERUNS))
 MAPARGS=--fov $(FOVX),$(FOVY) --geom $(GEOMX),$(GEOMY) \
 	--center $(CENTERRA),$(CENTERDEC)
 
-MAKEFITS=$(HOME)/Source/PyFITSTools/makefits.py
-ACCEPTANCE=$(HOME)/Source/PyFITSTools/acceptance.py
-SUMMER=$(HOME)/Source/PyFITSTools/sum_maps.pl
+PYTHON=python
+TOOLSDIR=$(HOME)/Source/PyFITSTools
+MAKEFITS=$(PYTHON) $(TOOLSDIR)/makefits.py
+ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py
+SUMMER=$(TOOLSDIR)/sum_maps.pl
+FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py -s 1 
 
 # =========================================================================
 # Rules to generate various outputs:
@@ -37,57 +41,105 @@ SUMMER=$(HOME)/Source/PyFITSTools/sum_maps.pl
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 	echo "Secondary $@"
 
-all: $(RUNS)
-	@echo "Processing runs"
+all: fov_excess.fits
+	@echo "Done processing runs"
 
 # Gamma-hadron separated eventlist
 %_event_selected.fits: $(SOURCEDIR)/%_eventlist.fits.gz
-	@echo *** EVENT SELECTION $*
-	ftselect $< $@ $(CUTS)
+	@echo EVENT SELECTION $*
+	@ftselect $< $@ $(CUTS) $(REDIRECT)
 
 # masked eventlist
 %_event_excluded.fits: %_event_selected.fits
-	@echo ===========================================
 	@echo EVENT EXCLUSION $*
-	@echo ===========================================
-	ftselect $< $@ $(EXCLMASK)
+	@ftselect $< $@ $(EXCLMASK) $(REDIRECT)
 
 # countmap 
 %_cmap.fits: %_event_selected.fits
-	@echo ===========================================
 	@echo COUNT MAP $*
-	@echo ===========================================
-	python $(MAKEFITS) $(MAPARGS) --output $@ $<
+	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
 
 #excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits
-	@echo ===========================================
 	@echo  EXCLUDED COUNT MAP $*
-	@echo ===========================================
-	python $(MAKEFITS) $(MAPARGS) --output $@ $<
+	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
 
 # acceptance map
 %_accmap.fits: %_event_excluded.fits %_cmap.fits 
-	@echo ===========================================
 	@echo ACCEPTANCE MAP $*
-	@echo ===========================================
-	python $(ACCEPTANCE) --output $@ $^
+	@$(ACCEPTANCE) --output $@ $^ $(REDIRECT)
 
-# sum_cmap.fits: $(RUNS_CMAP)
-# 	for ii in $^; do \
-# 		if [ -e $@ ]; then \
-# 			echo adding $$ii to $@; \
-# 			ftpixcalc temp_$@ 'A+B' a=$@ b=$$ii clobber=true; \
-# 		 	mv temp_$@ $@ ;\
-# 		else \
-# 			cp $$ii $@ ;\
-# 			echo CREATED  $@ from $$ii;\
-# 		fi ;\
-# 	done
+# ==============================================================
+# Summed maps
+# ==============================================================
+
+RUNS_CMAP=$(addsuffix _cmap.fits,$(BASERUNS))
+RUNS_CMAP_EXCL=$(addsuffix _cmap_excluded.fits,$(BASERUNS))
+RUNS_ACCMAP=$(addsuffix _accmap.fits,$(BASERUNS))
 
 sum_cmap.fits: $(RUNS_CMAP)
-	$(SUMMER) -o $@ $^
+	@$(RM) $@
+	@$(SUMMER) -v -o $@ $^ 
 
 
-clean:
-	 rm -fv run_*_*.fits
+sum_cmap_excluded.fits: $(RUNS_CMAP_EXCL)
+	@$(RM) $@
+	@$(SUMMER) -v -o $@ $^
+
+
+sum_accmap.fits: $(RUNS_ACCMAP)
+	@$(RM) $@
+	@$(SUMMER) -v -o $@ $^
+
+
+# ==============================================================
+# Final maps
+# ==============================================================
+
+# exclusion map
+FIRSTCMAP=$(firstword $(RUNS_CMAP))
+
+flatlist.fits: $(FIRSTCMAP)
+	@echo "FLAT EVENTLIST: $@ using $^"
+	@$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
+
+flatlist_excluded.fits: flatlist.fits
+	@echo "FLAT EVENTLIST EXCLUDED: $@"
+	@ftselect $< $@ $(EXCLMASK) $(REDIRECT)	
+
+
+exclmap.fits: flatlist_excluded.fits
+	@echo "EXCLUSION MAP: $@"
+	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+
+flatmap.fits: flatlist.fits
+	@echo "FLAT MAP: $@"
+	@$(MAKEFITS) $(MAPARGS) --output $@ $< $(REDIRECT)
+
+
+# Field-of-view background model map (background is assumed to be the
+# scaled acceptance map)
+fov_excess.fits: sum_accmap.fits sum_cmap.fits
+	@echo FOV EXCESS MAP: $@
+	@ftpixcalc $@ 'A-B' a=sum_cmap.fits b=sum_accmap.fits \
+		clobber=true $(REDIRECT)
+
+
+# ==============================================================
+# cleanup
+# ==============================================================
+
+clean: clean-runs clean-sums clean-fov clean-excl
+	$(RM) output.log
+
+clean-runs:
+	$(RM) run_*_*.fits
+
+clean-sums:
+	$(RM) sum_*.fits
+
+clean-fov:
+	$(RM) fov_excess.fits	
+
+clean-excl:
+	$(RM) exclmap.fits flatmap.fits
