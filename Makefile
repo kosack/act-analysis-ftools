@@ -27,7 +27,7 @@ MAPARGS=--fov $(FOVX),$(FOVY) --geom $(GEOMX),$(GEOMY) \
 
 MAKEFITS=$(HOME)/Source/PyFITSTools/makefits.py
 ACCEPTANCE=$(HOME)/Source/PyFITSTools/acceptance.py
-
+SUMMER=$(HOME)/Source/PyFITSTools/sum_maps.pl
 
 # =========================================================================
 # Rules to generate various outputs:
@@ -73,16 +73,21 @@ all: $(RUNS)
 	@echo ===========================================
 	python $(ACCEPTANCE) --output $@ $^
 
-sum_cmap.fits: $(RUNS_CMAP)
-	@echo "RUNS: '$(RUNS_CMAP)'"
-	for ii in $(RUNS_CMAP); do echo $$ii ;done
+# sum_cmap.fits: $(RUNS_CMAP)
+# 	for ii in $^; do \
+# 		if [ -e $@ ]; then \
+# 			echo adding $$ii to $@; \
+# 			ftpixcalc temp_$@ 'A+B' a=$@ b=$$ii clobber=true; \
+# 		 	mv temp_$@ $@ ;\
+# 		else \
+# 			cp $$ii $@ ;\
+# 			echo CREATED  $@ from $$ii;\
+# 		fi ;\
+# 	done
 
-# do 
-#   echo $$ii
-#   ftpixcalc sum_cmap.tmp.fits 'A+B' a=$@ b=$$ii 
-#   rm -f $@
-#   mv sum_cmap.tmp.fits $@
-# done
+sum_cmap.fits: $(RUNS_CMAP)
+	$(SUMMER) -o $@ $^
+
 
 clean:
 	 rm -fv run_*_*.fits
