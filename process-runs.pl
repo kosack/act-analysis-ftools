@@ -94,7 +94,7 @@ sub makeMap($$) {
      
     if (! -e $mapname ) {
 	print "CMAP: --> $mapname\n";
-	runtool( "$PYTHON makefits.py $args --output $mapname $eventlist" );
+	runtool( "$PYTHON make-fits-image.py $args --output $mapname $eventlist" );
     }
 
 }
