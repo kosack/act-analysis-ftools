@@ -64,8 +64,6 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option( "-o","--output", dest="output", help="output filename")
-    parser.add_option( "-e","--exclmap", dest="exclusion", 
-                       help="exclusion map (FITS image)")
     parser.add_option( "-m","--onradius", dest="onradius", help="ON region radius")
     parser.add_option( "-f","--areafactor", dest="areafact", help="Area factor")
 

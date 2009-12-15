@@ -10,9 +10,13 @@ $output = $opt_o if $opt_o;
 
 print "SUMMING: $output \n" if $opt_v;
 
+$count=0;
+$tot= scalar(@ARGV);
 foreach $image (@ARGV) {
     if (-e $output) {
-	print "ADDING $image to $output...\n" if $opt_v;
+	$count++;
+	$pct = $count/$tot*100;
+	printf("[%3d%%] ADDING $image to $output ...\n",$pct) if $opt_v;
 	$cmd = "ftpixcalc temp_$output 'A+B' a=$output b=$image clobber=true";
 	print `$cmd`; #	    or die "Failed to run: $cmd\n";
 	rename( "temp_$output", $output);
