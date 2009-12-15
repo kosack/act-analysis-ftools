@@ -59,45 +59,6 @@ def makeRingMap(hdu, radii):
     pass
 
 
-def convolveImages(image1,image2,exclusionMap=None):
-    """
-    Convolves image1 with image2, which should be 2D arrays (the data
-    part of a FITS file), producing a new image, taking into account
-    an exclusion map if provided
-    
-    Arguments:
-    - `image1`: NxM array input image
-    - `image2`: NxM array convolution map
-    - `exclusionMap`:  NxM array of boolean values for exclusion
-    """
-    
-    if (image1.shape != image2.shape):
-        raise Exception("Image shapes don't agree")
-
-    if (exclusionMap == None):
-        excl=np.zeros( image1.shape )
-    else:
-        excl = exclusionMap
-
-    # note that the ring is centered at (nx/2, ny/2),
-    
-    # can probably do this in one big vector op with mgrid, but for
-    # now let's try it with for-loops (slow but easier)
-
-    nx,ny = image1.shape
-    cx,cy = nx/2,ny/2
-    conv = np.zeros( image1.shape )
-
-    print "Convolving... ",image1.shape, cx,cy
-    for ii in xrange(nx):
-        for jj in xrange(ny):
-            shifted = image2[ii-cx:ii-cx+nx,jj-cy:jj-cy+ny]
-            conv[ii,jj] = np.sum(image1 * shifted )
-            if (conv[ii,jj] > 0): print ii,jj,conv[ii,jj]
-
-    return conv
-
-
 if __name__ == "__main__":
 
     from optparse import OptionParser
@@ -105,8 +66,6 @@ if __name__ == "__main__":
     parser.add_option( "-o","--output", dest="output", help="output filename")
     parser.add_option( "-e","--exclmap", dest="exclusion", 
                        help="exclusion map (FITS image)")
-    parser.add_option( "-a","--accmap", dest="accmap", 
-                       help="acceptance map (FITS image)")
     parser.add_option( "-m","--onradius", dest="onradius", help="ON region radius")
     parser.add_option( "-f","--areafactor", dest="areafact", help="Area factor")
 
@@ -124,7 +83,6 @@ if __name__ == "__main__":
     area_on = math.pi*(r_on**2)
 
     print "  INPUT IMAGE: ",imfile
-    print "EXCLUSION MAP: ", opts.exclusion
     print "       OUTPUT: ", opts.output
     
     print "        RADII: ", radii
@@ -134,36 +92,12 @@ if __name__ == "__main__":
 
     imhdu = pyfits.open(imfile)[0]
 
-    excl = None
-    if (opts.exclusion):
-        excl =  pyfits.open(opts.exclusion)[0]
-
-    acc = pyfits.open( opts.accmap)[0]
-
     ring = makeRingMap(imhdu, radii)
     ring /= area_ring
 
-
-#    conv = convolveImages( imhdu.data, ring, exclusionMap=excl )
-    print "Convolving ON..."
-    conv = signal.fftconvolve( imhdu.data, ring, mode='same' )
-    print "Convolving ACC..."
-    aconv = signal.fftconvolve( acc.data, ring, mode='same' )
-    print "Convolving EXCL..."
-    econv = signal.fftconvolve( excl.data, ring, mode='same' )
-                              
-    
     if (opts.output):
-        pyfits.writeto( "ring_"+opts.output, header=imhdu.header,
+        pyfits.writeto( opts.output, header=imhdu.header,
                         data=ring,clobber=True )
-        pyfits.writeto( "acc_"+opts.output, header=imhdu.header, 
-                        data=aconv,clobber=True )
-        pyfits.writeto( opts.output, header=imhdu.header, 
-                        data=conv,clobber=True )
-        pyfits.writeto( "ringexcl_"+opts.output, header=imhdu.header, 
-                        data=econv,clobber=True )  
-        pyfits.writeto( "ringbg_"+opts.output, header=imhdu.header, 
-                        data=conv/econv,clobber=True )  
 
 
 
