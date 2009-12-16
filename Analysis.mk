@@ -38,6 +38,9 @@ CENTERDEC ?= 22.014444	      # center of output map in Dec
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1                  # on-region theta^2
 
+TOOLSDIR ?= $(HOME)/Source/PyFITSTools
+PYTHON ?= python
+
 # =========================================================================
 # runlist
 # =========================================================================
@@ -55,8 +58,8 @@ MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC))
 
-PYTHON=python
-TOOLSDIR=$(HOME)/Source/PyFITSTools
+
+
 MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
 ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py
 SUMMER=$(TOOLSDIR)/sum_maps.pl
@@ -70,14 +73,14 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl
 
 
-all:  setup verify ring_significance.fits 
+all:  setup ring_significance.fits 
 	@echo "Done processing runs"
 
 
 setup:
 	@echo FTOOLS
 	@fversion
-	@echo PYTHON
+	@echo PYTHON '$(PYTHON)'
 	@$(PYTHON) -V
 
 help:
@@ -92,7 +95,7 @@ help:
 
 
 # Gamma-hadron separated eventlist
-%_event_selected.fits: $(SOURCEDIR)/%_eventlist.fits.gz
+%_event_selected.fits: $(SOURCEDIR)/%_eventlist.fits.gz %_event_verify.txt
 	@echo EVENT SELECTION $*
 	@ftselect $< $@ $(CUTS) clobber=true $(REDIRECT)
 
