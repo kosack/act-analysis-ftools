@@ -70,7 +70,7 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl
 
 
-all:  setup verify fov_excess.fits 
+all:  setup verify ring_significance.fits 
 	@echo "Done processing runs"
 
 
@@ -163,6 +163,14 @@ flatmap.fits: flatlist.fits
 	@echo "FLAT MAP: $@"
 	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
+# tophat correlation of a map
+%_corr.fits: %.fits tophat.fits
+	@echo "TOPHAT CONVOLUTION: $*"
+	@$(CONVOLVE) --output $@ $< tophat.fits $(REDIRECT)
+
+tophat.fits: exclmap.fits
+	$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
+		    --make-on $^ $(REDIRECT)	
 
 #-------------------------------------------------------------------------
 # Field-of-view background model maps (background is assumed to be the
@@ -188,6 +196,7 @@ ring.fits: exclmap.fits
 	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		--areafactor 7.0 $^ $(REDIRECT)
 
+
 exclmap_ring.fits: exclmap.fits ring.fits
 	@echo "CONVOLVE RING EXCLMAP: $*"
 	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
@@ -209,8 +218,20 @@ exclmap_ring.fits: exclmap.fits ring.fits
 # basically offmap is really alpha*off)
 ring_excess.fits: cmap_sum.fits offmap_ring_sum.fits
 	@echo "RING EXCESS"
-	@ftpixcalc tmp.fits 'A-B' a=cmap_excluded_sum.fits \
+	@ftpixcalc $@ 'A-B' a=cmap_sum.fits \
 		b=offmap_ring_sum.fits clobber=yes $(REDIRECT)
+
+
+# TODO: need to properly calcualte alpha and use Li/Ma formula! 
+ring_significance.fits: cmap_sum_corr.fits offmap_ring_sum_corr.fits
+	@echo "RING SIGNIFICANCE: $@"
+	@ftpixcalc $@ '(A-B*1.0)/sqrt(1.0*(A+B))' \
+		a=cmap_sum_corr.fits \
+		b=offmap_ring_sum_corr.fits clobber=yes $(REDIRECT)
+
+# TODO: make a rule like:
+#  %_significance.fits: cmap_sum_corr.fits %_offmap_sum_corr.fits
+# (will need to rename some things like ring_offmap_sum_corr.fits
 
 # ==============================================================
 # Utilities
@@ -222,7 +243,8 @@ ring_excess.fits: cmap_sum.fits offmap_ring_sum.fits
 
 verify: $(addsuffix _event_verify.txt, $(BASERUNS))
 	@echo "VERIFY: Your runlist passes verification"
-
+clean::
+	$(RM) run*_event_verify.txt
 
 # ==============================================================
 # cleanup
@@ -230,7 +252,7 @@ verify: $(addsuffix _event_verify.txt, $(BASERUNS))
 
 
 
-clean: clean-runs clean-sums clean-fov clean-excl
+clean:: clean-runs clean-sums clean-fov clean-excl
 	$(RM) output.log
 
 clean-runs:

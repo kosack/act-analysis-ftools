@@ -66,6 +66,11 @@ if __name__ == "__main__":
     parser.add_option( "-o","--output", dest="output", help="output filename")
     parser.add_option( "-m","--onradius", dest="onradius", help="ON region radius")
     parser.add_option( "-f","--areafactor", dest="areafact", help="Area factor")
+    parser.add_option( "-g","--gap", dest="gap", default=0.1,
+                       help="Gap between r_ON and r1 in deg")
+    parser.add_option( "-O","--make-on", dest="makeon", action="store_true",
+                       default=False,
+                       help="instead of a ring, make an ON region (tophat)")
 
     (opts, args) = parser.parse_args()
     
@@ -74,9 +79,14 @@ if __name__ == "__main__":
     else:
         r_on = 0.1
     
+    
 
     imfile = args.pop(0)
-    radii = calcRadiiFromArea( r_on, areaFactor=7)
+    radii = calcRadiiFromArea( r_on, areaFactor=7, minGapDeg=float(opts.gap))
+
+    if (opts.makeon):
+        radii = (0,r_on)
+
     area_ring = ringArea( radii )
     area_on = math.pi*(r_on**2)
 
