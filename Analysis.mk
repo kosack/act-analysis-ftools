@@ -76,6 +76,8 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 all:  setup ring_significance.fits 
 	@echo "Done processing runs"
 
+deps.ps:
+	$(TOOLSDIR)/dependencies.pl | dot -Tps -o $@
 
 setup:
 	@echo FTOOLS

@@ -1,6 +1,7 @@
 #!/usr/bin/perl 
 
-# converts make dependency tree to dot
+# converts make dependency tree to dot (kind of a hack, but useful for
+# debugging the makefile)
 
 $usenames = 1;
 
@@ -69,7 +70,9 @@ if ($usenames) {
     foreach $name (sort keys %id) {
 	$num = $id{$name};
 
-	print "\t $num [label=\"$name\"];\n";
+	print "\t $num [label=\"$name\"";
+	print " shape=folder" if ($name =~ /^\%/);
+	print "];\n";
     }
 }
 
