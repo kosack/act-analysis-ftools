@@ -79,7 +79,7 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl clean-ring
 
 
-all:  setup ring_significance.fits 
+all:  setup diagnostic_significance.ps
 	@echo "Done processing runs"
 
 deps.ps:
@@ -267,16 +267,42 @@ ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
 LIMA='sqrt(2)*sqrt( A*log( (1+C)/C * (A/(A+B))) + B*log((1+C)*B/(A+B)) )'
 ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_sum_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
-	@ftpixcalc $@ $(LIMA)\
+	@ftpixcalc alt_$@ $(LIMA)\
 		a=cmap_sum_tophat.fits \
 		b=offmap_ring_sum_tophat.fits \
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
-	@ftpixcalc alt_$@ '(A-B*C)/sqrt(C*(A+B))'\
+	@ftpixcalc $@ '(A-B*C)/sqrt(C*(A+B))'\
 		a=cmap_sum_tophat.fits \
 		b=offmap_ring_sum_tophat.fits \
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
+
+ring_significance_masked.fits: cmap_sum_tophat_masked.fits ring_alpha_masked_tophat.fits offmap_ring_sum_masked_tophat.fits
+	@echo "RING SIGNIFICANCE: $@"
+	@ftpixcalc alt_$@ $(LIMA)\
+		a=cmap_sum_tophat_masked.fits \
+		b=offmap_ring_sum_masked_tophat.fits \
+		c=ring_alpha_masked_tophat.fits \
+		clobber=yes $(REDIRECT)
+	@ftpixcalc $@ '(A-B*C)/sqrt(C*(A+B))'\
+		a=cmap_sum_tophat_masked.fits \
+		b=offmap_ring_sum_tophat.fits \
+		c=ring_alpha_tophat.fits \
+		clobber=yes $(REDIRECT)
+
+#-------------------------------------------------------------------------
+# Diagnostic plots (some use gnuplot)
+#-------------------------------------------------------------------------
+
+diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_significance_imhist.fits ring_significance_masked_imhist.fits
+	@echo "DIAGNOSTIC: $@"
+	gnuplot $< > $@
+
+
+%_imhist.fits: %.fits
+	@echo "HISTOGRAM: $@"
+	@fimhisto $< $@ range=-10,100 binsize=0.5 clobber=yes $(REDIRECT)
 
 # TODO: make a rule like:
 #  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
