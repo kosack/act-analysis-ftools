@@ -62,7 +62,8 @@ EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' # spatial exclusion fil
 # parameters passed to MAKEMAP to generate the images
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
-	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC))
+	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
+	--proj ORT
 
 
 
@@ -74,9 +75,8 @@ MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
 CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
-	echo "Secondary"
 
-.PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl clean-ring
+.PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some
 
 
 all:  setup diagnostic_significance.ps
@@ -320,21 +320,24 @@ diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_signifi
 
 verify: $(addsuffix _event_verify.txt, $(BASERUNS))
 	@echo "VERIFY: Your runlist passes verification"
-clean::
-	$(RM) run*_event_verify.txt
+
 
 # ==============================================================
 # cleanup
 # ==============================================================
 
 
+clean: clean-some
 
-clean:: clean-runs clean-sums clean-fov clean-excl clean-ring
+distclean: clean-events clean-runs clean-sums clean-bg clean-excl 
 	$(RM) output.log
 	$(RM) *_tophat.fits
 	$(RM) deps.ps
+	$(RM) run*_event_verify.txt
+
 
 clean-some: clean-runs clean-sums clean-excl
+	$(RM) diagnostic_*.ps
 
 clean-runs:
 	$(RM) $(RUNS_CMAP)
@@ -343,14 +346,18 @@ clean-runs:
 	$(RM) $(RUNS_ACCMAP_RING)
 	$(RM) $(RUNS_OFFMAP_RING)
 
+clean-events:
+	$(RM) *_event_excluded.fits
+	$(RM) *_event_selected.fits
+
 clean-sums:
 	$(RM) *_sum.fits
 
-clean-fov:
+clean-bg:
 	$(RM) fov_*.fits	
+	$(RM) ring*.fits *_ring*.fits
+	$(RM) tophat.fits
 
 clean-excl:
 	$(RM) exclmap.fits flatmap.fits flatlist.fits flatlist_excluded.fits
 
-clean-ring:
-	$(RM) ring*.fits *_ring*.fits

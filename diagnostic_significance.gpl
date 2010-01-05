@@ -1,7 +1,9 @@
-set term postscript enhanced color "Times 14"
+set term postscript enhanced solid color  "Times 14"
 
 set log y
 set grid
 set title "Significance Distributions (Ring Background)"
-plot '< ftlist ring_significance_imhist.fits t' u 2:3 w step t 'full', \
-     '< ftlist ring_significance_masked_imhist.fits t' u 2:3 w step t 'masked'
+set xlabel "Significance (standard deviations)"
+set ylabel "Frequency within image"
+plot '< ftlist ring_significance_imhist.fits t' u 2:3 w step t 'full' 2 , \
+     '< ftlist ring_significance_masked_imhist.fits t' u 2:3 w step t 'masked' 1
