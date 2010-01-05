@@ -36,10 +36,16 @@ GEOMY ?= 301		      # number of Y bins in map (integer)
 CENTERRA ?= 83.633333	      # center of output map in RA
 CENTERDEC ?= 22.014444	      # center of output map in Dec
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
-ONRADIUS ?= 0.1                  # on-region theta^2
+ONRADIUS ?= 0.1               # on-region theta^2
+SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
+
+# calculate sigma of gaussian in pixels (uses SMOOTHRAD variable): 
+GAUSSSIG=`perl -e 'print ($(SMOOTHRAD)*$(GEOMX)/($(FOVX)+1e-12));'`
+
+
 
 # =========================================================================
 # runlist
@@ -70,7 +76,7 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 	echo "Secondary"
 
-.PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl
+.PHONY: setup clean help all verify clean clean-runs clean-sums clean-fov clean-excl clean-ring
 
 
 all:  setup ring_significance.fits 
@@ -169,13 +175,29 @@ flatmap.fits: flatlist.fits
 	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 # tophat correlation of a map
-%_corr.fits: %.fits tophat.fits
+%_tophat.fits: %.fits tophat.fits
 	@echo "TOPHAT CONVOLUTION: $*"
 	@$(CONVOLVE) --output $@ $< tophat.fits $(REDIRECT)
+
+# gaussian correlation of a map:
+%_gauss.fits: %.fits 
+	@echo "GAUSS SMOOTH: $* :  $(GAUSSSIG) pix"
+	@fgauss $< $@ $(GAUSSSIG) ratio=1.0 theta=0.0 nsigma=4.0 \
+		boundary=nearest $(REDIRECT)
+
+
+%_excess_acorr.fits: %_excess.fits accmap_sum.fits
+	@echo "ACCEPTANCE CORRECTED EXCESS: $@"
+	@ftimgcalc $@ 'A*max(B)/B' a=$< b=accmap_sum.fits
+
 
 tophat.fits: exclmap.fits
 	$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		    --make-on $^ $(REDIRECT)	
+
+%_masked.fits: %.fits exclmap.fits
+	@echo "MASKING: $<"
+	@ftpixcalc $@ 'A*B' a=$< b=exclmap.fits clobber=yes $(REDIRECT)
 
 #-------------------------------------------------------------------------
 # Field-of-view background model maps (background is assumed to be the
@@ -185,11 +207,6 @@ fov_excess.fits: accmap_sum.fits cmap_sum.fits
 	@echo "FOV EXCESS MAP: $@"
 	@ftpixcalc $@ 'A-B' a=cmap_sum.fits b=accmap_sum.fits \
 		clobber=true $(REDIRECT)
-
-fov_excess_excluded.fits: accmap_sum.fits cmap_sum.fits exclmap.fits
-	@echo "FOV EXCESS MAP EXCLUDED: $@"
-	@ftpixcalc $@ '(A*C)-(B*C)' a=cmap_sum.fits b=accmap_sum.fits \
-		c=exclmap.fits clobber=true $(REDIRECT)
 
 #-------------------------------------------------------------------------
 # ring background model (off events are sum of on events in annulus about
@@ -206,37 +223,66 @@ exclmap_ring.fits: exclmap.fits ring.fits
 	@echo "CONVOLVE RING EXCLMAP: $*"
 	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
 
+flatmap_ring.fits: flatmap.fits ring.fits
+	@echo "CONVOLVE RING FLATMAP: $*"
+	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
+
 %_offmap_ring.fits: %_cmap_excluded.fits ring.fits exclmap_ring.fits
 	@echo "RING OFF MAP: $*"
 	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
-	@ftpixcalc $@ 'A/B' a=tmp_$@ b=exclmap_ring.fits clobber=true $(REDIRECT)
+	@ftimgcalc $@ 'A*sum(C)/B' a=tmp_$@ b=exclmap_ring.fits c=ring.fits clobber=true $(REDIRECT)
 	@$(RM) tmp_$@
 
-%_accmap_ring.fits: %_accmap.fits ring.fits exclmap_ring.fits
+
+%_accmap_ring.fits: %_accmap.fits ring.fits flatmap_ring.fits
 	@echo "CONVOLVE RING ACCMAP: $*"
-	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
-	@ftpixcalc $@ 'A/B' a=tmp_$@ b=exclmap_ring.fits clobber=true $(REDIRECT)
-	@$(RM) tmp_$@
+	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
+#	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
+#	@ftpixcalc $@ 'A/B' a=tmp_$@ b=flatmap_ring.fits clobber=true $(REDIRECT)
+#	@$(RM) tmp_$@
 
-# TODO: this doesn't take in acceptance right, I think! (it works
-# somewhat beacuse the ring is scaled by the area factor, so it's
-# basically offmap is really alpha*off)
-ring_excess.fits: cmap_sum.fits offmap_ring_sum.fits
+
+ring_alpha.fits: accmap_sum.fits accmap_ring_sum.fits
+	@echo "RING ALPHA MAP"
+	@ftpixcalc $@ 'A/B' a=accmap_sum.fits b=accmap_ring_sum.fits \
+		clobber=true $(REDIRECT)
+
+
+ring_excess.fits: cmap_sum.fits ring_alpha.fits offmap_ring_sum.fits
 	@echo "RING EXCESS"
-	@ftpixcalc $@ 'A-B' a=cmap_sum.fits \
-		b=offmap_ring_sum.fits clobber=yes $(REDIRECT)
+	@ftpixcalc $@ 'A-B*C' \
+		a=cmap_sum.fits \
+		b=offmap_ring_sum.fits \
+		c=ring_alpha.fits \
+		clobber=yes $(REDIRECT)
+
+
+ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
+	@echo "RING ALPHA MAP TOPHAT"
+	@ftpixcalc $@ 'A/B' a=accmap_sum_tophat.fits b=accmap_ring_sum_tophat.fits \
+		clobber=true $(REDIRECT)
 
 
 # TODO: need to properly calcualte alpha and use Li/Ma formula! 
-ring_significance.fits: cmap_sum_corr.fits offmap_ring_sum_corr.fits
+LIMA='sqrt(2)*sqrt( A*log( (1+C)/C * (A/(A+B))) + B*log((1+C)*B/(A+B)) )'
+ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_sum_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
-	@ftpixcalc $@ '(A-B*1.0)/sqrt(1.0*(A+B))' \
-		a=cmap_sum_corr.fits \
-		b=offmap_ring_sum_corr.fits clobber=yes $(REDIRECT)
+	@ftpixcalc $@ $(LIMA)\
+		a=cmap_sum_tophat.fits \
+		b=offmap_ring_sum_tophat.fits \
+		c=ring_alpha_tophat.fits \
+		clobber=yes $(REDIRECT)
+	@ftpixcalc alt_$@ '(A-B*C)/sqrt(C*(A+B))'\
+		a=cmap_sum_tophat.fits \
+		b=offmap_ring_sum_tophat.fits \
+		c=ring_alpha_tophat.fits \
+		clobber=yes $(REDIRECT)
 
 # TODO: make a rule like:
-#  %_significance.fits: cmap_sum_corr.fits %_offmap_sum_corr.fits
-# (will need to rename some things like ring_offmap_sum_corr.fits
+#  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
+# (will need to rename some things like ring_offmap_sum_tophat.fits
+
+
 
 # ==============================================================
 # Utilities
@@ -257,17 +303,28 @@ clean::
 
 
 
-clean:: clean-runs clean-sums clean-fov clean-excl
+clean:: clean-runs clean-sums clean-fov clean-excl clean-ring
 	$(RM) output.log
+	$(RM) *_tophat.fits
+	$(RM) deps.ps
+
+clean-some: clean-runs clean-sums clean-excl
 
 clean-runs:
-	$(RM) run_*_*.fits
+	$(RM) $(RUNS_CMAP)
+	$(RM) $(RUNS_CMAP_EXCL)
+	$(RM) $(RUNS_ACCMAP)
+	$(RM) $(RUNS_ACCMAP_RING)
+	$(RM) $(RUNS_OFFMAP_RING)
 
 clean-sums:
 	$(RM) *_sum.fits
 
 clean-fov:
-	$(RM) fov_excess.fits	
+	$(RM) fov_*.fits	
 
 clean-excl:
-	$(RM) exclmap.fits flatmap.fits
+	$(RM) exclmap.fits flatmap.fits flatlist.fits flatlist_excluded.fits
+
+clean-ring:
+	$(RM) ring*.fits *_ring*.fits
