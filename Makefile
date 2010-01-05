@@ -26,5 +26,8 @@ EXCLUSIONFILE=excluded.reg # exclusion region file in ascii region format
 
 EVENTLISTS=$(wildcard $(SOURCEDIR)/*.fits.gz)
 
+#EVENTLISTS=$(SOURCEDIR)/run_016266_eventlist.fits.gz
+#EVENTLISTS+=$(SOURCEDIR)/run_016267_eventlist.fits.gz
+
 # include the main Analysis makefile:
 include $(TOOLSDIR)/Analysis.mk

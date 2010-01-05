@@ -101,7 +101,8 @@ if __name__ == "__main__":
     imhdu = pyfits.open(imfile)[0]
 
     ring = makeRingMap(imhdu, radii)
-    ring /= area_ring
+
+    #ring /= area_ring   
 
     if (opts.output):
         pyfits.writeto( opts.output, header=imhdu.header,
