@@ -80,7 +80,7 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some show
 
 
-all:  setup show diagnostic_significance.ps ring_excess.fits fov_excess.fits
+all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_gauss.fits
 	@echo "Done processing runs"
 
 deps.ps:
