@@ -82,7 +82,8 @@ if __name__ == "__main__":
     
 
     imfile = args.pop(0)
-    radii = calcRadiiFromArea( r_on, areaFactor=7, minGapDeg=float(opts.gap))
+    radii = calcRadiiFromArea( r_on, areaFactor=float(opts.areafact), 
+                               minGapDeg=float(opts.gap))
 
     if (opts.makeon):
         radii = (0,r_on)
