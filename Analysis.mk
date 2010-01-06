@@ -129,7 +129,7 @@ show:
 	@ftselect $< $@ $(CUTS) clobber=true $(REDIRECT)
 
 # masked eventlist
-%_event_excluded.fits: %_event_selected.fits excluded.reg
+%_event_excluded.fits: %_event_selected.fits $(EXCLUSIONFILE)
 	@echo EVENT EXCLUSION $*
 	@ftselect $< $@ $(EXCLMASK) clobber=true $(REDIRECT)
 
@@ -213,7 +213,7 @@ flatmap.fits: flatlist.fits
 
 
 tophat.fits: exclmap.fits
-	$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
+	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		    --make-on $^ $(REDIRECT)	
 
 %_masked.fits: %.fits exclmap.fits
