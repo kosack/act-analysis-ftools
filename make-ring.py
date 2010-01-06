@@ -65,7 +65,8 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option( "-o","--output", dest="output", help="output filename")
     parser.add_option( "-m","--onradius", dest="onradius", help="ON region radius")
-    parser.add_option( "-f","--areafactor", dest="areafact", help="Area factor")
+    parser.add_option( "-f","--areafactor", dest="areafact", 
+                       help="Area factor", default=7.0)
     parser.add_option( "-g","--gap", dest="gap", default=0.1,
                        help="Gap between r_ON and r1 in deg")
     parser.add_option( "-O","--make-on", dest="makeon", action="store_true",
