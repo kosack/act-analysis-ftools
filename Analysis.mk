@@ -38,6 +38,7 @@ CENTERDEC ?= 22.014444	      # center of output map in Dec
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
+RINGAREAFACTOR ?= 7.0
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
@@ -50,7 +51,7 @@ GAUSSSIG=`perl -e 'print ($(SMOOTHRAD)*$(GEOMX)/($(FOVX)+1e-12));'`
 # =========================================================================
 # runlist
 # =========================================================================
-BASERUNS=$(patsubst %_eventlist.fits,%,$(basename $(notdir $(EVENTLISTS))))
+BASERUNS=$(sort $(patsubst %_eventlist.fits,%,$(basename $(notdir $(EVENTLISTS)))))
 
 # =========================================================================
 # utility parameters
@@ -63,7 +64,7 @@ EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' # spatial exclusion fil
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
-	--proj ORT
+	--proj CAR
 
 
 
@@ -76,10 +77,10 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
-.PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some
+.PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some show
 
 
-all:  setup diagnostic_significance.ps
+all:  setup show diagnostic_significance.ps ring_excess.fits fov_excess.fits
 	@echo "Done processing runs"
 
 deps.ps:
@@ -97,6 +98,26 @@ help:
 	@echo "    make verify            - check that all event-lists are ok"
 	@echo "    make fov_excess.fits   - generate FOV model excess map"
 	@echo "    make ring_excess.fits  - generate Ring model excess map"
+	@echo "    make diagnostic_significance.ps - generate significance curves"
+	@echo ""
+	@echo "Note: if you have multiple processors, use 'make -jN' where N "
+	@echo "      is the number of simultaneous processes to start."
+
+show:
+	@echo "=============================================================="
+	@echo  ANALYSIS PARAMETERS:
+	@echo "--------------------------------------------------------------"
+	@echo " TOOLS: $(TOOLSDIR)"
+	@echo "SOURCE: $(SOURCEDIR)"
+	@echo "  RUNS: $(words $(BASERUNS))"
+	@echo "   FOV: $(strip $(FOVX)) x $(strip $(FOVY)) deg"
+	@echo "  GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
+	@echo "    RA: $(strip $(CENTERRA)) deg"
+	@echo "   DEC: $(strip $(CENTERDEC)) deg"
+	@echo " ONRAD: $(strip $(ONRADIUS)) deg"
+	@echo "SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
+	@echo "=============================================================="
+
 # =========================================================================
 # Rules to analyze each run
 # =========================================================================
@@ -208,6 +229,13 @@ fov_excess.fits: accmap_sum.fits cmap_sum.fits
 	@ftpixcalc $@ 'A-B' a=cmap_sum.fits b=accmap_sum.fits \
 		clobber=true $(REDIRECT)
 
+fov_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits 
+	@echo "FOV SIGNIFICANCE: $@"
+	@ftpixcalc $@ '(A-B)/sqrt(A)'\
+		a=cmap_sum_tophat.fits \
+		b=accmap_sum_tophat.fits \
+		clobber=yes $(REDIRECT)
+
 #-------------------------------------------------------------------------
 # ring background model (off events are sum of on events in annulus about
 # each bin)
@@ -216,7 +244,7 @@ fov_excess.fits: accmap_sum.fits cmap_sum.fits
 ring.fits: exclmap.fits
 	@echo "GENERATING RING: $@"
 	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
-		--areafactor 7.0 $^ $(REDIRECT)
+		--areafactor $(RINGAREAFACTOR) $^ $(REDIRECT)
 
 
 exclmap_ring.fits: exclmap.fits ring.fits
@@ -351,7 +379,7 @@ clean-events:
 	$(RM) *_event_selected.fits
 
 clean-sums:
-	$(RM) *_sum.fits
+	$(RM) *_sum.fits *_sum_*.fits
 
 clean-bg:
 	$(RM) fov_*.fits	
