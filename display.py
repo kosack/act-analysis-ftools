@@ -14,11 +14,17 @@ fig = plt.figure()
 frame = fig.add_subplot(1,1,1)
 
 img = f.Annotatedimage(frame)
+colorbar = img.Colorbar()
+
 img.Image()
 img.Graticule()
 img.plot()
 img.interact_imagecolors()
+img.interact_toolbarinfo()
 
+
+
+plt.title( fname )
 plt.show()
 
 
