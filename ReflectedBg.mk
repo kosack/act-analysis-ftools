@@ -10,7 +10,7 @@ MAKEREGIONS=$(PYTHON) $(TOOLSDIR)/regionbg.py $(ONTH2)
 	@ftselect $< $@ 'regfilter("$*_ON.reg", DETX,DETY)' \
 		clobber=true $(REDIRECT)
 
-%_event_region_off.fits: %_event_selected.fits %_OFF.reg
+%_event_region_off.fits: %_event_excluded.fits %_OFF.reg
 	@echo OFF REGION EVENTS: $*
 	@ftselect $< $@ 'regfilter("$*_OFF.reg", DETX,DETY)' \
 		clobber=true $(REDIRECT)

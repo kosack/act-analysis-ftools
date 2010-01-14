@@ -87,6 +87,9 @@ all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_ga
 deps.ps:
 	$(TOOLSDIR)/dependencies.pl | dot -Tps -o $@
 
+deps.pdf:
+	$(TOOLSDIR)/dependencies.pl | dot -Tpdf -o $@
+
 setup:
 	@echo FTOOLS
 	@fversion
@@ -99,7 +102,7 @@ help:
 	@echo "    make verify            - check that all event-lists are ok"
 	@echo "    make fov_excess.fits   - generate FOV model excess map"
 	@echo "    make ring_excess.fits  - generate Ring model excess map"
-	@echo "    make diagnostic_significance.ps - generate significance curves"
+	@echo "    make diagnostic_significance.ps - significance curves"
 	@echo ""
 	@echo "Note: if you have multiple processors, use 'make -jN' where N "
 	@echo "      is the number of simultaneous processes to start."
