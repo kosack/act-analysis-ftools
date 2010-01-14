@@ -44,7 +44,8 @@ TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
 
 # calculate sigma of gaussian in pixels (uses SMOOTHRAD variable): 
-GAUSSSIG=`perl -e 'print ($(SMOOTHRAD)*$(GEOMX)/($(FOVX)+1e-12));'`
+GAUSSSIG=$(shell perl -e 'print ($(SMOOTHRAD)*$(GEOMX)/($(FOVX)+1e-12));')
+ONTH2=$(shell perl -e 'print $(ONRADIUS)**2;')
 
 
 
@@ -74,6 +75,7 @@ SUMMER=$(TOOLSDIR)/sum_maps.pl
 FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
 CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
+MAKEREGIONS=$(PYTHON) $(TOOLSDIR)/regionbg.py $(ONTH2)
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
@@ -114,7 +116,7 @@ show:
 	@echo "  GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
 	@echo "    RA: $(strip $(CENTERRA)) deg"
 	@echo "   DEC: $(strip $(CENTERDEC)) deg"
-	@echo " ONRAD: $(strip $(ONRADIUS)) deg"
+	@echo " ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
 	@echo "SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
 	@echo "=============================================================="
 
@@ -318,6 +320,43 @@ ring_significance_masked.fits: cmap_sum_tophat_masked.fits ring_alpha_masked_top
 		b=offmap_ring_sum_tophat.fits \
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
+
+#-------------------------------------------------------------------------
+# Region Background
+#-------------------------------------------------------------------------
+%_event_region_on.fits: %_event_selected.fits %_ON.reg
+	@echo ON REGION EVENTS: $*
+	@ftselect $< $@ 'regfilter("$*_ON.reg", DETX,DETY)' \
+		clobber=true $(REDIRECT)
+
+%_event_region_off.fits: %_event_selected.fits %_OFF.reg
+	@echo OFF REGION EVENTS: $*
+	@ftselect $< $@ 'regfilter("$*_OFF.reg", DETX,DETY)' \
+		clobber=true $(REDIRECT)
+
+#%_event_region_off.fits: %_event_selected.fits %_OFF.reg
+
+# TODO: check for exclusion regions in regionbg.py! perhaps leave it
+# the way it is, but add to the region filter the -regions from
+# excluded.reg. Then calculate the correct area for ON and OFF using
+# the flatlist! Not so good, since that would give some partial regions...
+
+# TODO: naming option in regionbg.py, write Area on and Area off
+# somewhere (then use 'fthedit run_023309_event_region_off.fits
+# keyword=REGAREA value=13 operation=add' to add it to the header of
+# selected events 
+%_ON.reg: %_event_selected.fits
+	@echo "REFLECTED REGIONS: $*"
+	@$(MAKEREGIONS) $< $(REDIRECT)
+
+%_OFF.reg: %_event_selected.fits
+	@echo "REFLECTED REGIONS: $*"
+	@$(MAKEREGIONS) $< $(REDIRECT)
+
+# TODO: implement a tool that loops over ON/OFF event datasets and
+# makes a FITS table with runwise statistics (N_on, N_off, Exp_on,
+# Exp_off, Alpha, excess, signif), or alternately add these to the
+# header of each region_on/off file (probably more flexible)
 
 #-------------------------------------------------------------------------
 # Diagnostic plots (some use gnuplot)
