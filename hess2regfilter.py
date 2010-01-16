@@ -1,6 +1,8 @@
 #
 # Convert HESS region file to DS9/fits region format
 #
+# TODO: for exclusion may need to make ellipse and divide by cos(dec)?
+# TODO: use WCS transformation to get the right system (gal vs fk5)
 
 from __future__ import with_statement
 import re
@@ -10,8 +12,13 @@ from optparse import OptionParser
 if __name__ == "__main__":
 
     parser = OptionParser()
-    (opts, args) = parser.parse_args()
+
+    parser.add_option( "-t","--type", dest="type", default="ds9",
+                       help="output type: fitsex (for fits exclusion file), "
+                       +"ds9 for ds9 region file")
     
+    (opts, args) = parser.parse_args()        
+
     if ( len(args) < 1):
         print "hess2ds9.py <HESS excluion region file>"
         exit(1)
@@ -52,6 +59,23 @@ if __name__ == "__main__":
                 except:
                     pass
 
-                print "%s;circle(%f,%f,%f) # text={%s} move=0" % (sys, lam, bet, r1,name)
+                if opts.type == 'ds9':
+                    print ("%s;circle(%f,%f,%f) # text={%s} move=0" 
+                          % (sys, lam, bet, r1,name))
+                elif opts.type=='fitsex':
+                    print "%s;-circle(%f,%f,%f)" % (sys,lam, bet, r1)
+                else:
+                    raise Exception("Unknown type: "+opts.type)
 
-
+            elif (shape == "BOX"):
+                width = float(tokens.pop(0))
+                height = float(tokens.pop(0))
+                
+                if opts.type == 'ds9':
+                    print ("%s;Box(%f,%f,%f,%f,0.0) # text={%s} move=0" 
+                           % (sys, lam, bet,width,height,name))
+                elif opts.type=='fitsex':
+                    print ("%s;-box(%f,%f,%f,%f,0.0)" 
+                           % (sys,lam, bet, width,height))
+                else:
+                    raise Exception("Unknown type: "+opts.type)
