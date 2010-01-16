@@ -1,7 +1,7 @@
 # =========================================================================
 # ANALYSIS PARAMETERS:
 # =========================================================================
-TOOLSDIR=$(HOME)/Source/PyFITSTools
+TOOLSDIR=$(HOME)/Source/working/PyFITSTools
 CUTS='(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0)'
 SOURCEDIR=$(HOME)/Analysis/FITSEventLists/HESS_Crab
 FOVX=7.0                   # Field of view of output map (X degrees)

@@ -7,7 +7,7 @@
 from __future__ import with_statement
 import re
 from optparse import OptionParser
-
+from kapteyn import wcs
 
 if __name__ == "__main__":
 
@@ -16,6 +16,9 @@ if __name__ == "__main__":
     parser.add_option( "-t","--type", dest="type", default="ds9",
                        help="output type: fitsex (for fits exclusion file), "
                        +"ds9 for ds9 region file")
+
+    parser.add_option( "-s","--scale", dest="scale", default=1.0,
+                       help="scale factor for region radius (default 1.0)")
     
     (opts, args) = parser.parse_args()        
 
@@ -23,9 +26,12 @@ if __name__ == "__main__":
         print "hess2ds9.py <HESS excluion region file>"
         exit(1)
 
+    opts.scale = float(opts.scale)
     filename=args.pop(0)
 
     with open(filename) as file:
+
+        gal2radec = wcs.Transformation( wcs.galactic, wcs.fk5 )
 
         for line in file.readlines():
             line = line.strip("\n")
@@ -44,15 +50,18 @@ if __name__ == "__main__":
             name = tokens.pop(0)
 
             if (sys=="GAL"): 
-                sys = "GALACTIC"
-            elif (sys == "RADEC"): 
+                # convert back to fk5
+                (glam, gbet) = gal2radec( (lam,bet) )
+                lam = glam
+                bet = gbet
                 sys="FK5"
+            
 
             if (shape == "SEGMENT"):
                 extra = "unknown"
                 try:
-                    r0 = float(tokens.pop(0))
-                    r1 = float(tokens.pop(0))
+                    r0 = float(tokens.pop(0))*opts.scale
+                    r1 = float(tokens.pop(0))*opts.scale
                     phi0 = float(tokens.pop(0))
                     phi1 = float(tokens.pop(0))
                     extra = tokens.pop(0)
@@ -63,7 +72,7 @@ if __name__ == "__main__":
                     print ("%s;circle(%f,%f,%f) # text={%s} move=0" 
                           % (sys, lam, bet, r1,name))
                 elif opts.type=='fitsex':
-                    print "%s;-circle(%f,%f,%f)" % (sys,lam, bet, r1)
+                    print "-circle(%f,%f,%f)" % (lam, bet, r1)
                 else:
                     raise Exception("Unknown type: "+opts.type)
 
@@ -75,7 +84,7 @@ if __name__ == "__main__":
                     print ("%s;Box(%f,%f,%f,%f,0.0) # text={%s} move=0" 
                            % (sys, lam, bet,width,height,name))
                 elif opts.type=='fitsex':
-                    print ("%s;-box(%f,%f,%f,%f,0.0)" 
-                           % (sys,lam, bet, width,height))
+                    print ("-box(%f,%f,%f,%f,0.0)" 
+                           % (lam, bet, width,height))
                 else:
                     raise Exception("Unknown type: "+opts.type)
