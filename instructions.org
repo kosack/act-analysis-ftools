@@ -1,0 +1,25 @@
+#+TITLE:     IACT Analysis with FITS event-lists
+#+AUTHOR:    Karl Kosack
+#+EMAIL:     karl.kosack@cea.fr
+#+DATE:      2010-01-18 Mon
+#+DESCRIPTION: Instructions for using the FITS-based analysis for VHE Gamma-ray data
+#+KEYWORDS: FITS IACT Cherenkov
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+
+* Introduction
+
+* Set-up
+** Create your work-space
+   The analysis scripts assume that you have a clean working directory
+   in which to 
+** Make a run-list
+* Running the Analysis
+  
+* Troubleshooting
