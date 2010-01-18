@@ -127,7 +127,8 @@ show:
 # =========================================================================
 
 excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
-	$(PYTHON) $(TOOLSDIR)/hess2regfilter.py --scale 1.1 --type fitsex $< > $@
+	$(PYTHON) $(TOOLSDIR)/hess2regfilter.py --scale 1.1 --type fitsex $< > 'regtmp.reg'
+	mv regtmp.reg $@
 
 # =========================================================================
 # Rules to analyze each run
