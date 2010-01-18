@@ -22,6 +22,10 @@
 #   make ring_excess.fits
 #   make fov_excess.fits
 
+
+# TODO: make a FOV clipping mask image (say out to 2.5 degrees) to
+# avoid significance calcualtion problems?
+
 # =========================================================================
 # Set defaults:
 # =========================================================================
@@ -39,6 +43,7 @@ EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
 RINGAREAFACTOR ?= 7.0
+PROJECTION ?= CAR             # WCS projection type for the map 
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
@@ -65,7 +70,7 @@ EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' # spatial exclusion fil
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
-	--proj CAR
+	--proj $(strip $(PROJECTION))
 
 
 
@@ -116,6 +121,7 @@ show:
 	@echo "  RUNS: $(words $(BASERUNS))"
 	@echo "   FOV: $(strip $(FOVX)) x $(strip $(FOVY)) deg"
 	@echo "  GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
+	@echo "  PROJ: $(strip $(PROJECTION))"
 	@echo "    RA: $(strip $(CENTERRA)) deg"
 	@echo "   DEC: $(strip $(CENTERDEC)) deg"
 	@echo " ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
