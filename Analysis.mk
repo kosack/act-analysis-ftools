@@ -23,8 +23,10 @@
 #   make fov_excess.fits
 
 
-# TODO: make a FOV clipping mask image (say out to 2.5 degrees) to
-# avoid significance calcualtion problems?
+# TODO: make a FOV clipping mask image (say out to 2.5 degrees or
+# apply a threshold to the summed acceptance map) to avoid
+# significance calcualtion problems? Or can do it in the significance
+# formula to skip regions with too low acceptance..
 
 # =========================================================================
 # Set defaults:
@@ -43,6 +45,7 @@ EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
 RINGAREAFACTOR ?= 7.0
+RINGGAP ?= 0.2                # gap between ring and ON radius in degrees
 PROJECTION ?= CAR             # WCS projection type for the map 
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
@@ -75,7 +78,7 @@ MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 
 
 MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
-ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py
+ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=3.5
 SUMMER=$(TOOLSDIR)/sum_maps.pl
 FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
@@ -83,13 +86,12 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
-.PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some show
-
+.PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some clean-maps show
 
 all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_gauss.fits
 	@echo "Done processing runs"
 
-deps.ps:
+deps.ps: Makefile
 	$(TOOLSDIR)/dependencies.pl | dot -Tps -o $@
 
 deps.pdf:
@@ -162,9 +164,10 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 	@$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 # acceptance map
-%_accmap.fits: %_event_excluded.fits %_cmap.fits 
+%_accmap.fits: %_event_excluded.fits %_cmap.fits flatlist_excluded.fits
 	@echo ACCEPTANCE MAP $*
-	@$(ACCEPTANCE) --output $@ $^ $(REDIRECT)
+	@$(ACCEPTANCE) --exflat flatlist_excluded.fits --output $@ \
+		$*_event_excluded.fits $*_cmap.fits $(REDIRECT)
 
 # ==============================================================
 # Summed maps
@@ -196,6 +199,11 @@ accmap_ring_sum.fits: $(RUNS_ACCMAP_RING)
 
 FIRSTCMAP=$(firstword $(RUNS_CMAP))
 
+# a dummy eventlist that is flat across the image (each pixel is
+# sampled N times in a grid, where N is set in the FLATLIST
+# macro. This is useful for generating a flat map or for calculating
+# the effect of exclusion regions (anywhere where you would want to do
+# a loop over pixel positions)
 flatlist.fits: $(FIRSTCMAP)
 	@echo "FLAT EVENTLIST: $@ using $^"
 	@$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
@@ -261,7 +269,8 @@ fov_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits
 
 ring.fits: exclmap.fits
 	@echo "GENERATING RING: $@"
-	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
+	$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
+		--gap $(RINGGAP) \
 		--areafactor $(RINGAREAFACTOR) $^ $(REDIRECT)
 
 
@@ -295,7 +304,7 @@ ring_alpha.fits: accmap_sum.fits accmap_ring_sum.fits
 
 
 ring_excess.fits: cmap_sum.fits ring_alpha.fits offmap_ring_sum.fits
-	@echo "RING EXCESS"
+	@echo "RING EXCESS: $@"
 	@ftpixcalc $@ 'A-B*C' \
 		a=cmap_sum.fits \
 		b=offmap_ring_sum.fits \
@@ -304,7 +313,7 @@ ring_excess.fits: cmap_sum.fits ring_alpha.fits offmap_ring_sum.fits
 
 
 ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
-	@echo "RING ALPHA MAP TOPHAT"
+	@echo "RING ALPHA MAP TOPHAT: $@"
 	@ftpixcalc $@ 'A/B' a=accmap_sum_tophat.fits b=accmap_ring_sum_tophat.fits \
 		clobber=true $(REDIRECT)
 
@@ -408,3 +417,6 @@ clean-bg:
 clean-excl:
 	$(RM) exclmap.fits flatmap.fits flatlist.fits flatlist_excluded.fits
 
+# useful if you change map parameters (projection, center, etc) and
+# want to redo everything
+clean-maps: clean-bg clean-some

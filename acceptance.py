@@ -52,17 +52,60 @@ def makeRadialProfile(events,bins=10,range=[0,7]):
 
     return th2hist,ed
 
-def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
+def angSepDeg(lambda0, beta0, lambda1, beta1):
+    """ calculate angular separation between two ra/dec coordinates
+    using the Vincenti formula (accurate for large and small
+    separations).  lambda = longitudinal coordinates (e.g. RA or gall)
+    and beta=latitudinal coordinate (e.g. dec or galb). These must be
+    in degrees already.
+    
+    EXAMPLE: 
+        ra = arange(100)*0.1
+        dec = ones(100)*-20.0
+        center_radec = (120.0,15.0) # distance to a single point (could be array)
+        dists = angSepDeg( ra, dec, center_radec[0], center_radec[1] )
+
+    Arguments:
+    - `lambda0,beta0`: first ra/dec coordinate in deg (or arrays)
+    - `lambda1, beta1`: second ra/dec coordinates in deg (or arrays)
+    """
+    
+    print "DEBUG: ",lambda0, lambda1
+
+    l0 = np.radians( np.array(lambda0) )
+    l1 = np.radians( np.array(lambda1) )
+    b0 = np.radians( np.array(beta0) )
+    b1 = np.radians( np.array(beta1) )
+
+    cosb0 = np.cos(b0)
+    cosb1 = np.cos(b1)
+    sinb0 = np.sin(b0)
+    sinb1 = np.sin(b1)
+    cosdl = np.cos(l1-l0)
+    
+    numer = np.sqrt( (cosb1*np.sin(l1-l0))**2 +
+                     (cosb0*sinb1 - sinb0*cosb1*cosdl)**2 )
+
+    denom = sinb0*sinb1 + cosb0*cosb1*cosdl
+    
+    return np.degrees(np.arctan2( numer, denom ))
+    
+
+
+
+def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
     """
     Returns an acceptance map
     
     Arguments:
     - `events`: hdu containing *excluded* eventlist
     - `imagehdu`: hdu for the source image 
+    - `obspos`: observation position in RA/Dec (position about which
+      to make the acceptance)
+    - `rmax`: maximum radius (acceptance is set to 0 outside this)
     """
     runhdr = events.header
-    obspos = array([runhdr.get("RA_PNT"), runhdr.get("DEC_PNT")])
-    
+     
     profile,edges = makeRadialProfile( events, range=[0,4.0**2])
 
     # TODO: need to correct the profile for exclusion regions! Use
@@ -86,16 +129,8 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
     # separation
     radec=array(wcs.pix2wcs( z.real,z.imag ))
 
-    # have to do a loop here since calcAngSepDeg only takes a
-    # scalar.. could use map() maybe, but it's reasonably fast.  Note
-    # that calcAngSepDeg only works for RA/Dec coordinates and assumes
-    # a tangent projection (see astLib documentation). SHould be done
-    # properly in 3D!
-
-    dists2 = zeros(radec.shape[0])
-    for ii in range(radec.shape[0]):
-        dists2[ii] = astCoords.calcAngSepDeg( radec[ii][0], radec[ii][1],
-                                              obspos[0], obspos[1] )**2
+    dists2 = angSepDeg( radec[:,0], radec[:,1],
+                        obspos[0], obspos[1] )**2
     
     print dists2.shape,ia.shape
     dists2.shape = ia.shape
@@ -107,6 +142,9 @@ def makeAcceptanceMapFromEvents(events,imagehdu, debug=False):
 
     # [counts/area] * area = [counts]"
     acc *= binarea
+
+    # apply cutoff if requested:
+    acc[dists2>rmax**2] = 0.0
 
     # want integrals to match: sum(acc) = sum(profile)
     print "INTEGRALS: profile=",sum(profile), " acc=", sum(acc)
@@ -135,6 +173,11 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option( "-o","--output", dest="output", help="output filename")
+    parser.add_option( "-r","--rmax", dest="rmax", default="5.0",
+                       help="maximum radius")
+    parser.add_option( "-e","--exflat", dest="exflat", 
+                       help="excluded flat eventlist (for exclusion region correction)")
+    
     (opts, args) = parser.parse_args()
 
     evfile = args.pop(0)
@@ -148,7 +191,25 @@ if __name__ == "__main__":
     evhdu = pyfits.open(evfile)['EVENTS']
     imhdu = pyfits.open(imfile)[0]
 
-    A = makeAcceptanceMapFromEvents( evhdu, imhdu )
+    try:
+        runhdr = evhdu.header
+        obspos = array([runhdr["RA_PNT"], runhdr["DEC_PNT"]])
+    except KeyError:
+        runhdr = imhdu.header
+        obspos = array([runhdr["RA_PNT"], runhdr["DEC_PNT"]])        
+
+    rmax = float(opts.rmax)
+
+    A = makeAcceptanceMapFromEvents( evhdu, imhdu, obspos, rmax=rmax )
+
+    if (opts.exflat):
+        # apply  correction for  exclusion regions  from  the excluded
+        # flat map (which  samples the image in a  "flat" way, but not
+        # covering exclusion regions. 
+        exfile = pyfits.open( opts.exflat)['EVENTS']
+        E = makeAcceptanceMapFromEvents( exfile, imhdu, obspos, rmax=rmax )
+        # need to scale it?
+        A /= E+1e-30
 
     if (opts.output):
         pyfits.writeto( opts.output, header=imhdu.header, data=A,clobber=True )
