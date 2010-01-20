@@ -43,17 +43,22 @@ def makeRingMap(hdu, radii):
     z=(ia+ja*1j).flatten() # wcs needs a list not a grid for whatever reason
     radec = np.array(wcs.pix2wcs( z.real, z.imag )) 
 
+    print "range:", radec.shape
+
     dists = np.zeros(radec.shape[0])
     for ii in range(radec.shape[0]):
         dists[ii] = astCoords.calcAngSepDeg( radec[ii][0], radec[ii][1],
                                              center[0], center[1] )
+        
     dists.shape = ia.shape # back to grid
+
+    pyfits.writeto( "debug-distmap.fits", header=hdu.header,data=dists,clobber=True )
  
     ring = np.ones(dists.shape)
     ring[dists<radii[0]] = 0.0
     ring[dists>radii[1]] = 0.0
 
-    print np.sum(ring)
+    print "Ring sum: ",np.sum(ring)
     return ring
 
     pass
@@ -67,7 +72,7 @@ if __name__ == "__main__":
     parser.add_option( "-m","--onradius", dest="onradius", help="ON region radius")
     parser.add_option( "-f","--areafactor", dest="areafact", 
                        help="Area factor", default=7.0)
-    parser.add_option( "-g","--gap", dest="gap", default=0.1,
+    parser.add_option( "-g","--gap", dest="gap", default=0.2,
                        help="Gap between r_ON and r1 in deg")
     parser.add_option( "-O","--make-on", dest="makeon", action="store_true",
                        default=False,
@@ -93,8 +98,7 @@ if __name__ == "__main__":
     area_on = math.pi*(r_on**2)
 
     print "  INPUT IMAGE: ",imfile
-    print "       OUTPUT: ", opts.output
-    
+    print "       OUTPUT: ", opts.output    
     print "        RADII: ", radii
     print "    RING AREA: ", area_ring, "deg^2 (before exclusions)"
     print "      ON AREA: ", area_on, "deg^2 (before exclusions)"

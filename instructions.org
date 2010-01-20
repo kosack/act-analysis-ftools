@@ -76,3 +76,10 @@
       samples the image uniformly, excluding exclusion regions.  The
       acceptance map is divided by this "Excluded acceptance
       correction" map to correct for exclusions. 
+
+* Bugs
+** TODO rules using the flat-list don't take into account oversampling!
+   Need to divide by a "frequency-map" to correct. For example, the
+   exclusion map will have values of 4.0 and 0.0 instead of 1.0 and
+   0.0 if oversample=2 is used!
+* Wanted Features

@@ -119,7 +119,27 @@ def makeCountMap(hdu, ra,dec, output=None, verbose=False):
 
     return H
 
+def copyheaders(ihdr,ohdr):
+    """
+    copies useful info form eventlist to image header
 
+    Arguments:
+    - `ihdu`: input header
+    - `ohdu`: output header
+    """
+    
+    keys = [ "RUN_ID", "DATE_OBS", "TIME_OBS",
+             "DATE_END", "TIME_END", "TSTART", "TSTOP",
+             "MJDREFI","MJDREFF", "TIMEUNIT", "TIMESYS", "TIMEREF",
+             "TASSIGN", "TELAPSE", "ONTIME", "LIVETIME", "DEADC",
+             "OBJECT", "RA_OBJ", "DEC_OBJ", "RA_PNT", "DEC_PNT",
+             "ALT_PNT", "AZ_PNT", "RADESYS", "OBS_MODE", "TELLIST"]
+             
+    for key in keys:
+        try:
+            ohdr.update( key, ihdr[key] )
+        except KeyError:
+            pass
 
 
 if __name__ == "__main__":
@@ -180,11 +200,17 @@ if __name__ == "__main__":
     events = ff['EVENTS']
     ra = events.data.field("RA").astype(float)
     dec = events.data.field("DEC").astype(float)
+    ehdr = events.header
+
+    # update header with event information:
+    copyheaders( ehdr, hdu.header )
 
     # make count map:
 
     newdata = makeCountMap( hdu, ra,dec, output=options.output,
                             verbose=options.verbose)
+
+
 
     #display it
     if options.display:
