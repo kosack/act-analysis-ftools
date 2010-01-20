@@ -5,7 +5,7 @@
 #+DESCRIPTION: Instructions for using the FITS-based analysis for VHE Gamma-ray data
 #+KEYWORDS: FITS IACT Cherenkov
 #+LANGUAGE:  en
-#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
 #+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
 #+EXPORT_SELECT_TAGS: export
@@ -23,3 +23,56 @@
 * Running the Analysis
   
 * Troubleshooting
+* Technical Details of Methods
+** Resampling a map from one coordinate-system/projection to another:
+   1. Dump image to oversampled eventlist (with colums
+      RA,DEC,VALUE). Choose the oversampling to be fine enough to
+      cover the target map sufficiently.
+   2. fill new image (in new coordinates) from the oversampled
+      eventlist using make-map --weightby
+      VALUE  (makes a histogram weighted by the value column)
+   3. fill a new image (in new coordinates) from the oversampled
+      eventlist without weights (or weigted by 1.0), making a
+      *frequency map*
+   4. the resampled map is then: (weighted map)/(frequency map)
+** Acceptance calculation from acceptance.py: 
+   Acceptances in acceptance.py are calculated from the events of the
+   run themselves (no lookup tables). This is simple and convenient,
+   but can lead to some uncertainty due to low sampling. 
+
+   It works by the following proceedure:
+   
+   1. Start with the events from the excluded event list 
+
+   2. The DETX, and DETY coordinates are used to generate a 1-D
+      histogram in bins of theta^2 (square degrees), which profiles
+      the acceptance from the camera center (DETX and DETY are defined
+      such that 0,0 is the camera center). The histogram values are
+      divided by the binarea (which is constant in theta^2
+      coordinates), giving acceptance per squared-radius
+
+   3. the pointing direction of the observation (the
+      obervation-position) in RA/Dec coordinates is read from the run
+      header of the event-list
+
+   4. Next, the acceptance image is generated: the image geometry is
+      taken from the count-map (it is centered on the test-position,
+      with the observation-position at an offset).
+
+   5. For each bin in the acceptance image, the ra/dec coordinates of
+      the bin center are calculated, and the angular distance to the
+      observation-position is recorded
+
+   6. the 1D acceptance histogram is then interpolated and used to
+      fill the acceptance value into each 2-D bin based on it's distance
+
+   7. the acceptance is multiplied by the 2-D bin area to give the 
+      acceptance across the bin.
+
+   8. At this point, exclusion regions were not taken into account, so
+      the radial profile is necessarily distorted in radial directions
+      where exclusion regions exist.  Therefore, the same proceedure
+      as above is applied to the excluded-flat-eventlist, which
+      samples the image uniformly, excluding exclusion regions.  The
+      acceptance map is divided by this "Excluded acceptance
+      correction" map to correct for exclusions. 
