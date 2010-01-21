@@ -5,10 +5,12 @@
 #
 # This Analysis.mk file should be included from a Makefile that sets
 # some or all of the variables in the "Set Defaults" section as well
-# as a EVENTLISTS variable that lists what eventlists to process. A
-# set of rules for tranforming inputs to outputs are defined here (using
-# FTOOLS and various specific tools). These are used to generate
-# high-level analysis outputs (like excess or significance maps).
+# as a EVENTLISTS variable that lists what eventlists to process. 
+#
+# A set of rules for tranforming inputs to outputs are defined here
+# (using FTOOLS and various specific tools). These are used to
+# generate high-level analysis outputs (like excess or significance
+# maps).
 #
 # Please set the TOOLSDIR variable to where the cherenkov analysis
 # tools are located
@@ -17,19 +19,22 @@
 # multi-core/processor machine, as it will speed up the analysis
 # greatly since multiple tools can run simultaneously (the
 # dependencies are automatically taken into account)
-
-# some high-level targets are for example:
-#   make ring_excess.fits
-#   make fov_excess.fits
-
-
-# TODO: make a FOV clipping mask image (say out to 2.5 degrees or
-# apply a threshold to the summed acceptance map) to avoid
-# significance calcualtion problems? Or can do it in the significance
-# formula to skip regions with too low acceptance..
+#
+# Also note that you can stop the analysis at any time with CTRL-C,
+# and restart it again later and it will start from where it left
+# off. There is no need to start from scratch unless you change
+# parameters in the Makefile.
+#
+# For detailed help and instructions, see the "instructions.org" file
+# (which is in emacs org-mode format, and can be exported to latex,
+# html, ASCII, etc using the 'C-c C-e' command in emacs)
+#
 
 # =========================================================================
-# Set defaults:
+# ANALYSIS PARAMETERS AND THEIR DEFAULTS: the following parameters are
+# user-definable and may be set in the analysis Makefile that includes
+# Analysis.mk. If they are not set, the default values listed below
+# will be used.
 # =========================================================================
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
@@ -47,18 +52,19 @@ SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing
 RINGAREAFACTOR ?= 7.0
 RINGGAP ?= 0.2                # gap between ring and ON radius in degrees
 PROJECTION ?= CAR             # WCS projection type for the map 
+MAXEVENTRADIUS ?= 6.0         # maximum event radius in degrees (psi cut)
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
 
-# calculate sigma of gaussian in pixels (uses SMOOTHRAD variable): 
+# =========================================================================
+# CALCULATED PARAMETERS (not user-definable)
+# =========================================================================
 GAUSSSIG=$(shell perl -e 'print ($(SMOOTHRAD)*$(GEOMX)/($(FOVX)+1e-12));')
 ONTH2=$(shell perl -e 'print $(ONRADIUS)**2;')
 
-
-
 # =========================================================================
-# runlist
+# format the runlist properly from the user-specified EVENTLISTS list
 # =========================================================================
 BASERUNS=$(sort $(patsubst %_eventlist.fits,%,$(basename $(notdir $(EVENTLISTS)))))
 
@@ -75,10 +81,8 @@ MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
 	--proj $(strip $(PROJECTION))
 
-
-
 MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
-ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=3.5
+ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=$(strip $(MAXEVENTRADIUS))
 SUMMER=$(TOOLSDIR)/sum_maps.pl
 FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
@@ -88,7 +92,7 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some clean-maps show
 
-all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_gauss.fits
+all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_gauss.fits fov_significance.fits
 	@echo "Done processing runs"
 
 deps.ps: Makefile
@@ -106,6 +110,7 @@ setup:
 help:
 	@echo "=============================================================="
 	@echo "COMMON TARGETS:            FUNCTION:"
+	@echo "    make show              - show the options for this analysis"
 	@echo "    make verify            - check that all event-lists are ok"
 	@echo "    make fov_excess.fits   - generate FOV model excess map"
 	@echo "    make ring_excess.fits  - generate Ring model excess map"
@@ -118,16 +123,17 @@ show:
 	@echo "=============================================================="
 	@echo  ANALYSIS PARAMETERS:
 	@echo "--------------------------------------------------------------"
-	@echo " TOOLS: $(TOOLSDIR)"
-	@echo "SOURCE: $(SOURCEDIR)"
-	@echo "  RUNS: $(words $(BASERUNS))"
-	@echo "   FOV: $(strip $(FOVX)) x $(strip $(FOVY)) deg"
-	@echo "  GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
-	@echo "  PROJ: $(strip $(PROJECTION))"
-	@echo "    RA: $(strip $(CENTERRA)) deg"
-	@echo "   DEC: $(strip $(CENTERDEC)) deg"
-	@echo " ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
-	@echo "SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
+	@echo "    TOOLS: $(TOOLSDIR)"
+	@echo "   SOURCE: $(SOURCEDIR)"
+	@echo "     RUNS: $(words $(BASERUNS))"
+	@echo "      FOV: $(strip $(FOVX)) x $(strip $(FOVY)) deg"
+	@echo "     GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
+	@echo "     PROJ: $(strip $(PROJECTION))"
+	@echo "       RA: $(strip $(CENTERRA)) deg"
+	@echo "      DEC: $(strip $(CENTERDEC)) deg"
+	@echo "    R_max: $(strip $(MAXEVENTRADIUS)) deg"
+	@echo "    ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
+	@echo "   SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
 	@echo "=============================================================="
 
 # =========================================================================
@@ -135,7 +141,8 @@ show:
 # =========================================================================
 
 excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
-	$(PYTHON) $(TOOLSDIR)/hess2regfilter.py --scale 1.1 --type fitsex $< > 'regtmp.reg'
+	$(PYTHON) $(TOOLSDIR)/hess2regfilter.py --scale 1.1 \
+		--type fitsex $< > 'regtmp.reg'
 	mv regtmp.reg $@
 
 # =========================================================================
