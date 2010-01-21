@@ -77,9 +77,27 @@
       acceptance map is divided by this "Excluded acceptance
       correction" map to correct for exclusions. 
 
-* Bugs
+* Bugs/TODO
 ** TODO rules using the flat-list don't take into account oversampling!
    Need to divide by a "frequency-map" to correct. For example, the
    exclusion map will have values of 4.0 and 0.0 instead of 1.0 and
    0.0 if oversample=2 is used!
+** TODO radial cut mask needs to be applied to count-map
+   Generated same way as acceptance map (see acceptance.py) - just
+   makes a mask that is 1.0 inside r_{max} and 0.0 outside. This can
+   be multiplied by other maps
+** TODO Fix ring significance
+   why does significance drop near the exclusion region? should be a
+   hard cutoff. Also, it doesn't work at all for extended sources...
+** TODO Make a exclusion test case
+   Insert a fake exclusion region into the Crab analysis and see how
+   it effects things.
+** TODO Fix non-square maps
+   They give completely the wrong answer! Probably a problem with
+   acceptance.py or something - a transpose in the coordinates [X,Y] -> [Y,X]
+** TODO make-flat-event-list features:
+   - add option to go beyond map size 
+   - add option to output a VALUE column (or just always do it)
+** TODO make-fits-image.py 
+   - add option to weight by a value column (e.g. --weight=VALUE)
 * Wanted Features
