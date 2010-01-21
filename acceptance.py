@@ -2,11 +2,10 @@ import pyfits
 import numpy as np
 
 from pylab import *
-#from astLib import astPlots
-from astLib import astWCS
-from astLib import astCoords
 
-def makeRadialProfile(events,bins=10,range=[0,7]):
+from kapteyn import wcs
+
+def makeRadialProfile(events,bins=14,range=[0,10]):
     """ 
     Generates an radial profile from the events given in Detector
     coordinates (which are assumed to have (0,0) as the origin)
@@ -91,9 +90,33 @@ def angSepDeg(lambda0, beta0, lambda1, beta1):
     return np.degrees(np.arctan2( numer, denom ))
     
 
+def makeDistanceMap(imagehdu,pos):
+    """ 
+    Generate a map of angular distances to a given observation
+    position.
+    
+    Arguments:
+    - `imagehdu`: input image HDU (data + header)
+    - `pos`:
+
+    returns: data array of distances from each bin center to the position
+    """
+    
+    proj = wcs.Projection( imagehdu.header )
+    binarea = proj.cdelt[0] * proj.cdelt[1]
+    (nx,ny) = imagehdu.data.shape # CHECK THAT THIS IS NOT BACKWARD!
+    
+    ia,ja = np.mgrid[0:nx,0:ny]+0.5
+    (ra,dec) = proj.toworld( (ia.flatten(), ja.flatten()) )
+
+    distmap = angSepDeg( ra, dec,  pos[0], pos[1] )
+    distmap.shape = ia.shape
+
+    return distmap
+    
 
 
-def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
+def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=True):
     """
     Returns an acceptance map
     
@@ -106,35 +129,15 @@ def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
     """
     runhdr = events.header
      
-    profile,edges = makeRadialProfile( events, range=[0,4.0**2])
+    profile,edges = makeRadialProfile( events, range=[0,6.0**2])
 
-    # TODO: need to correct the profile for exclusion regions! Use
-    # make-flat-eventlist.py and pass events through the region
-    # filter? For now it's just ignored...
+    proj = wcs.Projection( imagehdu.header )
+    binarea = abs(proj.cdelt[0] * proj.cdelt[1])
 
-    wcs = astWCS.WCS( imagehdu.header, mode='pyfits' )
-    binarea = wcs.getXPixelSizeDeg() * wcs.getYPixelSizeDeg()
     print "2D BIN AREA:",binarea, "deg^2"
 
-    outhdu = imagehdu.copy()
-    acc = outhdu.data
-    nx  = acc.shape[0]
-    ny  = acc.shape[1]
-
-    # hack to get in list format for wcs routines
-    ia,ja = np.mgrid[0:nx,0:ny]+0.5
-    z=(ia+ja*1j).flatten() 
-
-    # transform pixel grid to RA/Dec coordinates and calculate angular
-    # separation
-    radec=array(wcs.pix2wcs( z.real,z.imag ))
-
-    dists2 = angSepDeg( radec[:,0], radec[:,1],
-                        obspos[0], obspos[1] )**2
+    dists2 = makeDistanceMap( imagehdu, obspos )**2
     
-    print dists2.shape,ia.shape
-    dists2.shape = ia.shape
-
     # interpolate the squared distances to each bin from the radial
     # profile. 
 
@@ -165,7 +168,6 @@ def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
 
 
     return acc
-
 
     
 if __name__ == "__main__":
