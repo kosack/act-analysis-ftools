@@ -4,9 +4,8 @@ import pyfits
 import numpy as np
 
 from pylab import *
-from astLib import astPlots
-from astLib import astWCS
 
+from kapteyn import wcs
 
 #
 # TODO:
@@ -81,7 +80,7 @@ def makeImage(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
         
     return hdu
 
-def makeCountMap(hdu, ra,dec, output=None, verbose=False):
+def makeCountMap(hdu, lam,bet, output=None, insystem=wcs.fk5, verbose=False):
     """
     Arguments:
     - `hdu`: hdu containing data array and header with proper WCS info 
@@ -91,12 +90,12 @@ def makeCountMap(hdu, ra,dec, output=None, verbose=False):
     todo: add events coordsystem as an input (defaults to RA/Dec)
     """
 
-    wcs = astWCS.WCS( hdu.header, mode='pyfits' )
-    coords = array(wcs.wcs2pix( ra,dec ))
+    proj = wcs.Projection( hdu.header )
+    proj.skyout = insystem  # allow galactic or other coordinates
+    coords = proj.topixel( zip(lam,bet) ) # convert to pixel coordinates
+    coords = array(coords)
 
     bins = array(hdu.data.shape)
-    pixsize = array( (wcs.getXPixelSizeDeg(),wcs.getYPixelSizeDeg()))
-    
     
     imrange = zip( (0,0), bins) # TODO: probably need some half bins
                                                 # here to make it
@@ -158,9 +157,6 @@ if __name__ == "__main__":
     parser.add_option( "-c","--center", dest="center", help="image center degrees",
                        metavar="RA,Dec")
 
-    parser.add_option( "-d","--display", action="store_true",
-                       dest="display", help="show the image")
-
     parser.add_option( "-o","--output", dest="output", help="output filename")
     parser.add_option( "-p","--projection", dest="proj", help="projection",
                        default="CAR")
@@ -192,8 +188,7 @@ if __name__ == "__main__":
         print "   FOV:",FOV
 
     # generate blank output image:
-    hdu = makeImage( centerRADec=center, geom=geom, FOV=FOV,projection=options.proj)
-    wcs = astWCS.WCS( hdu.header, mode='pyfits' )
+    hdu = makeImage(centerRADec=center, geom=geom, FOV=FOV,projection=options.proj)
 
     # get events
     ff=pyfits.open(inputfile)
@@ -212,12 +207,6 @@ if __name__ == "__main__":
 
 
 
-    #display it
-    if options.display:
-        img = astPlots.ImagePlot( newdata, wcs, 
-                                  cutLevels=["relative", 99.5], 
-                                  colorMapName="jet"   )
-        img.draw()
-        show()
+
 
 
