@@ -100,4 +100,5 @@
    - add option to output a VALUE column (or just always do it)
 ** TODO make-fits-image.py 
    - add option to weight by a value column (e.g. --weight=VALUE)
+** TODO support galactic coordinates!
 * Wanted Features

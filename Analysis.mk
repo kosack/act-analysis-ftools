@@ -32,9 +32,9 @@
 
 # =========================================================================
 # ANALYSIS PARAMETERS AND THEIR DEFAULTS: the following parameters are
-# user-definable and may be set in the analysis Makefile that includes
-# Analysis.mk. If they are not set, the default values listed below
-# will be used.
+# user-definable and may be set in the users's analysis Makefile that
+# includes Analysis.mk. If they are not set, the default values listed
+# below will be used.
 # =========================================================================
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
@@ -52,10 +52,11 @@ SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing
 RINGAREAFACTOR ?= 7.0
 RINGGAP ?= 0.2                # gap between ring and ON radius in degrees
 PROJECTION ?= CAR             # WCS projection type for the map 
-MAXEVENTRADIUS ?= 6.0         # maximum event radius in degrees (psi cut)
+MAXEVENTRADIUS ?= 3.0         # maximum event radius in degrees (psi cut)
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
+PYTHONPATH = $(PYTHONPATH):$TOOLSDIR
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -71,9 +72,10 @@ BASERUNS=$(sort $(patsubst %_eventlist.fits,%,$(basename $(notdir $(EVENTLISTS))
 # =========================================================================
 # utility parameters
 # =========================================================================
-REDIRECT= >> output.log 2>&1 # set to blank to get all output
+REDIRECT= >> output.log 2>&1 # set to blank to send output to stdout
 
-EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' # spatial exclusion filter
+# spatial exclusion filter
+EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)' 
 
 # parameters passed to MAKEMAP to generate the images
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
@@ -87,6 +89,7 @@ SUMMER=$(TOOLSDIR)/sum_maps.pl
 FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
 CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
+FOVMASK=$(PYTHON) $(TOOLSDIR)/make-radial-cutmask.py 
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
@@ -161,14 +164,14 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 	@ftselect $< $@ $(EXCLMASK) clobber=true $(REDIRECT)
 
 # countmap 
-%_cmap.fits: %_event_selected.fits
+%_cmap.fits: %_event_selected.fits 
 	@echo COUNT MAP $*
-	@$(MAKEMAP) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
 
 # excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits
 	@echo  EXCLUDED COUNT MAP $*
-	@$(MAKEMAP) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
 
 # acceptance map
 %_accmap.fits: %_event_excluded.fits %_cmap.fits flatlist_excluded.fits
@@ -213,7 +216,7 @@ FIRSTCMAP=$(firstword $(RUNS_CMAP))
 # a loop over pixel positions)
 flatlist.fits: $(FIRSTCMAP)
 	@echo "FLAT EVENTLIST: $@ using $^"
-	@$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
+	$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
 
 flatlist_excluded.fits: flatlist.fits $(EXCLUSIONFILE)
 	@echo "FLAT EVENTLIST EXCLUDED: $@"
@@ -227,6 +230,12 @@ exclmap.fits: flatlist_excluded.fits
 flatmap.fits: flatlist.fits
 	@echo "FLAT MAP: $@"
 	@$(MAKEMAP) --output $@ $< $(REDIRECT)
+
+
+# mask large radii from field of view (the psi^2 cut)
+%_fovmask.fits: %_cmap.fits
+	$(FOVMASK) $(strip $(MAXEVENTRADIUS)) $< $@
+
 
 # tophat correlation of a map
 %_tophat.fits: %.fits tophat.fits
@@ -249,9 +258,13 @@ tophat.fits: exclmap.fits
 	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		    --make-on $^ $(REDIRECT)	
 
-%_masked.fits: %.fits exclmap.fits
-	@echo "MASKING: $<"
+%_exmasked.fits: %.fits exclmap.fits
+	@echo "EXCLUSION MASKING: $<"
 	@ftpixcalc $@ 'A*B' a=$< b=exclmap.fits clobber=yes $(REDIRECT)
+
+%_fovmasked.fits: %.fits %_fovmask.fits
+	@echo "FOV MASKING: $<"	
+	@ftpixcalc $@ 'A*B' a=$< b=$*_fovmask.fits clobber=yes $(REDIRECT)
 
 #-------------------------------------------------------------------------
 # Field-of-view background model maps (background is assumed to be the
@@ -340,15 +353,15 @@ ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
 
-ring_significance_masked.fits: cmap_sum_tophat_masked.fits ring_alpha_masked_tophat.fits offmap_ring_sum_masked_tophat.fits
+ring_significance_exmasked.fits: cmap_sum_tophat_exmasked.fits ring_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
 	@ftpixcalc alt_$@ $(LIMA)\
-		a=cmap_sum_tophat_masked.fits \
-		b=offmap_ring_sum_masked_tophat.fits \
-		c=ring_alpha_masked_tophat.fits \
+		a=cmap_sum_tophat_exmasked.fits \
+		b=offmap_ring_sum_exmasked_tophat.fits \
+		c=ring_alpha_exmasked_tophat.fits \
 		clobber=yes $(REDIRECT)
 	@ftpixcalc $@ '(A-B*C)/sqrt(C*(A+B))'\
-		a=cmap_sum_tophat_masked.fits \
+		a=cmap_sum_tophat_exmasked.fits \
 		b=offmap_ring_sum_tophat.fits \
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
@@ -358,7 +371,7 @@ ring_significance_masked.fits: cmap_sum_tophat_masked.fits ring_alpha_masked_top
 # Diagnostic plots (some use gnuplot)
 #-------------------------------------------------------------------------
 
-diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_significance_imhist.fits ring_significance_masked_imhist.fits
+diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_significance_imhist.fits ring_significance_exmasked_imhist.fits
 	@echo "DIAGNOSTIC: $@"
 	gnuplot $< > $@
 
