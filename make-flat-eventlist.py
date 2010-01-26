@@ -65,7 +65,7 @@ if __name__ == "__main__":
     c4 = pyfits.Column( name='DETY', format='D', array = dety )
     c5 = pyfits.Column( name="VALUE", format='D', array=vals )
 
-    evlist = pyfits.new_table([c1,c2,c3,c4])
+    evlist = pyfits.new_table([c1,c2,c3,c4,c5])
     evlist.name = "EVENTS"
 
     print evlist.header.ascardlist()

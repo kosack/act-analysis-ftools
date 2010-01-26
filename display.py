@@ -18,11 +18,17 @@ colorbar = img.Colorbar()
 
 img.Image()
 img.Graticule()
+
+# galactic overlay:
+#gr2 = img.Graticule(skyout="galactic", visible=True)
+#gr2.setp_plotaxis(("top","right"), mode=maputils.native, color='g', visible=False)
+#gr2.setp_tick(wcsaxis=(0,1), color='g')
+#gr2.setp_gratline(wcsaxis=(0,1), color='g')
+
 img.plot()
 img.interact_imagecolors()
 img.interact_toolbarinfo()
-
-
+img.interact_writepos()
 
 plt.title( fname )
 plt.show()

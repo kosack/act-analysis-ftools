@@ -90,6 +90,9 @@ FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
 CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 FOVMASK=$(PYTHON) $(TOOLSDIR)/make-radial-cutmask.py 
+ifndef NOVERIFY
+VERIFY=$(PYTHON) $(TOOLSDIR)/verify-eventlist.py
+endif 
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
@@ -392,7 +395,7 @@ diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_signifi
 
 %_event_verify.txt: $(SOURCEDIR)/%_eventlist.fits.gz
 	@echo "VERIFY $*"
-	@ftverify $< > $@
+	@$(VERIFY) $< > $@
 
 verify: $(addsuffix _event_verify.txt, $(BASERUNS))
 	@echo "VERIFY: Your runlist passes verification"
@@ -410,10 +413,10 @@ distclean: clean-events clean-runs clean-sums clean-bg clean-excl
 	$(RM) *_tophat.fits
 	$(RM) deps.ps
 	$(RM) run*_event_verify.txt
-
+	$(RM) diagnostic_*.ps
 
 clean-some: clean-runs clean-sums clean-excl
-	$(RM) diagnostic_*.ps
+
 
 clean-runs:
 	$(RM) $(RUNS_CMAP)
