@@ -12,7 +12,7 @@ if __name__ == '__main__':
                        help="number of events")
     parser.add_option( "-c","--center", dest="center", default="0.0,90.0",
                        help="center pos")
-    parser.add_option( "-c","--offset", dest="offset", default="0.0,0.7",
+    parser.add_option( "-d","--offset", dest="offset", default="0.0,0.7",
                        help="center pos")
     parser.add_option( "-s","--sigma", dest="sigma", default="0.1",
                        help="gaussian sigma")
