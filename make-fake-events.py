@@ -41,6 +41,7 @@ if __name__ == '__main__':
     sig = float(opts.sigma)
 
     print "CENTER: ",center
+    print "OFFSET: ",offset
     print "   NUM: ",nevt
 
     random.seed()
@@ -83,8 +84,8 @@ if __name__ == '__main__':
 
     evlist = pyfits.new_table([c1,c2,c3,c4,c5,c6,c7])
     evlist.name = "EVENTS"
-    evlist.header.update( "RA_PNT", center[0] )
-    evlist.header.update( "DEC_PNT", center[1]+0.7 )
+    evlist.header.update( "RA_PNT", point[0] )
+    evlist.header.update( "DEC_PNT", point[1] )
 
 
     if (opts.output):
