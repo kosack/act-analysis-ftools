@@ -1,11 +1,11 @@
 import pyfits
 import numpy as np
 import math
-from astLib import astWCS
-from astLib import astCoords
 
 from numpy.fft import fft2, ifft2
 from scipy import signal
+
+import actutils
 
 def calcRadiiFromArea(onRadiusDeg, minGapDeg=0.1, areaFactor=7.0):
     """ 
@@ -36,24 +36,8 @@ def makeRingMap(hdu, radii):
     - `radii`: radii in degrees (r1,r2) of the ring. 
     """
 
-    nx,ny = hdu.data.shape 
-    wcs = astWCS.WCS( hdu.header, mode='pyfits' )
-    center = wcs.getCentreWCSCoords()
-    ia,ja = np.mgrid[0:nx,0:ny].astype(np.double)+0.5 # grid with half-bin shift
-    z=(ia+ja*1j).flatten() # wcs needs a list not a grid for whatever reason
-    radec = np.array(wcs.pix2wcs( z.real, z.imag )) 
-
-    print "range:", radec.shape
-
-    dists = np.zeros(radec.shape[0])
-    for ii in range(radec.shape[0]):
-        dists[ii] = astCoords.calcAngSepDeg( radec[ii][0], radec[ii][1],
-                                             center[0], center[1] )
+    dists = actutils.makeDistanceMap( hdu )
         
-    dists.shape = ia.shape # back to grid
-
-    pyfits.writeto( "debug-distmap.fits", header=hdu.header,data=dists,clobber=True )
- 
     ring = np.ones(dists.shape)
     ring[dists<radii[0]] = 0.0
     ring[dists>radii[1]] = 0.0
