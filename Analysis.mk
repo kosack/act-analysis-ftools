@@ -92,6 +92,8 @@ CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
 FOVMASK=$(PYTHON) $(TOOLSDIR)/make-radial-cutmask.py 
 ifndef NOVERIFY
 VERIFY=$(PYTHON) $(TOOLSDIR)/verify-eventlist.py
+else
+VERIFY=echo
 endif 
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
@@ -298,11 +300,11 @@ ring.fits: exclmap.fits
 
 
 exclmap_ring.fits: exclmap.fits ring.fits
-	@echo "CONVOLVE RING EXCLMAP: $*"
+	@echo "CONVOLVE RING EXCLMAP: $@"
 	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
 
 flatmap_ring.fits: flatmap.fits ring.fits
-	@echo "CONVOLVE RING FLATMAP: $*"
+	@echo "CONVOLVE RING FLATMAP: $@"
 	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
 
 %_offmap_ring.fits: %_cmap_excluded.fits ring.fits exclmap_ring.fits
