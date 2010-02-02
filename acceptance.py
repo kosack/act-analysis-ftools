@@ -9,8 +9,6 @@ import actutils
 # TODO: do the exclusion correction correctly! Not sure the flatlist is the best idea
 
     
-
-
 def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
     """
     Returns an acceptance map

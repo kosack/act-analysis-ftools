@@ -83,7 +83,7 @@ def angSepDeg(lambda0, beta0, lambda1, beta1):
     return np.degrees(np.arctan2( numer, denom ))
     
 
-def makeDistanceMap(imagehdu,posRADec):
+def makeDistanceMap(imagehdu,posRADec=None):
     """ 
     Generate a map of angular distances to a given observation
     position.
@@ -99,10 +99,16 @@ def makeDistanceMap(imagehdu,posRADec):
 
     print "POSRADEC:",posRADec
     
+
     proj = wcs.Projection( imagehdu.header )
 #    tran = wcs.Transformation( wcs.fk5, proj.skysys )
 #    pos = tran(posRADec) # transform to map's coordinates
-    pos = posRADec
+
+    if (posRADec==None):
+        # get the position from the map center:
+        pos= proj.toworld(np.array(proj.naxis)/2+0.5)
+    else:
+        pos = posRADec
 
     (nx,ny) = imagehdu.data.shape # CHECK THAT THIS IS NOT BACKWARD!
     

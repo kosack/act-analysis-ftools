@@ -33,7 +33,7 @@ if (opts.center):
 else:
     center=None
 
-mask = actutilsmakeRadialFOVMask( hdu, rmax, center=center )
+mask = actutils.makeRadialFOVMask( hdu, rmax, center=center )
 
 pyfits.writeto( outimg, header=hdu.header, data=mask, clobber=True )
     

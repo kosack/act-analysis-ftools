@@ -12,6 +12,8 @@ if __name__ == '__main__':
                        help="number of events")
     parser.add_option( "-c","--center", dest="center", default="0.0,90.0",
                        help="center pos")
+    parser.add_option( "-d","--offset", dest="offset", default="0.0,0.7",
+                       help="center pos")
     parser.add_option( "-s","--sigma", dest="sigma", default="0.1",
                        help="gaussian sigma")
     parser.add_option( "-o","--output", dest="output", help="output file name")
@@ -22,18 +24,24 @@ if __name__ == '__main__':
     (opts, args) = parser.parse_args()
 
 
-    if (opts.center):
-        center = np.array(opts.center.split(",")).astype(float)
-        if len(center) != 2:
-            print "Center should be RA,Dec"
-            sys.exit(1)
+
+    center = np.array(opts.center.split(",")).astype(float)
+    if len(center) != 2:
+        print "Center should be RA,Dec in deg"
+        sys.exit(1)
     
-    point = center + np.array((0,0.7))
+    offset = np.array(opts.offset.split(",")).astype(float)
+    if len(offset) != 2:
+        print "offset should be RA,Dec in deg"
+        sys.exit(1)
+
+    point = center + offset
 
     nevt = int(opts.nevt)
     sig = float(opts.sigma)
 
     print "CENTER: ",center
+    print "OFFSET: ",offset
     print "   NUM: ",nevt
 
     random.seed()
@@ -76,9 +84,8 @@ if __name__ == '__main__':
 
     evlist = pyfits.new_table([c1,c2,c3,c4,c5,c6,c7])
     evlist.name = "EVENTS"
-    # currently hard-coded offset of (0,0.7)
-    evlist.header.update( "RA_PNT", center[0] )
-    evlist.header.update( "DEC_PNT", center[1]+0.7 )
+    evlist.header.update( "RA_PNT", point[0] )
+    evlist.header.update( "DEC_PNT", point[1] )
 
 
     if (opts.output):

@@ -1,8 +1,6 @@
 import pyfits
 import numpy as np
 import math
-from astLib import astWCS
-from astLib import astCoords
 
 from numpy.fft import fft2, ifft2
 from scipy import signal
