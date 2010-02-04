@@ -17,8 +17,8 @@
 
 * Set-up
 ** Create your work-space
-   The analysis scripts assume that you have a clean working directory
-   in which to 
+The analysis scripts assume that you have a clean working directory in
+which to write intermediate and final data files. lkfj sldkfj sldkfj
 ** Make a run-list
 * Running the Analysis
   
@@ -78,7 +78,7 @@
       correction" map to correct for exclusions. 
 
 * Bugs/TODO
-** TODO rules using the flat-list don't take into account oversampling!
+** DONE rules using the flat-list don't take into account oversampling!
    Need to divide by a "frequency-map" to correct. For example, the
    exclusion map will have values of 4.0 and 0.0 instead of 1.0 and
    0.0 if oversample=2 is used!
@@ -96,9 +96,15 @@
    They give completely the wrong answer! Probably a problem with
    acceptance.py or something - a transpose in the coordinates [X,Y] -> [Y,X]
 ** TODO make-flat-event-list features:
-   - add option to go beyond map size 
-   - add option to output a VALUE column (or just always do it)
+*** TODO add option to go beyond map size 
+*** DONE add option to output a VALUE column (or just always do it)
 ** TODO make-fits-image.py 
    - add option to weight by a value column (e.g. --weight=VALUE)
 ** TODO support galactic coordinates!
 * Wanted Features
+** Python-based GUI
+
+- Change analysis options (writes out Makefile)
+
+- Display results (table of outputs, for example), click to display
+  with DS9 (via XPA messaging)

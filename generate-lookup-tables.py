@@ -3,22 +3,23 @@ import numpy as np
 from optparse import OptionParser
 import sys
 import math
-import scipy.interpolate
+from scipy import interpolate
 import scipy.signal
-
+import re
 from pylab import *
 
 
-Debug=False
 
 # input is simulated event list (should apply some basic cuts to avoid
 # crazy values)
 
 
 
-def showit(x,y,hist):
-    figure()
+def showIt(x,y,hist):
     pcolor( x,y, hist.transpose() )
+    xlabel("log10(SIZE)")
+    ylabel("Impact distance")
+    colorbar()
 
 
 def smoothLookup(values,counts, extend=False):
@@ -28,9 +29,6 @@ def smoothLookup(values,counts, extend=False):
     - `counts`:
     
     """
-
-    print "Smoothing"
-
     kern = gaussKern( 5,5 )
     values = values.copy()
     cx = kern.shape[0]/2.0
@@ -45,7 +43,6 @@ def smoothLookup(values,counts, extend=False):
         for ii in arange(1,smoothed.shape[0]):
             badpix = ecounts[ii]<10
             smoothed[ii][badpix] = smoothed[ii-1][badpix] 
-    print "Done"
 
     return smoothed.transpose()
 
@@ -61,127 +58,141 @@ def gaussKern(size, sizey=None):
     g = exp(-(x**2/float(size)+y**2/float(sizey)))
     return g / g.sum()
 
+def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
+                            bins = [80,80], histrange =[[0,7],[0,1500]],
+                            debug=False, namebase=None):
+    """
+    generates lookup table for the given variable (average and sigma
+    as a function of logSIZE and IMPACT DISTANCE)
 
-    
-
-
-if __name__ == '__main__':
-    
-    parser = OptionParser()
-
-    (opts, args) = parser.parse_args()
-
-    infile = args.pop(0)
-
-    evfile = pyfits.open(infile)
-    events = evfile["EVENTS"]
+    Arguments:
+    - `events`: event-list FITS HDU 
+    - `varName`: variable to histogram (HIL_TEL_WIDTH or HIL_TEL_LENGTH)
+    - `bins`: number of bins for logSIZE,DISTANCE
+    - `histrange`: logSIZE and DISTANCE ranges
+    """
 
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
-    trig   = events.data.field("TELMASK") 
-    awid = events.data.field("HIL_TEL_WIDTH") 
-    asiz = events.data.field("HIL_TEL_SIZE") 
-    acorex = events.data.field("COREX") 
-    acorey = events.data.field("COREY") 
-    aimpact = np.sqrt( acorex**2 + acorey**2 )
-
+    
+    # these are the data fields as NxM arrays (where N is number of events,
+    # and M is number of telescopes):
+    telMask   = events.data.field("TELMASK") 
+    allValues = events.data.field(varName) 
+    allSizes = events.data.field("HIL_TEL_SIZE") 
+    allCoreX = events.data.field("COREX") 
+    allCoreY = events.data.field("COREY") 
+    allImpacts = np.sqrt( allCoreX**2 + allCoreY**2 )
     mccorex = events.data.field("MC_COREX") 
     mccorey = events.data.field("MC_COREY") 
 
-    nevents,ntels = awid.shape
+    nevents,ntels = allValues.shape
 
-    widmask = awid > -100 # remove bad widths (why are they there?)
-    mask = widmask * trig
-
-    bins = [80,80]
-    histrange =[[0,7],[0,1500]]
+    # we want to do some basic cuts on width, removing ones with bad
+    # values (why do bad value widths still exist for triggered
+    # events?)
+    valueMask = allValues > -100 
+    telMask *= valueMask  # mask off bad values
     
-
-    if (Debug):
+    if (debug):
         figure( figsize=(15,10))
         subplot(1,1,1)
 
-    telwidmean = dict()
-    telwidsigma = dict()
-
+    # now, generate the lookup table for each telescope separately:
     for itel in range(ntels):
 
-        trigmask = mask[:,itel]  # cuts out non-triggered telescopes
-        wid = awid[:,itel][trigmask]
-        impact = aimpact[trigmask]
-        logsiz = np.log10(asiz[:,itel][trigmask])
+        goodEvents = telMask[:,itel]  
+        value = allValues[:,itel][goodEvents]
+        impact = allImpacts[goodEvents]
+        logsiz = np.log10(allSizes[:,itel][goodEvents])
 
-        widsum,edX,edY = np.histogram2d( logsiz,impact, 
-                                           weights=wid,
+        sumHist,edX,edY = np.histogram2d( logsiz,impact, 
+                                           weights=value,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        wid2sum,edX,edY = np.histogram2d( logsiz,impact, 
-                                           weights=wid**2,
+        sumSqrHist,edX,edY = np.histogram2d( logsiz,impact, 
+                                           weights=value**2,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        count,edX,edY = np.histogram2d( logsiz,impact, 
+        countHist,edX,edY = np.histogram2d( logsiz,impact, 
                                         weights=None,
                                         range=histrange, 
                                         bins=bins,
                                         normed=False)
 
-        meanwid = widsum/(count.astype(float)+1e-10)
-        sigmawid = (widsum**2 - wid2sum)/(count.astype(float)+1e-10)
+        meanHist = sumHist/(countHist.astype(float)+1e-10)
+        sigmaHist = (sumHist**2 - sumSqrHist)/(countHist.astype(float)+1e-10)
+        
+        meanHistSmooth = smoothLookup(meanHist, countHist)
+        sigmaHistSmooth = smoothLookup(sigmaHist, countHist)
 
-        telwidmean[telid[itel]] = meanwid
-        telwidsigma[telid[itel]] = sigmawid
+        if (debug):
+            subplot(4,ntels,ntels*0 + itel + 1)
+            showIt( edX, edY, meanHist )
+            title ("CT%d %s" % (telid[itel],varName))
 
-        #meanwid = fixLookup( value=meanwid, count=count, range=histrange)
-        #sigmawid = fixLookup( value=sigmawid, count=count, range=histrange)
-
-        if (Debug):
-            subplot(2,ntels,itel+1)
-            pcolor( edX, edY, meanwid.transpose() )
-            colorbar()
-            title ("CT%d Width" % telid[itel])
-            xlabel("log10(SIZE)")
-            ylabel("Impact distance")
-
-            subplot(2,ntels,ntels*1+itel+1)
-            pcolor( edX, edY, sigmawid.transpose() )
-            colorbar()
+            subplot(4,ntels,ntels*1 + itel + 1)
+            showIt( edX, edY, sigmaHist )
             title ("CT %d Sigma"  % telid[itel])
-            xlabel("log10(SIZE)")
-            ylabel("Impact distance")
 
-        print "CT",telid[itel]," width:",len(wid),sum(widsum), sum(count)
+            subplot(4,ntels,ntels*2 + itel + 1)
+            showIt( edX, edY, meanHistSmooth )
+            title ("CT%d %s" % (telid[itel],varName))
 
- 
-    ii = np.arange(edX.shape[0])
-    deltaSize = ((edX[ii]-edX[ii-1])/2.0)[1:]
-    csize = edX[0:-1]+deltaSize # center of size bin
-    deltaDist = ((edY[ii]-edY[ii-1])/2.0)[1:]
-    cdist = edY[0:-1]+deltaDist # center of impact distance bin
+            subplot(4,ntels,ntels*3 + itel + 1)
+            showIt( edX, edY, sigmaHistSmooth )
+            title ("CT %d Sigma (smooth)"  % telid[itel])
 
-    msize,mdist = np.meshgrid( csize,cdist )
+        print "CT",telid[itel],varName,"Nevents=",len(value),
+        print "outliers=",len(value)-sum(countHist)
+
+        # write it out as a FITS file with 2 images VALUE and SIGMA
+
+        if namebase:
+            filename = "%s-CT%03d-%s-lookup.fits" % (namebase,telid[itel], varName)
+        else:
+            filename = "CT%03d-%s-lookup.fits" % (telid[itel], varName)
+        print "    --> ",filename
+        
+        
 
 
-    smooth = smoothLookup(telwidsigma[telid[0]], count)
 
-    valueinterp = scipy.interpolate.interp2d(x=msize.flatten(),y=mdist.flatten(),  
-                                             z=smooth,
-                                             kind='linear')
+if __name__ == '__main__':
+    
+    parser = OptionParser()
+    parser.set_usage( "generate-lookup-table.py [options] EVENTFILE")
+    parser.add_option( "-d","--debug", dest="debug", action="store_true",
+                       default=False, help="display debug plots interactively")    
+    (opts, args) = parser.parse_args()
+
+    if len(args)>0:
+        infile = args.pop(0)
+    else:
+        parser.error("Please specify a filename")
+
+    # lookup table definition:
+    evfile = pyfits.open(infile)
+    events = evfile["EVENTS"]
+
+    match = re.search( r"_([\d]+)_", infile )
+    if (match):
+        runid = match.group(1)
+        namebase = "run%s" % runid
+    else:
+        namebase=None
     
 
-    interpSizes = arange(0,7,0.1)
-    interpDists = arange(0,1470,0.1)
-    interpVal = valueinterp(interpSizes,interpDists)
 
-    figure( figsize=(15,5))
-    subplot(1,3,1)
-    pcolor( edX, edY,telwidsigma[telid[0]].transpose() )
-    colorbar()
-    subplot(1,3,2)
-    pcolor( edX, edY,smooth.transpose() )
-    colorbar()
-    subplot(1,3,3)
-    pcolor( interpSizes,interpDists, interpVal.transpose() )
-    colorbar()
+    generateTelLookupTables( events, varName="HIL_TEL_WIDTH", 
+                             debug=False,namebase=namebase )
+    generateTelLookupTables( events, varName="HIL_TEL_LENGTH" , 
+                             debug=False, namebase=namebase )
+
+    
+
+
+ 

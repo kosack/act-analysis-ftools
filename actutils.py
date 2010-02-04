@@ -242,6 +242,8 @@ def makeCountMap(hdu, lam,bet, output=None, insystem=wcs.fk5, verbose=False):
     H, xedges, yedges = np.histogram2d( coords[:,1],coords[:,0],
                                         bins=bins, range=imrange )
 
+    H=H.transpose()
+
     if verbose:
         print "   H: ", H.shape
         print "data: ", hdu.data.shape
