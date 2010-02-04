@@ -19,12 +19,15 @@ my %rules;
 
 sub goodname($) {
     my $name = shift;
-    $name =~ s/run_[0-9]+//g;
-    $name =~ s/^.*\///;
-    $name =~ s/^\s+//;
-    $name =~ s/[\W]//g;    
-    $name =~ s/fits//g;
+#    $name =~ s/run_[0-9]+//g;
+    $name =~ s/.*_[\d]+_/%_/g; # runs in runlist
+    $name =~ s|^.*/||;         # leading directory names
+    $name =~ s/^[\s]+//;       # white spaces
+    $name =~ s/\./_/g;
+    $name =~ s/[\W]//g;
+    $name =~ s/_fits//g;
     $name =~ s/^_/%_/;
+
     return $name;
 }
 
@@ -42,6 +45,7 @@ foreach  (`$command`) {
     @targets = split(" ", $alltargets);
 
     $source = goodname($source);
+    next if ($source =~ /clean/);
 
     if (!defined($id{$source})) {
 	$id{$source} = $maxid;
@@ -53,6 +57,7 @@ foreach  (`$command`) {
     foreach $target (sort @targets) {
 
 	$target = goodname($target);
+	next if ($target =~ /clean/);
 
 	if (!defined($id{$target})) {
 	    $id{$target} = $maxid;
@@ -83,7 +88,7 @@ foreach $rule (keys %rules) {
     $width = $count /10 + 1;
     print "\t$rule";
     if ($count > 1) {
-	print " [style=\"setlinewidth($width)\"]"
+	print " [style=\"setlinewidth(5)\"]"
     }
     print ";\n";
 }
