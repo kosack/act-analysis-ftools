@@ -8,6 +8,7 @@ import scipy.signal
 import re
 from pylab import *
 
+import actutils
 
 
 # input is simulated event list (should apply some basic cuts to avoid
@@ -22,31 +23,6 @@ def showIt(x,y,hist):
     colorbar()
 
 
-def smoothLookup(values,counts, extend=False):
-    """
-    Arguments:
-    - `value`:
-    - `counts`:
-    
-    """
-    kern = gaussKern( 5,5 )
-    values = values.copy()
-    cx = kern.shape[0]/2.0
-    cy = kern.shape[1]/2.0
-    kern /= kern[ cx,cy ] # correct normalization 
-
-    smoothed = scipy.signal.convolve( values, kern, mode='same' ).transpose()
-    ecounts = counts.transpose()
-
-    if extend:
-        # extend to the right
-        for ii in arange(1,smoothed.shape[0]):
-            badpix = ecounts[ii]<10
-            smoothed[ii][badpix] = smoothed[ii-1][badpix] 
-
-    return smoothed.transpose()
-
-    
 def gaussKern(size, sizey=None):
     """ Returns a normalized 2D gauss kernel array for convolutions """
     size = int(size)
@@ -60,7 +36,8 @@ def gaussKern(size, sizey=None):
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                             bins = [80,80], histrange =[[0,7],[0,1500]],
-                            debug=False, namebase=None):
+                            debug=False, namebase=None, 
+                            singleFile=False):
     """
     generates lookup table for the given variable (average and sigma
     as a function of logSIZE and IMPACT DISTANCE)
@@ -70,6 +47,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     - `varName`: variable to histogram (HIL_TEL_WIDTH or HIL_TEL_LENGTH)
     - `bins`: number of bins for logSIZE,DISTANCE
     - `histrange`: logSIZE and DISTANCE ranges
+    - `singleFile`: write to a single FITS file  with multiple HDUs
     """
 
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
@@ -126,9 +104,6 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         meanHist = sumHist/(countHist.astype(float)+1e-10)
         sigmaHist = (sumHist**2 - sumSqrHist)/(countHist.astype(float)+1e-10)
         
-        meanHistSmooth = smoothLookup(meanHist, countHist)
-        sigmaHistSmooth = smoothLookup(sigmaHist, countHist)
-
         if (debug):
             subplot(4,ntels,ntels*0 + itel + 1)
             showIt( edX, edY, meanHist )
@@ -139,26 +114,46 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             title ("CT %d Sigma"  % telid[itel])
 
             subplot(4,ntels,ntels*2 + itel + 1)
-            showIt( edX, edY, meanHistSmooth )
+            showIt( edX, edY, meanHist )
             title ("CT%d %s" % (telid[itel],varName))
 
-            subplot(4,ntels,ntels*3 + itel + 1)
-            showIt( edX, edY, sigmaHistSmooth )
-            title ("CT %d Sigma (smooth)"  % telid[itel])
 
         print "CT",telid[itel],varName,"Nevents=",len(value),
         print "outliers=",len(value)-sum(countHist)
 
-        # write it out as a FITS file with 2 images VALUE and SIGMA
+        # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
         if namebase:
-            filename = "%s-CT%03d-%s-lookup.fits" % (namebase,telid[itel], varName)
+            filename = "%s-CT%03d-%s-lookup" % (namebase,telid[itel], varName)
         else:
-            filename = "CT%03d-%s-lookup.fits" % (telid[itel], varName)
+            filename = "CT%03d-%s-lookup" % (telid[itel], varName)
         print "    --> ",filename
-        
-        
 
+        
+        if (singleFile) :
+        
+            hdu1=histToFITS( meanHist, bins=bins,
+                             histrange=histrange,name="MEAN" )
+            hdu2=histToFITS( sigmaHist, bins=bins,
+                             histrange=histrange, name="STDDEV")
+            hdu3=histToFITS( countHist, bins=bins,
+                             histrange=histrange, name="COUNTS" )
+            hdulist = pyfits.HDUList()
+            hdulist.append( pyfits.PrimaryHDU() )
+            hdulist.append( hdu1 )
+            hdulist.append( hdu2 )
+            hdulist.append( hdu3 )
+            hdulist.writeto( filename+".fits", clobber=True )
+        else:
+            hdu1=actutils.histToFITS( sumHist, bins=bins,
+                                      histrange=histrange,name="MEAN" )
+            hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
+                                      histrange=histrange, name="STDDEV")
+            hdu3=actutils.histToFITS( countHist, bins=bins,
+                                      histrange=histrange, name="COUNTS" )
+            hdu1.writeto( filename+"-sum.fits" )
+            hdu2.writeto( filename+"-sum2.fits" )
+            hdu3.writeto( filename+"-count.fits" )
 
 
 if __name__ == '__main__':
@@ -167,30 +162,35 @@ if __name__ == '__main__':
     parser.set_usage( "generate-lookup-table.py [options] EVENTFILE")
     parser.add_option( "-d","--debug", dest="debug", action="store_true",
                        default=False, help="display debug plots interactively")    
+    parser.add_option( "-o","--output", dest="output", 
+                       default=None, 
+                       help="output name base (rest of name will be appended)")
     (opts, args) = parser.parse_args()
 
-    if len(args)>0:
-        infile = args.pop(0)
-    else:
+    if len(args)==0:
         parser.error("Please specify a filename")
 
-    # lookup table definition:
+    infile = args.pop(0)
+
     evfile = pyfits.open(infile)
     events = evfile["EVENTS"]
 
-    match = re.search( r"_([\d]+)_", infile )
-    if (match):
-        runid = match.group(1)
-        namebase = "run%s" % runid
+    if (opts.output==None):
+        match = re.search( r"_([\d]+)_", infile )
+        if (match):
+            runid = match.group(1)
+            namebase = "run_%s" % runid
+        else:
+            namebase=None
     else:
-        namebase=None
+        namebase = opts.output
     
 
 
     generateTelLookupTables( events, varName="HIL_TEL_WIDTH", 
-                             debug=False,namebase=namebase )
+                             debug=opts.debug,namebase=namebase )
     generateTelLookupTables( events, varName="HIL_TEL_LENGTH" , 
-                             debug=False, namebase=namebase )
+                             debug=opts.debug, namebase=namebase )
 
     
 
