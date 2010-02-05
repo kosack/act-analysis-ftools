@@ -101,6 +101,7 @@ which to write intermediate and final data files. lkfj sldkfj sldkfj
 ** TODO make-fits-image.py 
    - add option to weight by a value column (e.g. --weight=VALUE)
 ** TODO support galactic coordinates!
+** TODO Add AZ and ALT dependence and interpolatin to lookup tables (4D data cube?)
 * Wanted Features
 ** Python-based GUI
 

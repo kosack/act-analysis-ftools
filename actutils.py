@@ -304,3 +304,39 @@ def makeRadialFOVMask(imagehdu,radius,center=None):
     mask = np.zeros( dists.shape )
     mask[dists<radius] = 1.0
     return mask
+
+def histToFITS(histdata, bins, histrange, name=""):
+    """
+    turn the histogram output from numpy.histogram2d into a FITS image extension
+
+    Arguments:
+    - `histdata`: the data output from numpy.histogram2d (not transposed)
+    - `bins`: bin ranges given to numpy.histogram2d
+    - `range`: range that was given to histogram2d
+    """
+    
+    fullrange =  np.array( (histrange[0][1]- histrange[0][0], 
+                            histrange[1][1]- histrange[1][0]) )
+    nbins = np.array(bins)
+    delta = fullrange/nbins.astype(float)
+
+    bin0pix = np.array((0.5,0.5)) # center of first bin 
+    bin0coord = np.array( (histrange[0][0], 
+                           histrange[1][0]) ) # bin coord of first bin
+
+
+    ohdu = pyfits.ImageHDU(data=histdata.transpose())
+    ohdu.name = name
+    ohdu.header.update( "CTYPE1", "LSIZE", "log10(SIZE)" );
+    ohdu.header.update( "CUNIT1", "LPE");
+    ohdu.header.update( "CTYPE2", "DIST", "impact distance" );
+    ohdu.header.update( "CUNIT2", "m");
+    ohdu.header.update( "CDELT1", delta[0] )
+    ohdu.header.update( "CDELT2", delta[1] )
+    ohdu.header.update( "CRVAL1", bin0coord[0] )
+    ohdu.header.update( "CRVAL2", bin0coord[1] )
+    ohdu.header.update( "CRPIX1", bin0pix[0] )
+    ohdu.header.update( "CRPIX2", bin0pix[1] )
+
+    return ohdu
+

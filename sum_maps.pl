@@ -22,7 +22,7 @@ foreach $image (@ARGV) {
 	rename( "temp_$output", $output);
     }
     else {
-	system("cp $image $output");
+	system("cp -f $image $output");
 	print "CREATED $output from $image\n" if $opt_v;
     }
 }
