@@ -50,6 +50,14 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     - `singleFile`: write to a single FITS file  with multiple HDUs
     """
 
+    evfile = pyfits.open(infile)
+    events = evfile["EVENTS"]
+    telarray = evfile["TELARRAY"]
+
+    tposx = telarray.data.field("POSX")
+    tposy = telarray.data.field("POSY")
+    print "TPOSX",tposx
+    print "TPOSY",tposy
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
     
     # these are the data fields as NxM arrays (where N is number of events,
@@ -59,9 +67,17 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     allSizes = events.data.field("HIL_TEL_SIZE") 
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
-    allImpacts = np.sqrt( allCoreX**2 + allCoreY**2 )
     mccorex = events.data.field("MC_COREX") 
     mccorey = events.data.field("MC_COREY") 
+
+    # impacts distances need to be calculated for each telescope (the
+    # impact distance stored is relative to the array center)
+    allImpacts = zeros( allValues.shape )
+    for ii in range(allValues.shape[1]):
+        print "t",ii
+        allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
+                                    (allCoreY-tposy[ii])**2 )
+
 
     nevents,ntels = allValues.shape
 
@@ -80,7 +96,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
         goodEvents = telMask[:,itel]  
         value = allValues[:,itel][goodEvents]
-        impact = allImpacts[goodEvents]
+        impact = allImpacts[:,itel][goodEvents]
         logsiz = np.log10(allSizes[:,itel][goodEvents])
 
         sumHist,edX,edY = np.histogram2d( logsiz,impact, 
@@ -184,13 +200,11 @@ if __name__ == '__main__':
         namebase = opts.output
     
 
-    evfile = pyfits.open(infile)
-    events = evfile["EVENTS"]
- 
 
-    generateTelLookupTables( events, varName="HIL_TEL_WIDTH", 
+
+    generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
                              debug=opts.debug,namebase=namebase )
-    generateTelLookupTables( events, varName="HIL_TEL_LENGTH" , 
+    generateTelLookupTables( infile, varName="HIL_TEL_LENGTH" , 
                              debug=opts.debug, namebase=namebase )
 
     

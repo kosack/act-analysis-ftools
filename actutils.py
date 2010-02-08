@@ -320,16 +320,32 @@ def histToFITS(histdata, bins, histrange, name=""):
     nbins = np.array(bins)
     delta = fullrange/nbins.astype(float)
 
-    bin0pix = np.array((0.5,0.5)) # center of first bin 
-    bin0coord = np.array( (histrange[0][0], 
-                           histrange[1][0]) ) # bin coord of first bin
 
+    # the lower-left edge of the first bin is (Xed[0],Yed[0]), which
+    # is (0.5,0.5) in FITS pixel coordinates (the center of the bin is
+    # at (1.0,1.0)):
+    bin0pix = np.array((0.5,0.5)) # reference coordinate is lower left
+                                  # corner of bin
+    bin0coord = np.array( (histrange[0][0], 
+                           histrange[1][0]) ) # world coord of
+                                              # lower-left corner is
+                                              # the lower-part of the
+                                              # range we specified
+
+    # now note that this defines the first pixel in FITS coordinates
+    # with the center (1.0,1.0). in integer python coordinates it is [0,0]
+
+    # to transform a world value, you need to subtract 1.0 and round
+    # down to get the bin number:
+    #       ibin = round( Vpix-1.0 )
+    # To get the value of ibin, you need to go the other way:
+    #       Vworld[ibin] = proj.toworld( ibin+0.5 )
 
     ohdu = pyfits.ImageHDU(data=histdata.transpose())
     ohdu.name = name
-    ohdu.header.update( "CTYPE1", "LSIZE", "log10(SIZE)" );
-    ohdu.header.update( "CUNIT1", "LPE");
-    ohdu.header.update( "CTYPE2", "DIST", "impact distance" );
+    ohdu.header.update( "CTYPE1", "LSIZ", "log10(SIZE)" );
+    ohdu.header.update( "CUNIT1", "PE");
+    ohdu.header.update( "CTYPE2", "DIS", "impact distance" );
     ohdu.header.update( "CUNIT2", "m");
     ohdu.header.update( "CDELT1", delta[0] )
     ohdu.header.update( "CDELT2", delta[1] )
@@ -339,4 +355,23 @@ def histToFITS(histdata, bins, histrange, name=""):
     ohdu.header.update( "CRPIX2", bin0pix[1] )
 
     return ohdu
+
+def histFromFITS(hdu):
+    """
+    returns xed,yed,Hist (as in np.histogram2d)
+
+    Arguments:
+    - `hdu`: hdu containing the histogram
+    """
+    
+    hist = hdu.data
+    bins = hdu.data.shape
+    proj = wcs.Projection ( hdu.header ) # for going between world and pix coords
+    
+    xed,tmp = proj.toworld( (np.arange(bins[0])+0.5, np.zeros(bins[1])+0.5) )
+    tmp,yed = proj.toworld( (np.zeros(bins[0])+0.5,np.arange(bins[1])+0.5) )
+    
+    return xed,yed, hist.transpose() # transposed according to
+                                     # np.histogram2d convention
+        
 
