@@ -6,7 +6,12 @@ import sys
 fname = sys.argv[1]
 print "*** ",fname
 
-im = pyfits.open( fname )[0]
+ff = pyfits.open( fname )
+for ii in range(100):
+    im = ff[ii]
+    if im.header["NAXIS"]>1:
+        print "Found data at extension:",im.name
+        break
 
 f = maputils.FITSimage( externalheader=im.header, externaldata=im.data)
 
