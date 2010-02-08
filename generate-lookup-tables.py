@@ -9,7 +9,7 @@ import re
 from pylab import *
 
 import actutils
-
+ 
 
 # input is simulated event list (should apply some basic cuts to avoid
 # crazy values)
@@ -35,7 +35,7 @@ def gaussKern(size, sizey=None):
     return g / g.sum()
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [80,80], histrange =[[0,7],[0,1500]],
+                            bins = [20,20], histrange =[[0,7],[0,1500]],
                             debug=False, namebase=None, 
                             singleFile=False):
     """
@@ -118,8 +118,6 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             title ("CT%d %s" % (telid[itel],varName))
 
 
-        print "CT",telid[itel],varName,"Nevents=",len(value),
-        print "outliers=",len(value)-sum(countHist)
 
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
@@ -127,7 +125,10 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             filename = "%s-CT%03d-%s-lookup" % (namebase,telid[itel], varName)
         else:
             filename = "CT%03d-%s-lookup" % (telid[itel], varName)
-        print "    --> ",filename
+
+        print "CT",telid[itel],varName,"Nevents=",len(value),
+        print "outliers=",len(value)-sum(countHist),
+        print "out:",filename
 
         
         if (singleFile) :
@@ -172,9 +173,6 @@ if __name__ == '__main__':
 
     infile = args.pop(0)
 
-    evfile = pyfits.open(infile)
-    events = evfile["EVENTS"]
-
     if (opts.output==None):
         match = re.search( r"_([\d]+)_", infile )
         if (match):
@@ -186,6 +184,9 @@ if __name__ == '__main__':
         namebase = opts.output
     
 
+    evfile = pyfits.open(infile)
+    events = evfile["EVENTS"]
+ 
 
     generateTelLookupTables( events, varName="HIL_TEL_WIDTH", 
                              debug=opts.debug,namebase=namebase )
