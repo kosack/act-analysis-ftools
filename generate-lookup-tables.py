@@ -11,31 +11,8 @@ from pylab import *
 import actutils
  
 
-# input is simulated event list (should apply some basic cuts to avoid
-# crazy values)
-
-
-
-def showIt(x,y,hist):
-    pcolor( x,y, hist.transpose() )
-    xlabel("log10(SIZE)")
-    ylabel("Impact distance")
-    colorbar()
-
-
-def gaussKern(size, sizey=None):
-    """ Returns a normalized 2D gauss kernel array for convolutions """
-    size = int(size)
-    if not sizey:
-        sizey = size
-    else:
-        sizey = int(sizey)
-    x, y = mgrid[-size:size+1, -sizey:sizey+1]
-    g = exp(-(x**2/float(size)+y**2/float(sizey)))
-    return g / g.sum()
-
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [20,20], histrange =[[0,7],[0,1500]],
+                            bins = [60,60], histrange =[[0,7],[0,1500]],
                             debug=False, namebase=None, 
                             singleFile=False):
     """
@@ -74,7 +51,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     # impact distance stored is relative to the array center)
     allImpacts = zeros( allValues.shape )
     for ii in range(allValues.shape[1]):
-        print "t",ii
+        print "t",ii, " at ", tposx[ii],tposy[ii]
         allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
                                     (allCoreY-tposy[ii])**2 )
 
@@ -117,24 +94,8 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                                         bins=bins,
                                         normed=False)
 
-        meanHist = sumHist/(countHist.astype(float)+1e-10)
-        sigmaHist = (sumHist**2 - sumSqrHist)/(countHist.astype(float)+1e-10)
+
         
-        if (debug):
-            subplot(4,ntels,ntels*0 + itel + 1)
-            showIt( edX, edY, meanHist )
-            title ("CT%d %s" % (telid[itel],varName))
-
-            subplot(4,ntels,ntels*1 + itel + 1)
-            showIt( edX, edY, sigmaHist )
-            title ("CT %d Sigma"  % telid[itel])
-
-            subplot(4,ntels,ntels*2 + itel + 1)
-            showIt( edX, edY, meanHist )
-            title ("CT%d %s" % (telid[itel],varName))
-
-
-
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
         if namebase:
@@ -146,9 +107,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         print "outliers=",len(value)-sum(countHist),
         print "out:",filename
 
-        
         if (singleFile) :
-        
+            meanHist = sumHist/(countHist.astype(float)+1e-10)
+            sigmaHist = (sumHist**2 - sumSqrHist)/(countHist.astype(float)+1e-10)
             hdu1=histToFITS( meanHist, bins=bins,
                              histrange=histrange,name="MEAN" )
             hdu2=histToFITS( sigmaHist, bins=bins,
@@ -168,9 +129,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                                       histrange=histrange, name="STDDEV")
             hdu3=actutils.histToFITS( countHist, bins=bins,
                                       histrange=histrange, name="COUNTS" )
-            hdu1.writeto( filename+"-sum.fits" )
-            hdu2.writeto( filename+"-sum2.fits" )
-            hdu3.writeto( filename+"-count.fits" )
+            hdu1.writeto( filename+"-sum.fits", clobber=True )
+            hdu2.writeto( filename+"-sum2.fits", clobber=True )
+            hdu3.writeto( filename+"-count.fits", clobber=True )
 
 
 if __name__ == '__main__':
