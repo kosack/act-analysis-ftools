@@ -10,6 +10,10 @@ from pylab import *
 
 import actutils
  
+# TODO: apply local-distance cut! (maybe make a selection tool for
+# telescope cuts: telselect. Want localdist<0.525 (but better as a
+# fraciton or something to scale with bigger telescopes)
+
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                             bins = [60,60], histrange =[[0,7],[0,1500]],
@@ -47,6 +51,12 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     mccorex = events.data.field("MC_COREX") 
     mccorey = events.data.field("MC_COREY") 
 
+    cogx = events.data.field("HIL_TEL_COGX")
+    cogy = events.data.field("HIL_TEL_COGY")
+    localDistance = sqrt( cogx**2 +cogy**2)
+    localDistMask = localDistance < 0.025
+
+
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
     allImpacts = zeros( allValues.shape )
@@ -63,6 +73,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     # events?)
     valueMask = allValues > -100 
     telMask *= valueMask  # mask off bad values
+    telMask *= localDistMask  # mask off bad values
     
     if (debug):
         figure( figsize=(15,10))

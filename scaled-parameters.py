@@ -2,14 +2,20 @@ import pyfits
 import numpy as np
 import sys
 import math
+import os
 import re
 from scipy import interpolate
 import scipy.signal
 from optparse import OptionParser
 from kapteyn import wcs
+from pylab import *
 
 import actutils
 
+# TODO apply image amplitude and local distance cuts!
+
+# note can use wcs.coordmap() to generate the coordinate map input to
+# scipy.interpolate if we want to do interpolation properly (see Kapteyn manual)
 
 class TelLookupTable(object):
     """ 
@@ -21,7 +27,7 @@ class TelLookupTable(object):
 
 
     def __init__(self, lookupName, telID, 
-                 lookupDir= "/home/kosack/Analysis/FITSEventLists/Lookups"):
+                 lookupDir= None):
         """
         initialize a lookup table
 
@@ -31,6 +37,8 @@ class TelLookupTable(object):
         `lookupName`: name of lookup table to load (e.g. HIL_TEL_WIDTH)
         `telID`: telescope ID number
         """
+        if lookupDir==None:
+            lookupDir = os.environ["HOME"]+"/Analysis/FITSEventLists/Lookups"
 
         values = ["mean","stddev","count"]    
         self._valueDict = dict()
@@ -45,11 +53,10 @@ class TelLookupTable(object):
             self._valueDict[val] = edgesAndHist
             self._proj[val] = wcs.Projection( hdu.header )
 
-    def getValue(self, coord, tel, what="mean" ):
+    def getValue(self, coord, what="mean" ):
         """
         
         Arguments:
-        - `tel`: telescope id
         - `coord`: coordinate or array of coordinates  in logSize,Dist space
         - `impactDist`: single value or array of values
 
@@ -59,14 +66,16 @@ class TelLookupTable(object):
         world = np.array( coord )
         bin = np.trunc(self._proj[what].topixel( world ) - 1.0).astype(int)
         xed,yed,val = self._valueDict[what]
+        shape = np.array(val.shape)
         
-        print "bin=",bin, " value=",va;[bin]
+        # outliers:
+        bin[bin>shape] = shape-1
+        v = val[bin[0],bin[1]]
 
+        #print "coord=",coord,"bin=",bin, " value=",v
 
+        return v
         
-
-
-
 def calcMeanReducedScaledValue( tels, coords, vals, lookup):
     """
     
@@ -74,20 +83,19 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookup):
     `vals`: array of values corresponding to each tel
     `lookup`: the big lookup table structure
     """
-    
-    print "TELS:",tels
-    print "COORDS:",coords
-    print "VALS:",vals
 
-    for ii in xrange( vals.shape[0] ):
-        print "\tTEL",tels[ii]
-        print "\tVAL",vals[ii]
-        print "\tCOORD", coords[ii]
-#        lval = lookup.getValue( 
+    mrsv = 0.0
+    ntels = vals.shape[0]
 
-#    mrsv = np.average(vals)
+    if ntels==0:
+        return -10000
 
-    return 1.0
+    for itel in xrange( ntels ):
+        vMean = lookup[tels[itel]].getValue( coords[itel], "mean" )
+        vSigma = lookup[tels[itel]].getValue( coords[itel], "stddev" )
+        mrsv += (vals[itel] - vMean)/vSigma
+
+    return mrsv/float(ntels)
     
                         
 
@@ -97,7 +105,10 @@ if __name__ == '__main__':
     ineventlistfile = sys.argv.pop(1)
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
+    telarray = evfile["TELARRAY"]
 
+    tposx = telarray.data.field("POSX")
+    tposy = telarray.data.field("POSY")
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
 
     # load the lookups:
@@ -115,7 +126,19 @@ if __name__ == '__main__':
     allSizes = events.data.field("HIL_TEL_SIZE") 
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
-    allImpacts = np.sqrt( allCoreX**2 + allCoreY**2 )
+    allMSW = events.data.field("HIL_MSW")
+    cogx = events.data.field("HIL_TEL_COGX")
+    cogy = events.data.field("HIL_TEL_COGY")
+    localDistance = sqrt( cogx**2 +cogy**2)
+
+    # impacts distances need to be calculated for each telescope (the
+    # impact distance stored is relative to the array center)
+    allImpacts = np.zeros( allValues.shape )
+    for ii in range(allValues.shape[1]):
+        print "t",ii, " at ", tposx[ii],tposy[ii]
+        allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
+                                    (allCoreY-tposy[ii])**2 )
+
     nevents,ntels = allValues.shape
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
@@ -123,19 +146,35 @@ if __name__ == '__main__':
     valueMask = allValues > -100 
     telMask *= valueMask  # mask off bad values
  
+    localDistMask = localDistance < 0.025
+#    telMask *= localDistMask  # mask off bad values
 
-    # now, for each event, we want to calculate the MRSW/MRSL value, which is just
-    # 1/Ntelsinevent sum( (V[tel] - Vmean[tel])/Vsigma[tel] )
+    # now, for each event, we want to calculate the MRSW/MRSL value,
+    # which is just 1/Ntelsinevent sum( (V[tel] -
+    # Vmean[tel])/Vsigma[tel] )
+
+    print "Calculating MRSV from the lookups...."
+
+    mrsv = np.zeros( allValues.shape[0] )
 
     for evnum in xrange(allValues.shape[0]):
-        print "--------------------------------"
         vals = allValues[evnum][ telMask[evnum] ]
         tels = telid[ telMask[evnum] ]
-        sizes = allSizes[evnum][ telMask[evnum] ]
+        lsizes = np.log10(allSizes[evnum][ telMask[evnum] ])
         impacts = allImpacts[evnum][ telMask[evnum] ]
         
-        mrsv = calcMeanReducedScaledValue( tels,zip(sizes,impacts), 
-                                           vals, lookup=telLookup )
-        print zip(tels,vals,zip(sizes,impacts)),"--> ",mrsv
+        mrsv[evnum] = calcMeanReducedScaledValue( tels,zip(lsizes,impacts), 
+                                                  vals, lookup=telLookup )
     
+    mrsv[ np.isnan(mrsv) ] = -10000
+    print "Done"
     
+
+    hist(mrsv, range=[-2,2], bins=50,histtype="step", label="calculated MRSV")
+    hist(allMSW, range=[-2,2], bins=50,histtype="step", label="Eventlist MRSV")
+    legend()
+
+    figure()
+    scatter( allMSW, mrsv )
+    xlim([-3,3])
+    ylim([-3,3])
