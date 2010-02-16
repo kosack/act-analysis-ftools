@@ -16,7 +16,7 @@ import actutils
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [60,60], histrange =[[0,7],[0,1500]],
+                            bins = [60,60], histrange =[[0.5,5],[0,5.0]],
                             debug=False, namebase=None, 
                             singleFile=False):
     """
@@ -84,22 +84,22 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
         goodEvents = telMask[:,itel]  
         value = allValues[:,itel][goodEvents]
-        impact = allImpacts[:,itel][goodEvents]
+        logimpact = np.log10(allImpacts[:,itel][goodEvents])
         logsiz = np.log10(allSizes[:,itel][goodEvents])
 
-        sumHist,edX,edY = np.histogram2d( logsiz,impact, 
+        sumHist,edX,edY = np.histogram2d( logsiz,logimpact, 
                                            weights=value,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        sumSqrHist,edX,edY = np.histogram2d( logsiz,impact, 
+        sumSqrHist,edX,edY = np.histogram2d( logsiz,logimpact, 
                                            weights=value**2,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        countHist,edX,edY = np.histogram2d( logsiz,impact, 
+        countHist,edX,edY = np.histogram2d( logsiz,logimpact, 
                                         weights=None,
                                         range=histrange, 
                                         bins=bins,

@@ -24,10 +24,11 @@ class TelLookupTable(object):
 
     _valueDict = dict()
     _proj = dict()
-
+    values = dict()
+    telID = 0
 
     def __init__(self, lookupName, telID, 
-                 lookupDir= None):
+                 lookupDir= None,useSmooth=True):
         """
         initialize a lookup table
 
@@ -40,18 +41,70 @@ class TelLookupTable(object):
         if lookupDir==None:
             lookupDir = os.environ["HOME"]+"/Analysis/FITSEventLists/Lookups"
 
-        values = ["mean","stddev","count"]    
+        self.values = ["mean","stddev","count"]    
         self._valueDict = dict()
+        self.telID = telID
 
         print "Loading Lookups for CT",tel
 
-        for val in values:
-            fname = "CT%03d-%s-lookup-%s.fits" % (tel,lookupName,val)    
+        smooth=""
+        if useSmooth: 
+            smooth="-gauss"
+
+        for what in self.values:
+            fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,smooth)    
             print "\t",fname
             hdu = pyfits.open(lookupDir+"/"+fname)[0]
             edgesAndHist = actutils.histFromFITS( hdu )
-            self._valueDict[val] = edgesAndHist
-            self._proj[val] = wcs.Projection( hdu.header )
+            self._valueDict[what] = edgesAndHist
+            self._proj[what] = wcs.Projection( hdu.header )
+
+#            xed,yed,val = self._valueDict[what]
+#            figure()
+#            pcolor( xed,yed,val.transpose() ) 
+#            title("CT%d: %s" % (self.telID, what))
+#            show()           
+
+
+
+        #self.extrapolateLookups()
+
+    def extrapolateLookups(self, minCounts=10):
+        """
+        Make the lookup tables nicer by extrapolating unfilled values
+        
+        Arguments:
+        - `self`:
+        """
+
+        xed,yed,counts = self._valueDict["count"]
+
+        for what in self.values:
+            if what=='count': continue
+            print "Extrapolating: ", what
+            xed,yed,val = self._valueDict[what]
+
+            # todo: do this as an array op, not for-loop
+
+            for ii in xrange(counts.shape[0]):
+                lastgood = (0,0)
+                for jj in xrange(counts.shape[1]):
+                    if counts[ii,jj] > minCounts:
+                        lastgood=(ii,jj)
+                    else:
+                        val[ii,jj] = val[lastgood]
+                        counts[ii,jj]=minCounts+1
+
+            for ii in xrange(counts.shape[0]):
+                lastgood = (0,0)
+                for jj in xrange(counts.shape[1]-1,0,-1):
+                    if counts[ii,jj] > minCounts:
+                        lastgood=(ii,jj)
+                    else:
+                        val[ii,jj] = val[lastgood]
+                        counts[ii,jj]=minCounts+1
+
+
 
     def getValue(self, coord, what="mean" ):
         """
@@ -70,12 +123,14 @@ class TelLookupTable(object):
         
         # outliers:
         bin[bin>shape] = shape-1
-        v = val[bin[0],bin[1]]
+        v = val[bin]
 
         #print "coord=",coord,"bin=",bin, " value=",v
 
         return v
         
+# ===========================================================================
+
 def calcMeanReducedScaledValue( tels, coords, vals, lookup):
     """
     
@@ -126,7 +181,7 @@ if __name__ == '__main__':
     allSizes = events.data.field("HIL_TEL_SIZE") 
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
-    allMSW = events.data.field("HIL_MSW")
+    allMSV = events.data.field("HIL_MSW")
     cogx = events.data.field("HIL_TEL_COGX")
     cogy = events.data.field("HIL_TEL_COGY")
     localDistance = sqrt( cogx**2 +cogy**2)
@@ -161,20 +216,32 @@ if __name__ == '__main__':
         vals = allValues[evnum][ telMask[evnum] ]
         tels = telid[ telMask[evnum] ]
         lsizes = np.log10(allSizes[evnum][ telMask[evnum] ])
-        impacts = allImpacts[evnum][ telMask[evnum] ]
+        limpacts = np.log10(allImpacts[evnum][ telMask[evnum] ])
         
-        mrsv[evnum] = calcMeanReducedScaledValue( tels,zip(lsizes,impacts), 
+        if 0:
+            print "-----------------"
+            print "VALS:",vals
+            print "TELS:",tels
+            print "LSIZ:",lsizes
+            print "IMPT:",limpacts
+            print "ZIP:", zip(lsizes,limpacts)
+        mrsv[evnum] = calcMeanReducedScaledValue( tels,zip(lsizes,limpacts), 
                                                   vals, lookup=telLookup )
     
     mrsv[ np.isnan(mrsv) ] = -10000
     print "Done"
     
 
-    hist(mrsv, range=[-2,2], bins=50,histtype="step", label="calculated MRSV")
-    hist(allMSW, range=[-2,2], bins=50,histtype="step", label="Eventlist MRSV")
+    hist(mrsv,   range=[-2,2], bins=100, histtype="step", label="calculated MRSV")
+    hist(allMSV, range=[-2,2], bins=100, histtype="step", label="Eventlist MRSV")
     legend()
 
     figure()
-    scatter( allMSW, mrsv )
+    scatter( allMSV, mrsv )
     xlim([-3,3])
     ylim([-3,3])
+
+    figure()
+    semilogy()
+    hist( mrsv-allMSV, range=[-5,5],bins=50, histtype='step', label='Residuals' )
+    legend()

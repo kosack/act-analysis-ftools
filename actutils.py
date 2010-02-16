@@ -345,7 +345,7 @@ def histToFITS(histdata, bins, histrange, name=""):
     ohdu.name = name
     ohdu.header.update( "CTYPE1", "LSIZ", "log10(SIZE)" );
     ohdu.header.update( "CUNIT1", "PE");
-    ohdu.header.update( "CTYPE2", "DIS", "impact distance" );
+    ohdu.header.update( "CTYPE2", "LDIS", "log10(impact_param)" );
     ohdu.header.update( "CUNIT2", "m");
     ohdu.header.update( "CDELT1", delta[0] )
     ohdu.header.update( "CDELT2", delta[1] )
@@ -375,3 +375,20 @@ def histFromFITS(hdu):
                                      # np.histogram2d convention
         
 
+def displayFITS(header, data):
+    from pylab import *
+
+    f = maputils.FITSimage( externalheader=header, externaldata=data)
+    frame = figure()
+    img = f.Annotatedimage(frame)
+    colorbar = img.Colorbar()
+    img.Image()
+    img.Graticule()
+
+    img.plot()
+    img.interact_imagecolors()
+    img.interact_toolbarinfo()
+    img.interact_writepos()
+
+    plt.title( fname )
+    plt.show()
