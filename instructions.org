@@ -102,6 +102,18 @@ which to write intermediate and final data files. lkfj sldkfj sldkfj
    - add option to weight by a value column (e.g. --weight=VALUE)
 ** TODO support galactic coordinates!
 ** TODO Add AZ and ALT dependence and interpolatin to lookup tables (4D data cube?)
+* HOWTO
+
+  How to do various small tasks related to analysis
+
+** Select single telescope columns from an eventlist
+   Find telescope column number (e.g. CT12 might be column 1 in the
+   telescope vector), then use:
+   
+     ~ftlist 'file.fits[EVENTS][COL HIL_TEL_WIDTH,HIL_MSW] vector=1~
+   
+   where ~vector=1~ means get telescope in column 1
+
 * Wanted Features
 ** Python-based GUI
 
