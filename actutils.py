@@ -305,7 +305,7 @@ def makeRadialFOVMask(imagehdu,radius,center=None):
     mask[dists<radius] = 1.0
     return mask
 
-def histToFITS(histdata, bins, histrange, name=""):
+def histToFITS(histdata, bins, histrange, name="", valueScale=None):
     """
     turn the histogram output from numpy.histogram2d into a FITS image extension
 
@@ -353,6 +353,10 @@ def histToFITS(histdata, bins, histrange, name=""):
     ohdu.header.update( "CRVAL2", bin0coord[1] )
     ohdu.header.update( "CRPIX1", bin0pix[0] )
     ohdu.header.update( "CRPIX2", bin0pix[1] )
+
+    if (valueScale):
+        ohdu.header.update( "BSCALE", 1.0/float(valueScale) )
+
 
     return ohdu
 

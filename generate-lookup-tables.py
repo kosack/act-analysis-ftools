@@ -17,9 +17,9 @@ import actutils
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [60,60], histrange =[[0.5,5],[0,5.0]],
+                            bins = [60,60], histrange =[[0.5,6],[0,5.0]],
                             debug=False, namebase=None, 
-                            singleFile=False):
+                            valueScale=1.0, useLogScale=False):
     """
     generates lookup table for the given variable (average and sigma
     as a function of logSIZE and IMPACT DISTANCE)
@@ -28,8 +28,13 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     - `events`: event-list FITS HDU 
     - `varName`: variable to histogram (HIL_TEL_WIDTH or HIL_TEL_LENGTH)
     - `bins`: number of bins for logSIZE,DISTANCE
-    - `histrange`: logSIZE and DISTANCE ranges
-    - `singleFile`: write to a single FITS file  with multiple HDUs
+    - `histrange`: logSIZE and logDISTANCE ranges
+
+    - `valueScale`: scale factor to multiply the value by, if
+      requested (to keep it in a nice range)
+
+    - `useLogScale`: apply log10 function to the variable being
+      histogrammed (e.g. for MC_ENERGY)
     """
 
     evfile = pyfits.open(infile)
@@ -46,12 +51,27 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     # these are the data fields as NxM arrays (where N is number of events,
     # and M is number of telescopes):
     telMask   = events.data.field("TELMASK") 
-    allValues = events.data.field(varName) 
     allSizes = events.data.field("HIL_TEL_SIZE") 
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
     mccorex = events.data.field("MC_COREX") 
     mccorey = events.data.field("MC_COREY") 
+    nevents,ntels = allSizes.shape
+
+    allValues = events.data.field(varName) 
+
+    if (useLogScale):
+        allValues = np.log10(allValues)
+
+    if (allValues.ndim == 1):
+        # this is not a telescope-wise parameter, like ENERGY, so need
+        # to make it one:
+        tmp = ones(allSizes.shape)
+        for ii in xrange(tmp.shape[1]):
+            tmp[:,ii] *= allValues
+        allValues = tmp
+
+
 
     cogx = events.data.field("HIL_TEL_COGX")
     cogy = events.data.field("HIL_TEL_COGY")
@@ -66,14 +86,11 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                                       (allCoreY-tposy[itel])**2 )
 
 
-    nevents,ntels = allValues.shape
-
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
     # events?)
     valueMask = allValues > -100 
     telMask *= valueMask  # mask off bad values
-#    telMask *= localDistMask  # mask off bad values
     
     if (debug):
         figure( figsize=(15,10))
@@ -83,7 +100,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     for itel in range(ntels):
 
         goodEvents = telMask[:,itel]  
-        value = allValues[:,itel][goodEvents] * 1000.0 # scale to mrad
+        value = allValues[:,itel][goodEvents]  * valueScale # scale to mrad
         logimpact = np.log10(allImpacts[:,itel][goodEvents])
         logsiz = np.log10(allSizes[:,itel][goodEvents])
 
@@ -118,32 +135,18 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         print "outliers=",len(value)-sum(countHist),
         print "out:",filename
 
-        if (singleFile) :
-            meanHist = sumHist/(countHist.astype(float)+1e-10)
-            sigmaHist = (sumHist**2 - sumSqrHist)/(countHist.astype(float)+1e-10)
-            hdu1=histToFITS( meanHist, bins=bins,
-                             histrange=histrange,name="MEAN" )
-            hdu2=histToFITS( sigmaHist, bins=bins,
-                             histrange=histrange, name="STDDEV")
-            hdu3=histToFITS( countHist, bins=bins,
-                             histrange=histrange, name="COUNTS" )
-            hdulist = pyfits.HDUList()
-            hdulist.append( pyfits.PrimaryHDU() )
-            hdulist.append( hdu1 )
-            hdulist.append( hdu2 )
-            hdulist.append( hdu3 )
-            hdulist.writeto( filename+".fits", clobber=True )
-        else:
-            hdu1=actutils.histToFITS( sumHist, bins=bins,
-                                      histrange=histrange,name="MEAN" )
-            hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
-                                      histrange=histrange, name="STDDEV")
-            hdu3=actutils.histToFITS( countHist, bins=bins,
-                                      histrange=histrange, name="COUNTS" )
-            hdu1.writeto( filename+"-sum.fits", clobber=True )
-            hdu2.writeto( filename+"-sum2.fits", clobber=True )
-            hdu3.writeto( filename+"-count.fits", clobber=True )
-
+        hdu1=actutils.histToFITS( sumHist, bins=bins,
+                                  histrange=histrange,name="SUM",
+                                  valueScale=valueScale )
+        hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
+                                  histrange=histrange, name="SUMSQR",
+                                  valueScale=valueScale )
+        hdu3=actutils.histToFITS( countHist, bins=bins,
+                                  histrange=histrange, name="COUNTS" )
+        hdu1.writeto( filename+"-sum.fits", clobber=True )
+        hdu2.writeto( filename+"-sum2.fits", clobber=True )
+        hdu3.writeto( filename+"-count.fits", clobber=True )
+        
 
 if __name__ == '__main__':
     
@@ -174,12 +177,14 @@ if __name__ == '__main__':
 
 
 
-    generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
-                             debug=opts.debug,namebase=namebase )
-    generateTelLookupTables( infile, varName="HIL_TEL_LENGTH" , 
-                             debug=opts.debug, namebase=namebase )
+#    generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
+#                             debug=opts.debug,namebase=namebase,valueScale=1000.0 )
+#    generateTelLookupTables( infile, varName="HIL_TEL_LENGTH" , 
+#                             debug=opts.debug, namebase=namebase,valueScale=1000.0 )
 
-    
+    generateTelLookupTables( infile, varName="MC_ENERGY", 
+                             debug=opts.debug, namebase=namebase,
+                             valueScale=1.0, useLogScale=True)
 
 
  

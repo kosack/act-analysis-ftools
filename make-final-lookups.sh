@@ -9,7 +9,7 @@ TOOLSDIR=~/Source/Working/PyFITSTools
 
 
 for tel in 001 002 003 004; do
-    for val in HIL_TEL_WIDTH HIL_TEL_LENGTH; do
+    for val in HIL_TEL_WIDTH HIL_TEL_LENGTH MC_ENERGY; do
 
 	echo LOOKUPS FOR CT$tel $val  ...
 	
@@ -28,8 +28,6 @@ for tel in 001 002 003 004; do
 
 	gaussargs="2.0 nullval=1e-5 ratio=1.0 theta=0.0  nsigma=4.0"
 	gaussargs="${gaussargs} boundary=nearest constant=0.0 clobber=yes"
-
-	echo GAUSS
 
 	fgauss CT${tel}-${val}-lookup-mean.fits tmp1.fits $gaussargs
 	mv tmp1.fits CT${tel}-${val}-lookup-mean-gauss.fits
