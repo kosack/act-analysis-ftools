@@ -4,15 +4,16 @@ from optparse import OptionParser
 import sys
 import math
 from scipy import interpolate
+from scipy import spatial
 import scipy.signal
 import re
 from pylab import *
 
 import actutils
  
-# TODO: apply local-distance cut! (maybe make a selection tool for
-# telescope cuts: telselect. Want localdist<0.525 (but better as a
-# fraciton or something to scale with bigger telescopes)
+# Note this assumes that the local-distance and min SIZE cuts have
+# already been appluied before generating the eventlist (no
+# localDistance cut is made here)
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
@@ -35,10 +36,11 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
 
+    print "-------------------------------------"
+    print infile
+
     tposx = telarray.data.field("POSX")
     tposy = telarray.data.field("POSY")
-    print "TPOSX",tposx
-    print "TPOSY",tposy
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
     
     # these are the data fields as NxM arrays (where N is number of events,
@@ -53,17 +55,15 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
     cogx = events.data.field("HIL_TEL_COGX")
     cogy = events.data.field("HIL_TEL_COGY")
-    localDistance = sqrt( cogx**2 +cogy**2)
-    localDistMask = localDistance < 0.025
-
 
     # impacts distances need to be calculated for each telescope (the
-    # impact distance stored is relative to the array center)
+    # global impact distance stored is relative to the array center)
     allImpacts = zeros( allValues.shape )
-    for ii in range(allValues.shape[1]):
-        print "t",ii, " at ", tposx[ii],tposy[ii]
-        allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
-                                    (allCoreY-tposy[ii])**2 )
+    allImpactstest = zeros( allValues.shape )
+    for itel in range(allValues.shape[1]):
+        nev = allImpacts.shape[0]
+        allImpacts[:,itel] = np.sqrt( (allCoreX-tposx[itel])**2 +
+                                      (allCoreY-tposy[itel])**2 )
 
 
     nevents,ntels = allValues.shape
@@ -73,7 +73,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     # events?)
     valueMask = allValues > -100 
     telMask *= valueMask  # mask off bad values
-    telMask *= localDistMask  # mask off bad values
+#    telMask *= localDistMask  # mask off bad values
     
     if (debug):
         figure( figsize=(15,10))
@@ -83,7 +83,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     for itel in range(ntels):
 
         goodEvents = telMask[:,itel]  
-        value = allValues[:,itel][goodEvents]
+        value = allValues[:,itel][goodEvents] * 1000.0 # scale to mrad
         logimpact = np.log10(allImpacts[:,itel][goodEvents])
         logsiz = np.log10(allSizes[:,itel][goodEvents])
 
@@ -94,16 +94,16 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                                            normed=False)
 
         sumSqrHist,edX,edY = np.histogram2d( logsiz,logimpact, 
-                                           weights=value**2,
+                                           weights=(value)**2,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
         countHist,edX,edY = np.histogram2d( logsiz,logimpact, 
-                                        weights=None,
-                                        range=histrange, 
-                                        bins=bins,
-                                        normed=False)
+                                            weights=None,
+                                            range=histrange, 
+                                            bins=bins,
+                                            normed=False)
 
 
         

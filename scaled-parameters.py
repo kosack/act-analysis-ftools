@@ -8,7 +8,6 @@ from scipy import interpolate
 import scipy.signal
 from optparse import OptionParser
 from kapteyn import wcs
-from pylab import *
 
 import actutils
 
@@ -122,12 +121,13 @@ class TelLookupTable(object):
         shape = np.array(val.shape)
         
         # outliers:
-        bin[bin>shape] = shape-1
-        v = val[bin]
+        bin[bin>=shape] = shape-1
+        bin[bin<0] = 0
+        v = val[bin[0],bin[1]] # correct order?
 
         #print "coord=",coord,"bin=",bin, " value=",v
 
-        return v
+        return v/1000.0
         
 # ===========================================================================
 
@@ -139,23 +139,36 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookup):
     `lookup`: the big lookup table structure
     """
 
+    debug=0
     mrsv = 0.0
     ntels = vals.shape[0]
 
     if ntels==0:
         return -10000
 
+    if debug:
+        print "========================",tels
+
     for itel in xrange( ntels ):
         vMean = lookup[tels[itel]].getValue( coords[itel], "mean" )
         vSigma = lookup[tels[itel]].getValue( coords[itel], "stddev" )
         mrsv += (vals[itel] - vMean)/vSigma
 
+        if debug:
+            print "CT",tels[itel],"coord=",coords[itel],
+            print " val=",vals[itel],"mean=",vMean,"sig=",vSigma
+
+    if debug:
+        print "-------------------------"
+        print "     MRSV=",mrsv
     return mrsv/float(ntels)
     
                         
 
 
 if __name__ == '__main__':
+
+    debug=1
     
     ineventlistfile = sys.argv.pop(1)
     evfile = pyfits.open(ineventlistfile)
@@ -178,13 +191,15 @@ if __name__ == '__main__':
          
     telMask   = events.data.field("TELMASK") 
     allValues = events.data.field(lookupName) 
-    allSizes = events.data.field("HIL_TEL_SIZE") 
+
+    try:
+        allSizes = events.data.field("HIL_TEL_SIZE") 
+    except KeyError:
+        allSizes = events.data.field("INT_TEL_SIZE") 
+
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
     allMSV = events.data.field("HIL_MSW")
-    cogx = events.data.field("HIL_TEL_COGX")
-    cogy = events.data.field("HIL_TEL_COGY")
-    localDistance = sqrt( cogx**2 +cogy**2)
 
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
@@ -201,14 +216,15 @@ if __name__ == '__main__':
     valueMask = allValues > -100 
     telMask *= valueMask  # mask off bad values
  
-    localDistMask = localDistance < 0.025
+#    localDistMask = localDistance < 0.025
 #    telMask *= localDistMask  # mask off bad values
 
     # now, for each event, we want to calculate the MRSW/MRSL value,
     # which is just 1/Ntelsinevent sum( (V[tel] -
     # Vmean[tel])/Vsigma[tel] )
 
-    print "Calculating MRSV from the lookups...."
+    print "Calculating MRSV from the lookups for %d events " % nevents,
+    print "and %d telescopes..." % ntels
 
     mrsv = np.zeros( allValues.shape[0] )
 
@@ -218,30 +234,50 @@ if __name__ == '__main__':
         lsizes = np.log10(allSizes[evnum][ telMask[evnum] ])
         limpacts = np.log10(allImpacts[evnum][ telMask[evnum] ])
         
-        if 0:
-            print "-----------------"
-            print "VALS:",vals
-            print "TELS:",tels
-            print "LSIZ:",lsizes
-            print "IMPT:",limpacts
-            print "ZIP:", zip(lsizes,limpacts)
         mrsv[evnum] = calcMeanReducedScaledValue( tels,zip(lsizes,limpacts), 
                                                   vals, lookup=telLookup )
     
     mrsv[ np.isnan(mrsv) ] = -10000
     print "Done"
     
+    
 
-    hist(mrsv,   range=[-2,2], bins=100, histtype="step", label="calculated MRSV")
-    hist(allMSV, range=[-2,2], bins=100, histtype="step", label="Eventlist MRSV")
-    legend()
+    if (debug):
+        from pylab import *
 
-    figure()
-    scatter( allMSV, mrsv )
-    xlim([-3,3])
-    ylim([-3,3])
+        hist(mrsv, range=[-5,5], bins=100, histtype="step", label="calculated MRSV")
+        hist(allMSV,range=[-5,5], bins=100, histtype="step", label="Eventlist MRSV")
+        legend()
 
-    figure()
-    semilogy()
-    hist( mrsv-allMSV, range=[-5,5],bins=50, histtype='step', label='Residuals' )
-    legend()
+        figure()
+        h,x,y = histogram2d( mrsv, allMSV, range=[[-2,5],[-2,5]], bins=[100,100]  )
+        pcolor( x,y,h.transpose() )
+
+        figure()
+        semilogy()
+        hist( mrsv-allMSV,range=[-8,8],bins=50, histtype='step', label='Residuals' )
+        legend()
+
+        # more tests: a cut on mrsv:
+        cut =  (mrsv > -2.0) * (mrsv < 0.5)
+        cut2 = (allMSV > -2.0) * (allMSV<0.5)
+        X = events.data.field("DETX")
+        Y = events.data.field("DETY")
+        posraw,x,y = histogram2d( X,Y,range=[[-4,4],[-4,4]], bins=[200,200] )
+        poscut,x,y = histogram2d( X[cut],Y[cut],
+                                  range=[[-4,4],[-4,4]], bins=[200,200])
+        poscut2,x,y = histogram2d( X[cut2],Y[cut2], 
+                                   range=[[-4,4],[-4,4]], bins=[200,200])
+        figure()
+        pcolor( x,y, posraw )
+        title("Raw")
+        colorbar()
+        figure()
+        pcolor( x,y,poscut)
+        title ("With Cut" )
+        colorbar()
+        figure()
+        pcolor( x,y,poscut2)
+        title ("With Cut (orig MRSV)" )
+        colorbar()
+
