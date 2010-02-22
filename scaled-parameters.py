@@ -58,13 +58,6 @@ class TelLookupTable(object):
             self._valueDict[what] = edgesAndHist
             self._proj[what] = wcs.Projection( hdu.header )
 
-#            xed,yed,val = self._valueDict[what]
-#            figure()
-#            pcolor( xed,yed,val.transpose() ) 
-#            title("CT%d: %s" % (self.telID, what))
-#            show()           
-
-
 
         #self.extrapolateLookups()
 
@@ -128,15 +121,38 @@ class TelLookupTable(object):
         #print "coord=",coord,"bin=",bin, " value=",v
 
         return v/1000.0
+
+    def display(self, what="mean"):
+        """
+    
+        Arguments:
+        - `self`:
+        - `what`:
+        """
+
+        xed,yed,val = self._valueDict[what]
+        figure()
+        pcolormesh( xed, yed, val.transpose())
+        title("CT%d: %s" % (self.telID, what))
+        xlabel("log10(SIZE)")
+        ylabel("log10(IMPACT)")
+        show()           
+        
         
 # ===========================================================================
 
-def calcMeanReducedScaledValue( tels, coords, vals, lookup):
+def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
     """
+    Return the mean-reduced-scaled value using the lookup tables. The
+    MRSV is defined as \sum_i (x_i - \bar{x}) / \sigma^i_x
     
+    This is used e.g. for calculating mean-reduced-scaled length and width values
+
     `tels`: array of telescope-ids
+    `coords`: array of the dependent coordinates (e.g. [log(size), log(impact)])
     `vals`: array of values corresponding to each tel
-    `lookup`: the big lookup table structure
+    `lookup`: dictionary containing lookup table for each telescope
+    for the given parameter
     """
 
     debug=0
@@ -150,8 +166,8 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookup):
         print "========================",tels
 
     for itel in xrange( ntels ):
-        vMean = lookup[tels[itel]].getValue( coords[itel], "mean" )
-        vSigma = lookup[tels[itel]].getValue( coords[itel], "stddev" )
+        vMean = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
+        vSigma = lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
         mrsv += (vals[itel] - vMean)/vSigma
 
         if debug:
@@ -163,12 +179,42 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookup):
         print "     MRSV=",mrsv
     return mrsv/float(ntels)
     
-                        
+
+def calcWeightedAverage( tels, coords, vals, lookupDict):
+    """ 
+    Returns the weighted average over telescopes (and the weighted
+    standard deviation) of the parameter. This is used, e.g., for
+    energy reconstruction.
+    
+   `tels`: array of telescope-ids
+    `coords`: array of the dependent coordinates (e.g. [log(size), log(impact)])
+    `vals`: array of values corresponding to each tel
+    `lookup`: dictionary containing lookup table for each telescope
+    for the given parameter
+ 
+    """
+    ntels = vals.shape[0]
+    sumweight = 0
+
+    vMean = np.zeros( ntels )
+    vSigma = np.zeros( ntels )
+
+    for itel in xrange(ntels):
+        vMean[itel] = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
+        vSigma[itel] =lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
+
+    wmean, wsum = np.average( vMean, weights = 1.0/vSigma**2, returned=True)
+    sumsqr = np.sum( vMean**2 )
+    vMean /= wsum
+    wstddev = math.sqrt( sumsqr / (wsum-np.sum(vMean)**2)  )
+
+    return wmean, wstddev
+
 
 
 if __name__ == '__main__':
 
-    debug=1
+    debug=0
     
     ineventlistfile = sys.argv.pop(1)
     evfile = pyfits.open(ineventlistfile)
@@ -180,7 +226,8 @@ if __name__ == '__main__':
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
 
     # load the lookups:
-    lookupName = "HIL_TEL_WIDTH"
+#    lookupName = "HIL_TEL_WIDTH"
+    lookupName = "MC_ENERGY"
 
     telLookup = dict()
 
@@ -192,10 +239,21 @@ if __name__ == '__main__':
     telMask   = events.data.field("TELMASK") 
     allValues = events.data.field(lookupName) 
 
+
     try:
         allSizes = events.data.field("HIL_TEL_SIZE") 
     except KeyError:
         allSizes = events.data.field("INT_TEL_SIZE") 
+
+
+    if (allValues.ndim == 1):
+        # this is not a telescope-wise parameter, like ENERGY, so need
+        # to make it one:
+        tmp = np.ones_like(allSizes)
+        for ii in xrange(tmp.shape[1]):
+            tmp[:,ii] *= allValues
+        allValues = tmp
+
 
     allCoreX = events.data.field("COREX") 
     allCoreY = events.data.field("COREY") 
@@ -203,7 +261,7 @@ if __name__ == '__main__':
 
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
-    allImpacts = np.zeros( allValues.shape )
+    allImpacts = np.zeros_like( allValues )
     for ii in range(allValues.shape[1]):
         print "t",ii, " at ", tposx[ii],tposy[ii]
         allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
@@ -226,7 +284,9 @@ if __name__ == '__main__':
     print "Calculating MRSV from the lookups for %d events " % nevents,
     print "and %d telescopes..." % ntels
 
-    mrsv = np.zeros( allValues.shape[0] )
+    mrsv  = np.zeros( nevents )
+    energy = np.zeros( nevents )
+    sig_e  = np.zeros( nevents )
 
     for evnum in xrange(allValues.shape[0]):
         vals = allValues[evnum][ telMask[evnum] ]
@@ -234,9 +294,15 @@ if __name__ == '__main__':
         lsizes = np.log10(allSizes[evnum][ telMask[evnum] ])
         limpacts = np.log10(allImpacts[evnum][ telMask[evnum] ])
         
-        mrsv[evnum] = calcMeanReducedScaledValue( tels,zip(lsizes,limpacts), 
-                                                  vals, lookup=telLookup )
-    
+        coords = zip(lsizes,limpacts)
+
+        mrsv[evnum] = calcMeanReducedScaledValue( tels,coords=coords, 
+                                                  vals=vals, lookupDict=telLookup )
+        
+        energy[evnum], sig_e[evnum] = calcWeightedAverage(tels,coords=coords, 
+                                                          vals=vals, 
+                                                          lookupDict=telLookup )
+        
     mrsv[ np.isnan(mrsv) ] = -10000
     print "Done"
     
@@ -251,7 +317,7 @@ if __name__ == '__main__':
 
         figure()
         h,x,y = histogram2d( mrsv, allMSV, range=[[-2,5],[-2,5]], bins=[100,100]  )
-        pcolor( x,y,h.transpose() )
+        pcolormesh( x,y,h.transpose() )
 
         figure()
         semilogy()

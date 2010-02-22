@@ -3,7 +3,9 @@
 import pyfits
 import numpy as np
 
+import actutils
 from kapteyn import wcs
+
 
 
 # def dumpImagePixels(image, oversample=4):
@@ -36,7 +38,7 @@ if __name__ == "__main__":
 
     fits = pyfits.open( filename )
     image = fits[0]
-    shape = np.array(image.data.shape)
+    shape = np.array(image.data.transpose().shape)
     
     oversample = int(opts.oversample)
 
@@ -47,7 +49,9 @@ if __name__ == "__main__":
     ny = (shape[1])*oversample
 
     proj = wcs.Projection( image.header )
-    ipix = np.mgrid[0:nx,0:ny].astype(float)+0.5 # grid with half-bin shift
+    ipix = actutils.makePixCoordGrid(nx,ny) # X=projected
+                                            # Ra,Y=projected Dec
+                                            # coordinates
     ipix /= float(oversample) # put in correct range
 
     pix = np.array( proj.toworld( (ipix[0].flatten(), ipix[1].flatten() ) ) )

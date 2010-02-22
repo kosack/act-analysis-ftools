@@ -39,7 +39,10 @@ def makeAcceptanceMapFromEvents(events,imagehdu, obspos, rmax=3.0,debug=False):
     # [counts/area] * area = [counts]"
     acc *= binarea
 
-    # apply cutoff if requested:
+    # apply cutoff if requested (perhaps this should be done in
+    # another separate tool, since this must be the same cutoff that
+    # is applied to the count map, otherwise the results will be
+    # wrong):
     acc[dists2>rmax**2] = 0.0
 
     # want integrals to match: sum(acc) = sum(profile)
@@ -115,6 +118,7 @@ if __name__ == "__main__":
         A /= E+1e-30
 
     if (opts.output):
-        pyfits.writeto( opts.output, header=imhdu.header, data=A,clobber=True )
+        pyfits.writeto( opts.output, header=imhdu.header, data=A.transpose(),
+                        clobber=True )
         
 

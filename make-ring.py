@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     if (opts.output):
         pyfits.writeto( opts.output, header=imhdu.header,
-                        data=ring,clobber=True )
+                        data=ring.transpose(),clobber=True )
 
 
 

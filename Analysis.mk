@@ -56,7 +56,7 @@ MAXEVENTRADIUS ?= 3.0         # maximum event radius in degrees (psi cut)
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
-PYTHONPATH = $(PYTHONPATH):$TOOLSDIR
+PYTHONPATH+=:$TOOLSDIR
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -171,7 +171,7 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 # countmap 
 %_cmap.fits: %_event_selected.fits 
 	@echo COUNT MAP $*
-	@$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
+	$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
 
 # excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits

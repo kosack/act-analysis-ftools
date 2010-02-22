@@ -17,7 +17,7 @@ import actutils
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [60,60], histrange =[[0.5,6],[0,5.0]],
+                            bins = [60,80], histrange =[[0.5,6],[0,5.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False):
     """
@@ -66,7 +66,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     if (allValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
         # to make it one:
-        tmp = ones(allSizes.shape)
+        tmp = np.ones_like(allSizes)
         for ii in xrange(tmp.shape[1]):
             tmp[:,ii] *= allValues
         allValues = tmp
@@ -78,8 +78,8 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
     # impacts distances need to be calculated for each telescope (the
     # global impact distance stored is relative to the array center)
-    allImpacts = zeros( allValues.shape )
-    allImpactstest = zeros( allValues.shape )
+    allImpacts = np.zeros_like( allValues )
+    allImpactstest = np.zeros_like( allValues )
     for itel in range(allValues.shape[1]):
         nev = allImpacts.shape[0]
         allImpacts[:,itel] = np.sqrt( (allCoreX-tposx[itel])**2 +

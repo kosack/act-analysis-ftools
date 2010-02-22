@@ -2,10 +2,38 @@ import pyfits
 import numpy as np
 import math
 
-from kapteyn import wcs
+from kapteyn import wcs,maputils
 
 # various utility functions 
 
+# A note from the MatPlotLib manual for the pcolor() function:
+#-------------
+# Grid Orientation
+#     The orientation follows the Matlab(TM) convention: an
+#     array C with shape (nrows, ncolumns) is plotted with
+#     the column number as X and the row number as Y, increasing
+#     up; hence it is plotted the way the array would be printed,
+#     except that the Y axis is reversed.  That is, C is taken
+#     as C(y,x).
+#     Similarly for meshgrid:
+#         x = arange(5)
+#         y = arange(3)
+#         X, Y = meshgrid(x,y)
+#     is equivalent to
+#         X = array([[0, 1, 2, 3, 4],
+#                   [0, 1, 2, 3, 4],
+#                   [0, 1, 2, 3, 4]])
+#         Y = array([[0, 0, 0, 0, 0],
+#                   [1, 1, 1, 1, 1],
+#                   [2, 2, 2, 2, 2]])
+#     so if you have
+#         C = rand( len(x), len(y))
+#     then you need
+#         pcolor(X, Y, transpose(C))
+#     or
+#         pcolor(transpose(C))
+# -----------
+# mgrid works the opposite of meshgrid()! 
 
 def makeRadialProfile(events,bins=14,range=[0,10]):
     """ 
@@ -97,8 +125,8 @@ def makeDistanceMap(imagehdu,posRADec=None):
     returns: data array of distances from each bin center to the position
     """
 
-    print "POSRADEC:",posRADec
-    
+    # note in Kapteyn/FITS, the center of the first bin is (1,1) in
+    # pixel coordinates.
 
     proj = wcs.Projection( imagehdu.header )
 #    tran = wcs.Transformation( wcs.fk5, proj.skysys )
@@ -106,13 +134,19 @@ def makeDistanceMap(imagehdu,posRADec=None):
 
     if (posRADec==None):
         # get the position from the map center:
-        pos= proj.toworld(np.array(proj.naxis)/2+0.5)
+        pos= proj.toworld(np.array(proj.naxis)/2.0+1.0)
     else:
         pos = posRADec
 
-    (nx,ny) = imagehdu.data.shape # CHECK THAT THIS IS NOT BACKWARD!
+    print "DISTANCE FROM POSITION: ", pos
     
-    ia,ja = np.mgrid[0:nx,0:ny]+0.5
+
+    (nx,ny) = np.array(imagehdu.data.transpose()).shape # needs the
+                                                        # transpose of
+                                                        # FITS data!
+    
+    ia,ja = makePixCoordGrid(nx,ny)
+
     (ra,dec) = proj.toworld( (ia.flatten(), ja.flatten()) )
 
     distmap = angSepDeg( ra, dec,  pos[0], pos[1] )
@@ -120,6 +154,19 @@ def makeDistanceMap(imagehdu,posRADec=None):
 
     return distmap
 
+
+def makePixCoordGrid( nx, ny ):
+    """
+    returns a grid of pixel centers in FITS pixel coordinates, given
+    nx,ny bins . The grid returned is (X,Y), where X=projected RA
+    coordinate, and Y is projected Dec coordinate (for J2000 system,
+    or l,b for galactic)
+
+    EXAMPLE: ia,ja = makePixCoordGrid( 10, 50 )
+
+    """
+    return np.mgrid[0:nx,0:ny]+1.0   # shift +1 to fits standard (1,1)
+                                     # is center of first bin
 
 
 def makeDataCubeHDU( centerRADec, erange=(0.1,100), nlogebins=10, **kwargs ):
@@ -165,7 +212,7 @@ def makeImageHDU(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
     delta = FOV/geom
     
     hdu = pyfits.NP_pyfits.PrimaryHDU()
-    hdu.data = np.zeros( geom )
+    hdu.data = np.zeros( geom ).transpose()
     
     hdu.update_header()
 
@@ -196,6 +243,11 @@ def makeImageHDU(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
     hdu.header.update( "BSCALE", 1.0 )
     hdu.header.update( "BZERO", 0.0 )
 
+
+    print "============================="
+    print hdu.header
+    print "============================="
+
     # NOTE: the following could be used for a projection with pixels
     # square in RA/Dec (as in the HESS software), but generally that's
     # not what we want since at high declination, it gives distorted
@@ -222,6 +274,7 @@ def makeCountMap(hdu, lam,bet, output=None, insystem=wcs.fk5, verbose=False):
     - `dec`: array of Dec coordinates
 
     todo: add events coordsystem as an input (defaults to RA/Dec)
+    
     """
 
     proj = wcs.Projection( hdu.header )
@@ -229,29 +282,33 @@ def makeCountMap(hdu, lam,bet, output=None, insystem=wcs.fk5, verbose=False):
     coords = proj.topixel( zip(lam,bet) ) # convert to pixel coordinates
     coords = np.array(coords)
 
-    bins = np.array(hdu.data.shape)
+    bins = np.array(hdu.data.transpose().shape)
     
-    imrange = zip( (0,0), bins) # TODO: probably need some half bins
-                                                # here to make it
-                                                # right?  check
-                                                # histogram2d code
+    lowerLeftEdge = (0.5,0.5) # lower-left edge of the histogram (note
+                          # that 1.0,1.0 is the center of the
+                          # lower-left bin in pixel coordinates
+
+    upperRightEdge = bins +0.5  # the upper-right 
+    imrange = zip( lowerLeftEdge, upperRightEdge) 
+
     if verbose:
+        print "bins:", bins
         print "range: ",imrange
     
     
-    H, xedges, yedges = np.histogram2d( coords[:,1],coords[:,0],
+    H, xedges, yedges = np.histogram2d( coords[:,0],coords[:,1],
                                         bins=bins, range=imrange )
 
-    H=H.transpose()
+    # now H is in standard numpy coordinates. To write it to a FITS
+    # image, need to take the transpose (H.T)
 
     if verbose:
         print "   H: ", H.shape
         print "data: ", hdu.data.shape
         
-
     if output:
         print "Writing count map:",output
-        pyfits.writeto(output, header=hdu.header, data=H, clobber=True )
+        pyfits.writeto(output, header=hdu.header, data=H.transpose(), clobber=True )
 
     return H
 
@@ -279,28 +336,29 @@ def copyHeaders(ihdr,ohdr, keys=None):
         except KeyError:
             pass
 
-def makeRadialFOVMask(imagehdu,radius,center=None):
+def makeRadialFOVMask(imagehdu,radius,centerWorld=None):
     """ Generates a image mask that is 1.0 inside the given radius, and 0.0 outside
     
     Arguments:
     - `imagehdu`:
-    - `center`: observation position (if None, then taken from
+    - `centerWorld`: observation position (if None, then taken from
       RA_PNT/DEC_PNT or map center)
     - `radius`: in degrees
     """
 
-    if center==None:
+    if centerWorld==None:
         # try to use the pointing position:
         try:
-            center = (imagehdu.header["RA_PNT"],imagehdu.header["DEC_PNT"])
+            centerWorld = (imagehdu.header["RA_PNT"],imagehdu.header["DEC_PNT"])
         except KeyError:
             # use center of map in RA/Dec
             print "No RA_PNT keys found in header: using map center"
             proj = wcs.Projection( imagehdu.header )
             tran = wcs.Transformation( proj.skysys, wcs.fk5 )
-            center = tran(proj.toworld(np.array(proj.naxis)/2+0.5))
+            centerPix = np.array( proj.naxis )/2.0 + 0.5
+            centerWorld = tran(proj.toworld( centerPix ))
 
-    dists = makeDistanceMap( imagehdu, center )
+    dists = makeDistanceMap( imagehdu, centerWorld )
     mask = np.zeros( dists.shape )
     mask[dists<radius] = 1.0
     return mask
@@ -341,6 +399,12 @@ def histToFITS(histdata, bins, histrange, name="", valueScale=None):
     # To get the value of ibin, you need to go the other way:
     #       Vworld[ibin] = proj.toworld( ibin+0.5 )
 
+    #  note that histogram2d returns the histogram with X vertical and
+    #  Y horizontal (the reason is that for a general DD histogram,
+    #  the bin order makes more sense that way), so H[j,i] is the
+    #  value for bin [i,j], where i is in the x-direction, and j in
+    #  the y-direction for this reason, we transpose here, since FITS
+    #  uses the opposite convention:
     ohdu = pyfits.ImageHDU(data=histdata.transpose())
     ohdu.name = name
     ohdu.header.update( "CTYPE1", "LSIZ", "log10(SIZE)" );
@@ -372,11 +436,13 @@ def histFromFITS(hdu):
     bins = hdu.data.shape
     proj = wcs.Projection ( hdu.header ) # for going between world and pix coords
     
-    xed,tmp = proj.toworld( (np.arange(bins[0])+0.5, np.zeros(bins[1])+0.5) )
-    tmp,yed = proj.toworld( (np.zeros(bins[0])+0.5,np.arange(bins[1])+0.5) )
+    # x,y are reversed?
+    xed,tmp = proj.toworld( (np.arange(bins[1])+0.5, np.zeros(bins[1])+0.5) )
+    tmp,yed = proj.toworld( (np.zeros(bins[0])+0.5,np.arange(bins[0])+0.5) )
     
-    return xed,yed, hist.transpose() # transposed according to
-                                     # np.histogram2d convention
+    raise "BREAK"
+
+    return xed,yed, hist.tranpose() 
         
 
 def displayFITS(header, data):

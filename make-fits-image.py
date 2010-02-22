@@ -85,7 +85,8 @@ if (options.rmax):
     newdata *= mask
 
 if (options.output):
-    pyfits.writeto(options.output, header=hdu.header, data=newdata, clobber=True )
+    pyfits.writeto(options.output, header=hdu.header, 
+                   data=newdata.transpose(), clobber=True )
 
 
 
