@@ -244,7 +244,7 @@ def makeImageHDU(centerRADec,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
     hdu.header.update( "BZERO", 0.0 )
 
 
-    print "============================="
+    print "== NEW IMAGE HDU: ==========="
     print hdu.header
     print "============================="
 

@@ -70,6 +70,14 @@ ONTH2=$(shell perl -e 'print $(ONRADIUS)**2;')
 BASERUNS=$(sort $(patsubst %_eventlist.fits,%,$(basename $(notdir $(EVENTLISTS)))))
 
 # =========================================================================
+# Sanity checks:
+# =========================================================================
+
+ifeq ($(words $(BASERUNS)),0)
+$(error RUNLIST IS EMPTY! Check your EVENTLISTS variable and make sure you have not mistyped a directory or something)
+endif
+
+# =========================================================================
 # utility parameters
 # =========================================================================
 REDIRECT= >> output.log 2>&1 # set to blank to send output to stdout
