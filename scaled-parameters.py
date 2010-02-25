@@ -120,7 +120,7 @@ class TelLookupTable(object):
 
         #print "coord=",coord,"bin=",bin, " value=",v
 
-        return v/1000.0
+        return v
 
     def display(self, what="mean"):
         """
@@ -177,7 +177,7 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
     if debug:
         print "-------------------------"
         print "     MRSV=",mrsv
-    return mrsv/float(ntels)
+    return mrsv/float(ntels), 0.0
     
 
 def calcWeightedAverage( tels, coords, vals, lookupDict):
@@ -211,24 +211,64 @@ def calcWeightedAverage( tels, coords, vals, lookupDict):
     return wmean, wstddev
 
 
+def testValue(value,error,trueValue):
+    """
+    display some tests
+
+    Arguments:
+    - `value`: array of values calculated 
+    - `error`: array of errors
+    - `trueValue`: array true value for comparison
+    """
+    
+    from pylab import *
+
+    percentError = (trueValue-value)/trueValue * 100.0
+    
+    figure()
+    hist( percentError, range=[-100,100], bins=50 )
+
+    figure()
+    scatter( trueValue, value )
+    
 
 if __name__ == '__main__':
 
-    debug=0
-    
+    debug=1
+    paramType = "energy"
+
+    # open the input eventlist
+
     ineventlistfile = sys.argv.pop(1)
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
 
+    # load telescope information
     tposx = telarray.data.field("POSX")
     tposy = telarray.data.field("POSY")
     telid = np.array(events.header['TELLIST'].split(",")).astype(int)
 
-    # load the lookups:
-#    lookupName = "HIL_TEL_WIDTH"
-    lookupName = "MC_ENERGY"
+    lookupName = ""
+    outputName = ""
+    
+    if (paramType == "energy" ):
+        lookupName = "MC_ENERGY"
+        outputName = "ENERGY"
+        reductionFunction=calcWeightedAverage
+    elif (paramType == "msl"):
+        lookupName = "HIL_TEL_LENGTH"
+        outputName = "HIL_MSL"
+        reductionFunction=calcMeanReducedScaledValue
+    elif (paramType == "msw") :
+        lookupName = "HIL_TEL_WIDTH"
+        outputName = "HIL_MSW"
+        reductionFunction=calcMeanReducedScaledValue
+    else:
+        print "Unknown type:",paramType
+        sys.exit(1)
 
+    # load the lookups:
     telLookup = dict()
 
     for tel in telid:
@@ -237,113 +277,69 @@ if __name__ == '__main__':
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
     telMask   = events.data.field("TELMASK") 
-    allValues = events.data.field(lookupName) 
-
+    telValues = events.data.field(lookupName) # values of the requested parameter
 
     try:
-        allSizes = events.data.field("HIL_TEL_SIZE") 
+        telSizes = events.data.field("HIL_TEL_SIZE") 
     except KeyError:
-        allSizes = events.data.field("INT_TEL_SIZE") 
+        telSizes = events.data.field("INT_TEL_SIZE") 
 
 
-    if (allValues.ndim == 1):
+    if (telValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
         # to make it one:
-        tmp = np.ones_like(allSizes)
+        tmp = np.ones_like(telSizes)
         for ii in xrange(tmp.shape[1]):
-            tmp[:,ii] *= allValues
-        allValues = tmp
+            tmp[:,ii] *= telValues
+        telValues = tmp
 
 
-    allCoreX = events.data.field("COREX") 
-    allCoreY = events.data.field("COREY") 
-    allMSV = events.data.field("HIL_MSW")
+    coreX = events.data.field("COREX") 
+    coreY = events.data.field("COREY") 
 
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
-    allImpacts = np.zeros_like( allValues )
-    for ii in range(allValues.shape[1]):
-        print "t",ii, " at ", tposx[ii],tposy[ii]
-        allImpacts[:,ii] = np.sqrt( (allCoreX-tposx[ii])**2 +
-                                    (allCoreY-tposy[ii])**2 )
+    telImpacts = np.zeros_like( telValues )
+    for ii in range(telValues.shape[1]):
+        print "CT%03d"%ii, " at ", tposx[ii],tposy[ii]
+        telImpacts[:,ii] = np.sqrt( (coreX-tposx[ii])**2 +
+                                    (coreY-tposy[ii])**2 )
 
-    nevents,ntels = allValues.shape
+    nevents,ntels = telValues.shape
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
     # events?)
-    valueMask = allValues > -100 
+    valueMask = telValues > -100 
     telMask *= valueMask  # mask off bad values
- 
-#    localDistMask = localDistance < 0.025
-#    telMask *= localDistMask  # mask off bad values
 
     # now, for each event, we want to calculate the MRSW/MRSL value,
     # which is just 1/Ntelsinevent sum( (V[tel] -
     # Vmean[tel])/Vsigma[tel] )
 
-    print "Calculating MRSV from the lookups for %d events " % nevents,
-    print "and %d telescopes..." % ntels
+    print "Calculating", outputName,"from the",lookupName,
+    print "lookups for %d events" % nevents,
+    print "and %d telescopes" % ntels,"using",reductionFunction.func_name,"..."
 
-    mrsv  = np.zeros( nevents )
-    energy = np.zeros( nevents )
-    sig_e  = np.zeros( nevents )
+    value  = np.zeros( nevents ) # the reduced value
+    error  = np.zeros( nevents ) # the error on the reduced value
 
-    for evnum in xrange(allValues.shape[0]):
-        vals = allValues[evnum][ telMask[evnum] ]
+    for evnum in xrange(telValues.shape[0]):
+        vals = telValues[evnum][ telMask[evnum] ]
         tels = telid[ telMask[evnum] ]
-        lsizes = np.log10(allSizes[evnum][ telMask[evnum] ])
-        limpacts = np.log10(allImpacts[evnum][ telMask[evnum] ])
-        
+        lsizes = np.log10(telSizes[evnum][ telMask[evnum] ])
+        limpacts = np.log10(telImpacts[evnum][ telMask[evnum] ])
         coords = zip(lsizes,limpacts)
 
-        mrsv[evnum] = calcMeanReducedScaledValue( tels,coords=coords, 
-                                                  vals=vals, lookupDict=telLookup )
+        # call the appropriate reduction function (defined earlier)
+        value[evnum],error[evnum] = reductionFunction( tels,
+                                                       coords=coords, 
+                                                       vals=vals, 
+                                                       lookupDict=telLookup )
         
-        energy[evnum], sig_e[evnum] = calcWeightedAverage(tels,coords=coords, 
-                                                          vals=vals, 
-                                                          lookupDict=telLookup )
-        
-    mrsv[ np.isnan(mrsv) ] = -10000
-    print "Done"
-    
+    value[ np.isnan(value) ] = -10000
+    print "Done."
     
 
-    if (debug):
-        from pylab import *
-
-        hist(mrsv, range=[-5,5], bins=100, histtype="step", label="calculated MRSV")
-        hist(allMSV,range=[-5,5], bins=100, histtype="step", label="Eventlist MRSV")
-        legend()
-
-        figure()
-        h,x,y = histogram2d( mrsv, allMSV, range=[[-2,5],[-2,5]], bins=[100,100]  )
-        pcolormesh( x,y,h.transpose() )
-
-        figure()
-        semilogy()
-        hist( mrsv-allMSV,range=[-8,8],bins=50, histtype='step', label='Residuals' )
-        legend()
-
-        # more tests: a cut on mrsv:
-        cut =  (mrsv > -2.0) * (mrsv < 0.5)
-        cut2 = (allMSV > -2.0) * (allMSV<0.5)
-        X = events.data.field("DETX")
-        Y = events.data.field("DETY")
-        posraw,x,y = histogram2d( X,Y,range=[[-4,4],[-4,4]], bins=[200,200] )
-        poscut,x,y = histogram2d( X[cut],Y[cut],
-                                  range=[[-4,4],[-4,4]], bins=[200,200])
-        poscut2,x,y = histogram2d( X[cut2],Y[cut2], 
-                                   range=[[-4,4],[-4,4]], bins=[200,200])
-        figure()
-        pcolor( x,y, posraw )
-        title("Raw")
-        colorbar()
-        figure()
-        pcolor( x,y,poscut)
-        title ("With Cut" )
-        colorbar()
-        figure()
-        pcolor( x,y,poscut2)
-        title ("With Cut (orig MRSV)" )
-        colorbar()
-
+    gmask = value > -1000
+    testValue( value[gmask], error[gmask], 
+               np.log10(events.data.field("MC_ENERGY")[gmask]) )
