@@ -27,7 +27,7 @@ class TelLookupTable(object):
     telID = 0
 
     def __init__(self, lookupName, telID, 
-                 lookupDir= None,useSmooth=True):
+                 lookupDir= None,useSmooth=False):
         """
         initialize a lookup table
 
@@ -135,7 +135,8 @@ class TelLookupTable(object):
         pcolormesh( xed, yed, val.transpose())
         title("CT%d: %s" % (self.telID, what))
         xlabel("log10(SIZE)")
-        ylabel("log10(IMPACT)")
+        ylabel("IMPACT (m)")
+        colorbar()
         show()           
         
         
@@ -229,13 +230,24 @@ def testValue(value,error,trueValue):
     hist( percentError, range=[-100,100], bins=50 )
 
     figure()
-    scatter( trueValue, value )
+    H,x,y = histogram2d( trueValue,value,
+                         range=[[-4,4],[-4,4]], bins=[200,200] )
+    pcolormesh( x,y, H)
+    plot(x,x)
+
+    figure()
+    H2,x,y = histogram2d( trueValue,(trueValue-value)/trueValue,
+                         bins=[200,200] ) #range=[[-4,4],[-4,4]]
+    pcolormesh( x,y, H2)
+    print x,y
     
 
 if __name__ == '__main__':
 
+    from pylab import *
+
     debug=1
-    paramType = "energy"
+    paramType = "msw"
 
     # open the input eventlist
 
@@ -251,7 +263,8 @@ if __name__ == '__main__':
 
     lookupName = ""
     outputName = ""
-    
+    valueScale = 1.0
+
     if (paramType == "energy" ):
         lookupName = "MC_ENERGY"
         outputName = "ENERGY"
@@ -260,6 +273,7 @@ if __name__ == '__main__':
         lookupName = "HIL_TEL_LENGTH"
         outputName = "HIL_MSL"
         reductionFunction=calcMeanReducedScaledValue
+        valueScale=1000.0
     elif (paramType == "msw") :
         lookupName = "HIL_TEL_WIDTH"
         outputName = "HIL_MSW"
@@ -273,6 +287,7 @@ if __name__ == '__main__':
 
     for tel in telid:
         telLookup[tel] = TelLookupTable(lookupName,tel)
+        telLookup[tel].display()
 
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
@@ -327,8 +342,8 @@ if __name__ == '__main__':
         vals = telValues[evnum][ telMask[evnum] ]
         tels = telid[ telMask[evnum] ]
         lsizes = np.log10(telSizes[evnum][ telMask[evnum] ])
-        limpacts = np.log10(telImpacts[evnum][ telMask[evnum] ])
-        coords = zip(lsizes,limpacts)
+        impacts = telImpacts[evnum][ telMask[evnum] ]
+        coords = zip(lsizes,impacts)
 
         # call the appropriate reduction function (defined earlier)
         value[evnum],error[evnum] = reductionFunction( tels,
@@ -341,5 +356,9 @@ if __name__ == '__main__':
     
 
     gmask = value > -1000
+    gmask *= value < 10000
+#    testValue( value[gmask], error[gmask], 
+#               np.log10(events.data.field("MC_ENERGY")[gmask]) )
+
     testValue( value[gmask], error[gmask], 
-               np.log10(events.data.field("MC_ENERGY")[gmask]) )
+               (events.data.field("HIL_MSW")[gmask]*valueScale) )

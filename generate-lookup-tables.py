@@ -17,7 +17,7 @@ import actutils
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [60,80], histrange =[[0.5,6],[0,5.0]],
+                            bins = [60,100], histrange =[[0.5,6],[0,2000.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False):
     """
@@ -28,7 +28,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     - `events`: event-list FITS HDU 
     - `varName`: variable to histogram (HIL_TEL_WIDTH or HIL_TEL_LENGTH)
     - `bins`: number of bins for logSIZE,DISTANCE
-    - `histrange`: logSIZE and logDISTANCE ranges
+    - `histrange`: logSIZE and DISTANCE ranges
 
     - `valueScale`: scale factor to multiply the value by, if
       requested (to keep it in a nice range)
@@ -101,22 +101,22 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
         goodEvents = telMask[:,itel]  
         value = allValues[:,itel][goodEvents]  * valueScale # scale to mrad
-        logimpact = np.log10(allImpacts[:,itel][goodEvents])
+        impact = allImpacts[:,itel][goodEvents]
         logsiz = np.log10(allSizes[:,itel][goodEvents])
 
-        sumHist,edX,edY = np.histogram2d( logsiz,logimpact, 
+        sumHist,edX,edY = np.histogram2d( logsiz,impact, 
                                            weights=value,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        sumSqrHist,edX,edY = np.histogram2d( logsiz,logimpact, 
+        sumSqrHist,edX,edY = np.histogram2d( logsiz,impact, 
                                            weights=(value)**2,
                                            range=histrange, 
                                            bins=bins,
                                            normed=False)
 
-        countHist,edX,edY = np.histogram2d( logsiz,logimpact, 
+        countHist,edX,edY = np.histogram2d( logsiz,impact, 
                                             weights=None,
                                             range=histrange, 
                                             bins=bins,
@@ -177,10 +177,11 @@ if __name__ == '__main__':
 
 
 
-#    generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
-#                             debug=opts.debug,namebase=namebase,valueScale=1000.0 )
-#    generateTelLookupTables( infile, varName="HIL_TEL_LENGTH" , 
-#                             debug=opts.debug, namebase=namebase,valueScale=1000.0 )
+    generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
+                             debug=opts.debug,namebase=namebase,valueScale=1000.0 )
+
+    generateTelLookupTables( infile, varName="HIL_TEL_LENGTH" , 
+                             debug=opts.debug, namebase=namebase,valueScale=1000.0 )
 
     generateTelLookupTables( infile, varName="MC_ENERGY", 
                              debug=opts.debug, namebase=namebase,
