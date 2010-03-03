@@ -7,15 +7,20 @@ from kapteyn import wcs,maputils
 
 class FITSHistogram(object):
     """
+    A simple N-dimensional histogram class with FITS IO 
+
     Uses numpy.histogram2d to generate histograms and read and write
     them to FITS files
     """
     
     
-    def __init__(self, bins=(0), ranges=[[0,0]]):
-        """
+    def __init__(self, bins=(0), ranges=[[0,0]], name=None):
+        """ Initialize an unfilled histogram (need to call either
+        fill() or loadFromFITS() to put data into it)
+
         `bins`: array listing binsize for each dimension
         `ranges`: array of ranges for each dimension
+        `name`: optional name/title of the histogram 
         """
         
         self.hist = None
@@ -24,7 +29,7 @@ class FITSHistogram(object):
         self.ranges=ranges
         self.valueScale = None
         self.axisTypes=None
-        
+        self.name = name
 
 
     def fill(self, datapoints, **kwargs):
