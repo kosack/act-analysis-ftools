@@ -26,7 +26,7 @@ for tel in 001 002 003 004; do
 
 	# gaussian smoothing:
 
-	gaussargs="2.0 nullval=1e-5 ratio=1.0 theta=0.0  nsigma=4.0"
+	gaussargs="2.0 nullval=1e-5 ratio=1.0 theta=0.0  nsigma=2.0"
 	gaussargs="${gaussargs} boundary=nearest constant=0.0 clobber=yes"
 
 	fgauss CT${tel}-${val}-lookup-mean.fits tmp1.fits $gaussargs

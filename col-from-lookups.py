@@ -5,16 +5,31 @@ import math
 import os
 import re
 from scipy import interpolate
-import scipy.signal
+from scipy import signal
 from optparse import OptionParser
 from kapteyn import wcs
 
 import actutils
+from fitshistogram import Histogram
 
 # TODO apply image amplitude and local distance cuts!
 
 # note can use wcs.coordmap() to generate the coordinate map input to
 # scipy.interpolate if we want to do interpolation properly (see Kapteyn manual)
+
+
+def gauss_kern(size, sizey=None):
+    """ Returns a normalized 2D gauss kernel array for convolutions """
+    size = int(size)
+    if not sizey:
+        sizey = size
+    else:
+        sizey = int(sizey)
+    x, y = mgrid[-size:size+1, -sizey:sizey+1]
+    g = exp(-(x**2/float(size)+y**2/float(sizey)))
+    return g / g.sum()
+
+
 
 class TelLookupTable(object):
     """ 
@@ -22,12 +37,11 @@ class TelLookupTable(object):
     """
 
     _valueDict = dict()
-    _proj = dict()
     values = dict()
     telID = 0
 
-    def __init__(self, lookupName, telID, 
-                 lookupDir= None,useSmooth=False):
+    def __init__(self, lookupName, telID, valueScale=1.0,
+                 lookupDir= None,useSmooth=True):
         """
         initialize a lookup table
 
@@ -43,6 +57,7 @@ class TelLookupTable(object):
         self.values = ["mean","stddev","count"]    
         self._valueDict = dict()
         self.telID = telID
+        self._valueScale = valueScale
 
         print "Loading Lookups for CT",tel
 
@@ -54,12 +69,13 @@ class TelLookupTable(object):
             fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,smooth)    
             print "\t",fname
             hdu = pyfits.open(lookupDir+"/"+fname)[0]
-            edgesAndHist = actutils.histFromFITS( hdu )
-            self._valueDict[what] = edgesAndHist
-            self._proj[what] = wcs.Projection( hdu.header )
+            hist = Histogram(initFromFITS=hdu)
+            self._valueDict[what] = hist
 
+    
 
-        #self.extrapolateLookups()
+        self.extrapolateLookups()
+        self.smoothLookups(2)
 
     def extrapolateLookups(self, minCounts=10):
         """
@@ -69,19 +85,19 @@ class TelLookupTable(object):
         - `self`:
         """
 
-        xed,yed,counts = self._valueDict["count"]
-
         for what in self.values:
+            counts = self._valueDict["count"].hist.copy()
+
             if what=='count': continue
-            print "Extrapolating: ", what
-            xed,yed,val = self._valueDict[what]
+            print "\tExtrapolating:", what
+            val = self._valueDict[what].hist
 
             # todo: do this as an array op, not for-loop
 
             for ii in xrange(counts.shape[0]):
                 lastgood = (0,0)
                 for jj in xrange(counts.shape[1]):
-                    if counts[ii,jj] > minCounts:
+                    if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
                         lastgood=(ii,jj)
                     else:
                         val[ii,jj] = val[lastgood]
@@ -90,12 +106,31 @@ class TelLookupTable(object):
             for ii in xrange(counts.shape[0]):
                 lastgood = (0,0)
                 for jj in xrange(counts.shape[1]-1,0,-1):
-                    if counts[ii,jj] > minCounts:
+                    if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
                         lastgood=(ii,jj)
                     else:
                         val[ii,jj] = val[lastgood]
                         counts[ii,jj]=minCounts+1
 
+            for jj in xrange(counts.shape[1]):
+                lastgood = (0,0)
+                for ii in xrange(counts.shape[0]):
+                    if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
+                        lastgood=(ii,jj)
+                    else:
+                        val[ii,jj] = val[lastgood]
+                        counts[ii,jj]=minCounts+1
+
+
+    def smoothLookups(self, pixels):
+        """
+        smooth the lookup tables with a gaussian filter
+        """
+        for what in self.values:
+            print "\tSmoothing:",what
+            im = self._valueDict[what].hist 
+            gauss = gauss_kern(pixels)
+            self._valueDict[what].hist = signal.convolve(im,gauss, mode='same')
 
 
     def getValue(self, coord, what="mean" ):
@@ -103,24 +138,14 @@ class TelLookupTable(object):
         
         Arguments:
         - `coord`: coordinate or array of coordinates  in logSize,Dist space
-        - `impactDist`: single value or array of values
+        - `what`: what type of value (mean, stddev)
 
         returns value in the lookup table
         """
-        
-        world = np.array( coord )
-        bin = np.trunc(self._proj[what].topixel( world ) - 1.0).astype(int)
-        xed,yed,val = self._valueDict[what]
-        shape = np.array(val.shape)
-        
-        # outliers:
-        bin[bin>=shape] = shape-1
-        bin[bin<0] = 0
-        v = val[bin[0],bin[1]] # correct order?
 
-        #print "coord=",coord,"bin=",bin, " value=",v
+        return (self._valueDict[what].getValue( coord,outlierValue=-10000 )
+                / self._valueScale)
 
-        return v
 
     def display(self, what="mean"):
         """
@@ -130,19 +155,21 @@ class TelLookupTable(object):
         - `what`:
         """
 
-        xed,yed,val = self._valueDict[what]
-        figure()
-        pcolormesh( xed, yed, val.transpose())
-        title("CT%d: %s" % (self.telID, what))
-        xlabel("log10(SIZE)")
-        ylabel("IMPACT (m)")
-        colorbar()
-        show()           
-        
+        val = self._valueDict[what].hist
+
+        if (len(val.shape)==2):
+            xed,yed =  self._valueDict[what].binLowerEdges
+            figure()
+            pcolormesh( xed, yed, val.transpose())
+            title("CT%d: %s" % (self.telID, what))
+            xlabel("log10(SIZE)")
+            ylabel("IMPACT (m)")
+            colorbar()
+            show()                   
         
 # ===========================================================================
 
-def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
+def calcMeanReducedScaledValue( tels, coords, vals, lookupDict,debug=0):
     """
     Return the mean-reduced-scaled value using the lookup tables. The
     MRSV is defined as \sum_i (x_i - \bar{x}) / \sigma^i_x
@@ -156,9 +183,9 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
     for the given parameter
     """
 
-    debug=0
     mrsv = 0.0
     ntels = vals.shape[0]
+    EPSILON = 1e-12
 
     if ntels==0:
         return -10000
@@ -169,6 +196,12 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
     for itel in xrange( ntels ):
         vMean = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
         vSigma = lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
+
+        if (np.isfinite(vMean) == False or np.isfinite(vSigma)==False
+            or np.abs(vSigma <EPSILON)):
+            ntels -= 1 # skip telescopes that don't have a good value
+            continue
+
         mrsv += (vals[itel] - vMean)/vSigma
 
         if debug:
@@ -178,10 +211,14 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict):
     if debug:
         print "-------------------------"
         print "     MRSV=",mrsv
-    return mrsv/float(ntels), 0.0
+
+    if (ntels >0):
+        return mrsv/float(ntels), 0.0
+    else:
+        return (-100000,-100000)
     
 
-def calcWeightedAverage( tels, coords, vals, lookupDict):
+def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     """ 
     Returns the weighted average over telescopes (and the weighted
     standard deviation) of the parameter. This is used, e.g., for
@@ -194,22 +231,32 @@ def calcWeightedAverage( tels, coords, vals, lookupDict):
     for the given parameter
  
     """
-    ntels = vals.shape[0]
-    sumweight = 0
 
-    vMean = np.zeros( ntels )
-    vSigma = np.zeros( ntels )
+    EPSILON = 1e-12
+    ntels = vals.shape[0]
+
+    wsum = 0 # weighted sum
+    sumw = 0  # sum of weights
 
     for itel in xrange(ntels):
-        vMean[itel] = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
-        vSigma[itel] =lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
+        vMean  = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
+        vSigma = lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
 
-    wmean, wsum = np.average( vMean, weights = 1.0/vSigma**2, returned=True)
-    sumsqr = np.sum( vMean**2 )
-    vMean /= wsum
-    wstddev = math.sqrt( sumsqr / (wsum-np.sum(vMean)**2)  )
+        if (np.isfinite(vMean) == False or np.isfinite(vSigma)==False
+            or np.abs(vSigma <EPSILON)):
+            ntels -= 1 # skip telescopes that don't have a good value
+            continue
+        
+        weight = 1/vSigma**2
+        wsum += vMean*weight
+        sumw += weight
 
-    return wmean, wstddev
+    if (math.fabs(sumw) > EPSILON):
+        wmean = wsum/sumw
+        wstddev = math.sqrt( sumw )
+        return wmean, wstddev
+    else:
+        return (-100000,-100000)
 
 
 def testValue(value,error,trueValue):
@@ -222,36 +269,40 @@ def testValue(value,error,trueValue):
     - `trueValue`: array true value for comparison
     """
     
-    from pylab import *
+    import pylab
 
-    percentError = (trueValue-value)/trueValue * 100.0
+    percentError = (trueValue-value)/trueValue 
     
-    figure()
-    hist( percentError, range=[-100,100], bins=50 )
+    pylab.figure()
+    pylab.hist( percentError, range=[-5,5], bins=50 )
 
-    figure()
-    H,x,y = histogram2d( trueValue,value,
-                         range=[[-4,4],[-4,4]], bins=[200,200] )
-    pcolormesh( x,y, H)
-    plot(x,x)
+    pylab.figure()
+    H,x,y = np.histogram2d( trueValue,value,
+                            range=[[-4,4],[-4,4]], bins=[100,100] )
+    pylab.pcolormesh( x,y, H)
+    pylab.plot(x,x)
 
-    figure()
-    H2,x,y = histogram2d( trueValue,(trueValue-value)/trueValue,
-                         bins=[200,200] ) #range=[[-4,4],[-4,4]]
-    pcolormesh( x,y, H2)
+#    figure()
+#    scatter( trueValue, percentError ) #range=[[-4,4],[-4,4]]
     print x,y
-    
+
+
 
 if __name__ == '__main__':
 
     from pylab import *
 
-    debug=1
-    paramType = "msw"
+    parser = OptionParser()
+    parser.add_option("-t","--type", dest="paramType", 
+                      help="column to generate (energy, msw, msl")
+    (opts,args) = parser.parse_args()
+
+    debug=0
+    paramType = opts.paramType
 
     # open the input eventlist
 
-    ineventlistfile = sys.argv.pop(1)
+    ineventlistfile = args.pop(0)
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
@@ -267,17 +318,18 @@ if __name__ == '__main__':
 
     if (paramType == "energy" ):
         lookupName = "MC_ENERGY"
-        outputName = "ENERGY"
+        outputName = "ENERGY2"
         reductionFunction=calcWeightedAverage
     elif (paramType == "msl"):
         lookupName = "HIL_TEL_LENGTH"
-        outputName = "HIL_MSL"
+        outputName = "HIL_MSL2"
         reductionFunction=calcMeanReducedScaledValue
         valueScale=1000.0
     elif (paramType == "msw") :
         lookupName = "HIL_TEL_WIDTH"
-        outputName = "HIL_MSW"
+        outputName = "HIL_MSW2"
         reductionFunction=calcMeanReducedScaledValue
+        valueScale=1000.0
     else:
         print "Unknown type:",paramType
         sys.exit(1)
@@ -286,8 +338,13 @@ if __name__ == '__main__':
     telLookup = dict()
 
     for tel in telid:
-        telLookup[tel] = TelLookupTable(lookupName,tel)
-        telLookup[tel].display()
+        telLookup[tel] = TelLookupTable(lookupName,tel, valueScale=valueScale)
+        #telLookup[tel].display()
+
+    telLookup[1].display("mean")
+    telLookup[1].display("stddev")
+    telLookup[1].display("count")
+
 
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
@@ -331,12 +388,16 @@ if __name__ == '__main__':
     # which is just 1/Ntelsinevent sum( (V[tel] -
     # Vmean[tel])/Vsigma[tel] )
 
+    print "================================================================"
     print "Calculating", outputName,"from the",lookupName,
-    print "lookups for %d events" % nevents,
+    print "lookups for %d events" % nevents
     print "and %d telescopes" % ntels,"using",reductionFunction.func_name,"..."
+    print "================================================================"
 
     value  = np.zeros( nevents ) # the reduced value
     error  = np.zeros( nevents ) # the error on the reduced value
+
+    evdebug=0
 
     for evnum in xrange(telValues.shape[0]):
         vals = telValues[evnum][ telMask[evnum] ]
@@ -345,20 +406,38 @@ if __name__ == '__main__':
         impacts = telImpacts[evnum][ telMask[evnum] ]
         coords = zip(lsizes,impacts)
 
+        if(evnum==421): evdebug=1
+        if(evnum==422): evdebug=0
+
         # call the appropriate reduction function (defined earlier)
         value[evnum],error[evnum] = reductionFunction( tels,
                                                        coords=coords, 
                                                        vals=vals, 
-                                                       lookupDict=telLookup )
+                                                       lookupDict=telLookup,
+                                                       debug=evdebug)
+        if (evnum%1000==0):
+            print "    event",evnum,"of",telValues.shape[0]
         
     value[ np.isnan(value) ] = -10000
     print "Done."
     
 
     gmask = value > -1000
-    gmask *= value < 10000
-#    testValue( value[gmask], error[gmask], 
-#               np.log10(events.data.field("MC_ENERGY")[gmask]) )
+    gmask *= value < 1000
+    
+    if (paramType == "energy"):
+        testValue( value[gmask], error[gmask], 
+                   np.log10(events.data.field("MC_ENERGY")[gmask]) )
+    elif(paramType=="msw"):
+        testValue( value[gmask], error[gmask], 
+                   (events.data.field("HIL_MSW")[gmask]) )
 
-    testValue( value[gmask], error[gmask], 
-               (events.data.field("HIL_MSW")[gmask]*valueScale) )
+
+    if (paramType == "energy"):
+        value = 10**value # not log scale
+    
+    outputCol = pyfits.Column( name=outputName, format='D', array=value )
+    cols = events.columns + outputCol
+    outputTable = pyfits.new_table( cols )
+    outputTable.writeto("testtable.fits", clobber=True)
+    

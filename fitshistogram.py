@@ -15,7 +15,7 @@ class Histogram(object):
     
     
     def __init__(self, bins=None, range=None, name=None,
-                 axisTypes=None, axisNames=None):
+                 axisTypes=None, axisNames=None,initFromFITS=None):
         """ Initialize an unfilled histogram (need to call either
         fill() or loadFromFITS() to put data into it)
 
@@ -34,6 +34,22 @@ class Histogram(object):
         self.axisNames=axisNames
         self.name = name
         self._proj = None
+
+        if (initFromFITS):
+            self.loadFromFITS(initFromFITS)
+
+    @property
+    def binLowerEdges(self):
+        return self._binLowerEdges
+
+    @property
+    def bins(self):
+        return self._bins
+        
+    @property
+    def range(self):
+        return self._range
+
 
     def fill(self, datapoints, **kwargs):
         """
@@ -164,24 +180,27 @@ class Histogram(object):
         
         Arguments:
 
-        - `coordinate`: single coordinate or array-like list of
-          coordinates (in world coordinates)
-        """
-        
-        # TODO: this can be sped up a lot probably! No need for the
-        # for loop if we're smart... see how it's done in kapteyn?
+        - `coordinate`: single coordinate 
 
+        TODO: make this take a list of coordinates and return a list too, for speed.
+        """
+
+        
         world = np.array( coordinate )
+
+        if (len(world.shape)>1):
+            raise IndexError("Coordinate must be a single coordinate")
+        
         bins = np.trunc(self.getProjection().topixel( world ) - 1.0).astype(int)
         maxbin = np.array(self.hist.shape)
 
-        val = np.zeros(len(world))
-
-        for ii,bin in enumerate(bins):
-            outlier = ((bin>=maxbin) * (bin <0)).any()
-            if (outlier):
-                val[ii] = outlierValue
-            else:
-                val[ii] = self.hist[tuple(bin)]
-    
-        return val
+        if (outlierValue==None):
+            #extrapolate (simply for now, just takes edge value)
+            bins[bins>=maxbin] = maxbin[bins>=maxbin]-1
+            bins[bins<0] = 0
+        else:
+            if (bins>=maxbin).any() or (bins<0).any():
+                return outlierValue
+        
+        return self.hist[tuple(bins)]
+                

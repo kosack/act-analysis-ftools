@@ -10,6 +10,7 @@ import re
 from pylab import *
 
 import actutils
+from fitshistogram import Histogram
  
 # Note this assumes that the local-distance and min SIZE cuts have
 # already been appluied before generating the eventlist (no
@@ -17,7 +18,7 @@ import actutils
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [60,100], histrange =[[0.5,6],[0,2000.0]],
+                            bins = [200,200], histrange =[[0.5,6],[0,2000.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False):
     """
@@ -51,25 +52,25 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     # these are the data fields as NxM arrays (where N is number of events,
     # and M is number of telescopes):
     telMask   = events.data.field("TELMASK") 
-    allSizes = events.data.field("HIL_TEL_SIZE") 
-    allCoreX = events.data.field("COREX") 
-    allCoreY = events.data.field("COREY") 
+    telSizes = events.data.field("HIL_TEL_SIZE") 
+    telCoreX = events.data.field("COREX") 
+    telCoreY = events.data.field("COREY") 
     mccorex = events.data.field("MC_COREX") 
     mccorey = events.data.field("MC_COREY") 
-    nevents,ntels = allSizes.shape
+    nevents,ntels = telSizes.shape
 
-    allValues = events.data.field(varName) 
+    telValues = events.data.field(varName) 
 
     if (useLogScale):
-        allValues = np.log10(allValues)
+        telValues = np.log10(telValues)
 
-    if (allValues.ndim == 1):
+    if (telValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
         # to make it one:
-        tmp = np.ones_like(allSizes)
+        tmp = np.ones_like(telSizes)
         for ii in xrange(tmp.shape[1]):
-            tmp[:,ii] *= allValues
-        allValues = tmp
+            tmp[:,ii] *= telValues
+        telValues = tmp
 
 
 
@@ -78,18 +79,18 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
 
     # impacts distances need to be calculated for each telescope (the
     # global impact distance stored is relative to the array center)
-    allImpacts = np.zeros_like( allValues )
-    allImpactstest = np.zeros_like( allValues )
-    for itel in range(allValues.shape[1]):
-        nev = allImpacts.shape[0]
-        allImpacts[:,itel] = np.sqrt( (allCoreX-tposx[itel])**2 +
-                                      (allCoreY-tposy[itel])**2 )
+    telImpacts = np.zeros_like( telValues )
+
+    for itel in range(telValues.shape[1]):
+        nev = telImpacts.shape[0]
+        telImpacts[:,itel] = np.sqrt( (telCoreX-tposx[itel])**2 +
+                                      (telCoreY-tposy[itel])**2 )
 
 
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
     # events?)
-    valueMask = allValues > -100 
+    valueMask = telValues > -100 
     telMask *= valueMask  # mask off bad values
     
     if (debug):
@@ -100,29 +101,17 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     for itel in range(ntels):
 
         goodEvents = telMask[:,itel]  
-        value = allValues[:,itel][goodEvents]  * valueScale # scale to mrad
-        impact = allImpacts[:,itel][goodEvents]
-        logsiz = np.log10(allSizes[:,itel][goodEvents])
+        value = telValues[:,itel][goodEvents]  * valueScale # scale to mrad
+        impact = telImpacts[:,itel][goodEvents]
+        logsiz = np.log10(telSizes[:,itel][goodEvents])
 
-        sumHist,edX,edY = np.histogram2d( logsiz,impact, 
-                                           weights=value,
-                                           range=histrange, 
-                                           bins=bins,
-                                           normed=False)
+        sumHist = Histogram( range=histrange, bins=bins,name="SUM" )
+        sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR" )
+        countHist = Histogram( range=histrange, bins=bins,name="COUNT" )
 
-        sumSqrHist,edX,edY = np.histogram2d( logsiz,impact, 
-                                           weights=(value)**2,
-                                           range=histrange, 
-                                           bins=bins,
-                                           normed=False)
-
-        countHist,edX,edY = np.histogram2d( logsiz,impact, 
-                                            weights=None,
-                                            range=histrange, 
-                                            bins=bins,
-                                            normed=False)
-
-
+        sumHist.fill(    (logsiz,impact), weights=value, normed=False )
+        sumSqrHist.fill( (logsiz,impact), weights=value**2, normed=False )
+        countHist.fill(  (logsiz,impact), normed=False )
         
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
@@ -132,17 +121,23 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             filename = "CT%03d-%s-lookup" % (telid[itel], varName)
 
         print "CT",telid[itel],varName,"Nevents=",len(value),
-        print "outliers=",len(value)-sum(countHist),
+        print "outliers=",len(value)-sum(countHist.hist),
         print "out:",filename
 
-        hdu1=actutils.histToFITS( sumHist, bins=bins,
-                                  histrange=histrange,name="SUM",
-                                  valueScale=valueScale )
-        hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
-                                  histrange=histrange, name="SUMSQR",
-                                  valueScale=valueScale )
-        hdu3=actutils.histToFITS( countHist, bins=bins,
-                                  histrange=histrange, name="COUNTS" )
+        hdu1=sumHist.asFITS()
+        hdu2=sumSqrHist.asFITS()
+        hdu3=countHist.asFITS()
+
+        # hdu1=actutils.histToFITS( sumHist, bins=bins,
+        #                           histrange=histrange,name="SUM",
+        #                           valueScale=valueScale )
+        # hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
+        #                           histrange=histrange, name="SUMSQR",
+        #                           valueScale=valueScale )
+        # hdu3=actutils.histToFITS( countHist, bins=bins,
+        #                           histrange=histrange, name="COUNTS" )
+
+
         hdu1.writeto( filename+"-sum.fits", clobber=True )
         hdu2.writeto( filename+"-sum2.fits", clobber=True )
         hdu3.writeto( filename+"-count.fits", clobber=True )
