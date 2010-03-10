@@ -5,12 +5,14 @@ import math
 import os
 import re
 from scipy import interpolate
-from scipy import signal
+
 from optparse import OptionParser
 from kapteyn import wcs
 
 import actutils
 from fitshistogram import Histogram
+
+
 
 # TODO apply image amplitude and local distance cuts!
 
@@ -41,7 +43,7 @@ class TelLookupTable(object):
     telID = 0
 
     def __init__(self, lookupName, telID, valueScale=1.0,
-                 lookupDir= None,useSmooth=True):
+                 lookupDir= None,useSmooth=False):
         """
         initialize a lookup table
 
@@ -59,7 +61,7 @@ class TelLookupTable(object):
         self.telID = telID
         self._valueScale = valueScale
 
-        print "Loading Lookups for CT",tel
+        print ("Loading Lookups for CT%03d"%tel).center(79,"-")
 
         smooth=""
         if useSmooth: 
@@ -75,7 +77,7 @@ class TelLookupTable(object):
     
 
         self.extrapolateLookups()
-        self.smoothLookups(2)
+#        self.smoothLookups(3)
 
     def extrapolateLookups(self, minCounts=10):
         """
@@ -95,31 +97,44 @@ class TelLookupTable(object):
             # todo: do this as an array op, not for-loop
 
             for ii in xrange(counts.shape[0]):
-                lastgood = (0,0)
+                lastgood = (-1,-1)
                 for jj in xrange(counts.shape[1]):
                     if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
                         lastgood=(ii,jj)
                     else:
-                        val[ii,jj] = val[lastgood]
-                        counts[ii,jj]=minCounts+1
+                        if (lastgood != (-1,-1)):
+                            val[ii,jj] = val[lastgood]
+                            counts[ii,jj]=minCounts+1
 
             for ii in xrange(counts.shape[0]):
-                lastgood = (0,0)
+                lastgood = (-1,-1)
                 for jj in xrange(counts.shape[1]-1,0,-1):
                     if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
                         lastgood=(ii,jj)
                     else:
-                        val[ii,jj] = val[lastgood]
-                        counts[ii,jj]=minCounts+1
+                        if (lastgood != (-1,-1)):
+                            val[ii,jj] = val[lastgood]
+                            counts[ii,jj]=minCounts+1
 
             for jj in xrange(counts.shape[1]):
-                lastgood = (0,0)
+                lastgood = (-1,-1)
                 for ii in xrange(counts.shape[0]):
                     if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
                         lastgood=(ii,jj)
                     else:
-                        val[ii,jj] = val[lastgood]
-                        counts[ii,jj]=minCounts+1
+                        if (lastgood != (-1,-1)):
+                            val[ii,jj] = val[lastgood]
+                            counts[ii,jj]=minCounts+1
+
+            for jj in xrange(counts.shape[1]):
+                lastgood = (-1,-1)
+                for ii in xrange(counts.shape[1]-1,0,-1):
+                    if counts[ii,jj] > minCounts and np.isfinite(val[ii,jj]):
+                        lastgood=(ii,jj)
+                    else:
+                        if (lastgood != (-1,-1)):
+                            val[ii,jj] = val[lastgood]
+                            counts[ii,jj]=minCounts+1
 
 
     def smoothLookups(self, pixels):
@@ -381,18 +396,21 @@ if __name__ == '__main__':
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
     # events?)
-    valueMask = telValues > -100 
-    telMask *= valueMask  # mask off bad values
+
+    valueMask = (telValues > -100) * isfinite(telValues)
+    if ((valueMask==False).any()):
+        print "WARNING: %d values were undefined?" % sum(valueMask==False)
+#    telMask *= valueMask  # mask off bad values
 
     # now, for each event, we want to calculate the MRSW/MRSL value,
     # which is just 1/Ntelsinevent sum( (V[tel] -
     # Vmean[tel])/Vsigma[tel] )
 
-    print "================================================================"
+    print "="*70
     print "Calculating", outputName,"from the",lookupName,
     print "lookups for %d events" % nevents
     print "and %d telescopes" % ntels,"using",reductionFunction.func_name,"..."
-    print "================================================================"
+    print "="*70
 
     value  = np.zeros( nevents ) # the reduced value
     error  = np.zeros( nevents ) # the error on the reduced value
@@ -427,7 +445,7 @@ if __name__ == '__main__':
     
     if (paramType == "energy"):
         testValue( value[gmask], error[gmask], 
-                   np.log10(events.data.field("MC_ENERGY")[gmask]) )
+                   log10(events.data.field("ENERGY")[gmask]) )
     elif(paramType=="msw"):
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )

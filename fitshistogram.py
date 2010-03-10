@@ -1,6 +1,7 @@
 import pyfits
 import numpy as np
 import math
+#from scipy import signal,ndimage
 
 from kapteyn import wcs,maputils
 
@@ -63,13 +64,16 @@ class Histogram(object):
                                               bins=self._bins, 
                                               range=self._range, **kwargs)
         
-        if (self._binLowerEdges!=None 
-            and any(binLowerEdges==self._binLowerEdges)==false):
-            raise exceptions.ArithmaticError("Bad Geometry!")
         
-        
+        if (self._binLowerEdges == None):
+            self._binLowerEdges = binLowerEdges
+
+#        if ((binLowerEdges==self._binLowerEdges).all() == False):
+#            raise exceptions.ArithmaticError("Bad Geometry!")
+
+            
         self.hist += hist
-        self._binLowerEdges = binLowerEdges
+
         
 
 
@@ -191,8 +195,12 @@ class Histogram(object):
         if (len(world.shape)>1):
             raise IndexError("Coordinate must be a single coordinate")
         
-        bins = np.trunc(self.getProjection().topixel( world ) - 1.0).astype(int)
+        # really does need to be round here, not trunc (or we need a 0.5 bin shift)
+        bins = np.round(self.getProjection().topixel( world ) - 1.0).astype(int)
         maxbin = np.array(self.hist.shape)
+
+        # print "DEBUG WORLD:",world," PIX:", 
+        # print self.getProjection().topixel( world ),"=> BINS=",bins
 
         if (outlierValue==None):
             #extrapolate (simply for now, just takes edge value)

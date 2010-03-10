@@ -18,7 +18,7 @@ from fitshistogram import Histogram
 
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [200,200], histrange =[[0.5,6],[0,2000.0]],
+                            bins = [100,100], histrange =[[0.5,6],[0,2000.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False):
     """
@@ -105,9 +105,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         impact = telImpacts[:,itel][goodEvents]
         logsiz = np.log10(telSizes[:,itel][goodEvents])
 
-        sumHist = Histogram( range=histrange, bins=bins,name="SUM" )
+        sumHist    = Histogram( range=histrange, bins=bins,name="SUM" )
         sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR" )
-        countHist = Histogram( range=histrange, bins=bins,name="COUNT" )
+        countHist  = Histogram( range=histrange, bins=bins,name="COUNT" )
 
         sumHist.fill(    (logsiz,impact), weights=value, normed=False )
         sumSqrHist.fill( (logsiz,impact), weights=value**2, normed=False )
@@ -169,8 +169,6 @@ if __name__ == '__main__':
     else:
         namebase = opts.output
     
-
-
 
     generateTelLookupTables( infile, varName="HIL_TEL_WIDTH", 
                              debug=opts.debug,namebase=namebase,valueScale=1000.0 )
