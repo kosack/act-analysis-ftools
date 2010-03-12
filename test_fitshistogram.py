@@ -39,6 +39,8 @@ class TestHisto(unittest.TestCase):
 
     def testRangeFillAndRead(self, ):
         """
+        Check that the correct bin is read and written for multiple
+        binnings and fill positions
         """
         
         N = 100
@@ -51,14 +53,13 @@ class TestHisto(unittest.TestCase):
                                              range=[[-2.5,2.5],[-1,1]] )
                 H.fill(coords)
                 val = H.getValue( pp )
-                # print "================================================"
-                #print "** ",xx,nxbins
-                # print H.hist
-                # print H._binLowerEdges[0]
-                # print "================================================"
                 self.assertEqual( val, N )
+                del H
 
     def testOutliers(self):
+        """
+        Check that out-of-range values work as expected 
+        """
         H = fitshistogram.Histogram( bins=[5,10], range=[[-2.5,2.5],[-1,1]] )
         val1= H.getValue( (100,100), outlierValue = -10000)
         val2= H.getValue( (-100,0), outlierValue = None)
@@ -69,6 +70,7 @@ class TestHisto(unittest.TestCase):
         """
         Write to fits,read back, and check
         """
+        
         pass
 
 

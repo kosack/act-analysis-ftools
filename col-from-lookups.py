@@ -333,7 +333,7 @@ if __name__ == '__main__':
 
     if (paramType == "energy" ):
         lookupName = "MC_ENERGY"
-        outputName = "ENERGY2"
+        outputName = "ENERGY"
         reductionFunction=calcWeightedAverage
     elif (paramType == "msl"):
         lookupName = "HIL_TEL_LENGTH"
@@ -445,7 +445,7 @@ if __name__ == '__main__':
     
     if (paramType == "energy"):
         testValue( value[gmask], error[gmask], 
-                   log10(events.data.field("ENERGY")[gmask]) )
+                   log10(events.data.field("MC_ENERGY")[gmask]) )
     elif(paramType=="msw"):
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )
@@ -454,6 +454,15 @@ if __name__ == '__main__':
     if (paramType == "energy"):
         value = 10**value # not log scale
     
+    # check if column already exists, if so rename it
+    coldic = dict()
+    for ii in range(len(events.columns)):
+        coldic[events.columns[ii].name] = ii
+
+    if coldic.has_key(outputName):
+        icol = coldic[outputName]
+        events.columns[icol].name=outputName+"_ORIG"
+
     outputCol = pyfits.Column( name=outputName, format='D', array=value )
     cols = events.columns + outputCol
     outputTable = pyfits.new_table( cols )
