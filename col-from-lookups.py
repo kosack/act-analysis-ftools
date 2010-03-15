@@ -36,6 +36,11 @@ def gauss_kern(size, sizey=None):
 class TelLookupTable(object):
     """ 
     Read and interpolate telescope-wise lookup tables
+    
+    by default, this loads `CT<id>-<VALUE>-lookup-<param><tag>.fits`
+    where tag is generally blank
+    
+    `tag`: extra text to add (like "-gauss" for externally smoothed lookups)
     """
 
     _valueDict = dict()
@@ -43,7 +48,7 @@ class TelLookupTable(object):
     telID = 0
 
     def __init__(self, lookupName, telID, valueScale=1.0,
-                 lookupDir= None,useSmooth=False):
+                 lookupDir= None,tag=""):
         """
         initialize a lookup table
 
@@ -63,12 +68,8 @@ class TelLookupTable(object):
 
         print ("Loading Lookups for CT%03d"%tel).center(79,"-")
 
-        smooth=""
-        if useSmooth: 
-            smooth="-gauss"
-
         for what in self.values:
-            fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,smooth)    
+            fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,tag)    
             print "\t",fname
             hdu = pyfits.open(lookupDir+"/"+fname)[0]
             hist = Histogram(initFromFITS=hdu)
@@ -250,8 +251,15 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     EPSILON = 1e-12
     ntels = vals.shape[0]
 
-    wsum = 0 # weighted sum
-    sumw = 0  # sum of weights
+    if ntels==0:
+        return -10000
+
+    if debug:
+        print "========================",tels
+
+    weightedSum  = 0.0  # weighted sum
+    sumOfWeights = 0.0  # sum of weights
+    sum2 = 0.0
 
     for itel in xrange(ntels):
         vMean  = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
@@ -262,13 +270,22 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
             ntels -= 1 # skip telescopes that don't have a good value
             continue
         
-        weight = 1/vSigma**2
-        wsum += vMean*weight
-        sumw += weight
+        weight = 1.0/(vSigma**2)
+        weightedSum += vMean*weight
+        sum2 += vMean**2
+        sumOfWeights += weight
+        if debug:
+            print "CT",tels[itel],"coord=",coords[itel],
+            print " val=",vals[itel],"mean=",vMean,"sig=",vSigma
 
-    if (math.fabs(sumw) > EPSILON):
-        wmean = wsum/sumw
-        wstddev = math.sqrt( sumw )
+    if (math.fabs(sumOfWeights) > EPSILON):
+        wmean = weightedSum/sumOfWeights
+        wstddev = math.sqrt( 1.0/sumOfWeights )
+        if debug:
+            print "-------------------------"
+            print "     WeightedAvg=",wmean
+            print "     WeightSigma=",wstddev
+
         return wmean, wstddev
     else:
         return (-100000,-100000)
@@ -293,13 +310,13 @@ def testValue(value,error,trueValue):
 
     pylab.figure()
     H,x,y = np.histogram2d( trueValue,value,
-                            range=[[-4,4],[-4,4]], bins=[100,100] )
+                            range=[[-1.5,3],[-1.5,3]], bins=[100,100] )
     pylab.pcolormesh( x,y, H)
-    pylab.plot(x,x)
+    pylab.plot(x,x,'r')
 
 #    figure()
 #    scatter( trueValue, percentError ) #range=[[-4,4],[-4,4]]
-    print x,y
+#    print x,y
 
 
 
@@ -330,11 +347,13 @@ if __name__ == '__main__':
     lookupName = ""
     outputName = ""
     valueScale = 1.0
+    computeFromValue = True
 
     if (paramType == "energy" ):
         lookupName = "MC_ENERGY"
         outputName = "ENERGY"
         reductionFunction=calcWeightedAverage
+        computeFromValue = False
     elif (paramType == "msl"):
         lookupName = "HIL_TEL_LENGTH"
         outputName = "HIL_MSL2"
@@ -356,33 +375,33 @@ if __name__ == '__main__':
         telLookup[tel] = TelLookupTable(lookupName,tel, valueScale=valueScale)
         #telLookup[tel].display()
 
-    telLookup[1].display("mean")
-    telLookup[1].display("stddev")
-    telLookup[1].display("count")
+#    telLookup[1].display("mean")
+#    telLookup[1].display("stddev")
+#    telLookup[1].display("count")
 
 
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
     telMask   = events.data.field("TELMASK") 
-    telValues = events.data.field(lookupName) # values of the requested parameter
+
 
     try:
         telSizes = events.data.field("HIL_TEL_SIZE") 
     except KeyError:
         telSizes = events.data.field("INT_TEL_SIZE") 
 
-
-    if (telValues.ndim == 1):
-        # this is not a telescope-wise parameter, like ENERGY, so need
-        # to make it one:
-        tmp = np.ones_like(telSizes)
-        for ii in xrange(tmp.shape[1]):
-            tmp[:,ii] *= telValues
-        telValues = tmp
-
-
     coreX = events.data.field("COREX") 
     coreY = events.data.field("COREY") 
+    nevents,ntels = telSizes.shape
+
+    
+    if (computeFromValue==True):
+        telValues = events.data.field(lookupName) # values of the
+                                                  # requested
+                                                  # parameter
+    else:
+        # for e.g. energy, there's no "value" to compute from
+        telValues = np.zeros_like(telSizes) # dummy
 
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
@@ -392,7 +411,7 @@ if __name__ == '__main__':
         telImpacts[:,ii] = np.sqrt( (coreX-tposx[ii])**2 +
                                     (coreY-tposy[ii])**2 )
 
-    nevents,ntels = telValues.shape
+
     # we want to do some basic cuts on width, removing ones with bad
     # values (why do bad value widths still exist for triggered
     # events?)
@@ -444,12 +463,21 @@ if __name__ == '__main__':
     gmask *= value < 1000
     
     if (paramType == "energy"):
-        testValue( value[gmask], error[gmask], 
-                   log10(events.data.field("MC_ENERGY")[gmask]) )
+        testValue( value, error, 
+                   log10(events.data.field("MC_ENERGY")) )
     elif(paramType=="msw"):
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )
 
+    pylab.figure()
+    [hist(telImpacts[:,ii],
+          range=[-10,1000],bins=100,histtype='step') for ii in range(ntels)]
+    pylab.xlabel("Impact Distance")
+
+    pylab.figure()
+    [hist(log10(telSizes[:,ii]),
+          range=[-1,3],bins=100,histtype='step') for ii in range(ntels)]
+    pylab.xlabel("log10(SIZE)")
 
     if (paramType == "energy"):
         value = 10**value # not log scale
