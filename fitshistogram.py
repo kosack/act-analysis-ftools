@@ -178,37 +178,43 @@ class Histogram(object):
         return self._proj
 
         
-    def getValue(self, coordinate, outlierValue=None):
-        """ Returns the value of the histogram at the given world
+    def getValue(self, coords, outlierValue=None):
+        """ Returns the values of the histogram at the given world
         coordinate(s) 
         
         Arguments:
 
-        - `coordinate`: single coordinate 
+        - `coords`: list of M coordinates of dimension N (where
+          the N is the histogram dimension)
 
-        TODO: make this take a list of coordinates and return a list too, for speed.
+        - `outlierValue`: value for outliers, if None, coordinates
+          outside the edges of the histogram will be given the edge
+          value
+
         """
 
-        
-        world = np.array( coordinate )
+        if np.isnan(coords).any():
+            raise ValueError("Bad coordinate value")
 
-        if (len(world.shape)>1):
-            raise IndexError("Coordinate must be a single coordinate")
-        
-        # really does need to be round here, not trunc (or we need a 0.5 bin shift)
-        bins = np.round(self.getProjection().topixel( world ) - 1.0).astype(int)
+        world = np.array( coords, ndmin=2 )
+        ndims = len(self._bins)
         maxbin = np.array(self.hist.shape)
 
-        # print "DEBUG WORLD:",world," PIX:", 
-        # print self.getProjection().topixel( world ),"=> BINS=",bins
+        bins = np.array([np.digitize( world[:,ii], self._binLowerEdges[ii] )-1 
+                         for ii in xrange(ndims)])
+
+        print "DEBUG bins=",bins
 
         if (outlierValue==None):
             #extrapolate (simply for now, just takes edge value)
-            bins[bins>=maxbin] = maxbin[bins>=maxbin]-1
             bins[bins<0] = 0
+            for ii in xrange(ndims):
+                bins[ii][bins[ii]>=maxbin[ii]] = maxbin[ii]-1 
         else:
             if (bins>=maxbin).any() or (bins<0).any():
                 return outlierValue
         
+        print "DEBUG *bins=",bins
+
         return self.hist[tuple(bins)]
                 
