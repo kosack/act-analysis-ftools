@@ -198,13 +198,14 @@ class Histogram(object):
 
         world = np.array( coords, ndmin=2 )
         ndims = len(self._bins)
-        maxbin = np.array(self.hist.shape)
 
-        bins = np.array([np.digitize( world[:,ii], self._binLowerEdges[ii] )-1 
+        bins = np.array([np.digitize( world[:,ii], 
+                                      self._binLowerEdges[ii][1:-1] ) 
                          for ii in xrange(ndims)])
 
         if (outlierValue==None):
             #extrapolate (simply for now, just takes edge value)
+            maxbin = np.array(self.hist.shape)
             bins[bins<0] = 0
             for ii in xrange(ndims):
                 bins[ii][bins[ii]>=maxbin[ii]] = maxbin[ii]-1 
