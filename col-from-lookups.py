@@ -85,7 +85,7 @@ class TelLookupTable(object):
         Make the lookup tables nicer by extrapolating unfilled values
         
         Arguments:
-        - `self`:
+hg p        - `self`:
         """
 
         for what in self.values:
@@ -248,6 +248,10 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     for the given parameter
  
     """
+
+    # TODO: modify this to do the whole thing at once? E.g., calculate
+    # the vMean and vSigma for *all* events first, and then use them
+    # to get the weighted sum
 
     EPSILON = 1e-12
     ntels = vals.shape[0]
