@@ -96,6 +96,7 @@ class TelLookupTable(object):
             val = self._valueDict[what].hist
 
             # todo: do this as an array op, not for-loop
+            # can do it with numpy's apply_along_axis() function!
 
             for ii in xrange(counts.shape[0]):
                 lastgood = (-1,-1)
@@ -287,6 +288,7 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
             print "     WeightSigma=",wstddev
 
         return wmean, wstddev
+
     else:
         return (-100000,-100000)
 
@@ -416,10 +418,13 @@ if __name__ == '__main__':
     # values (why do bad value widths still exist for triggered
     # events?)
 
-    valueMask = (telValues > -100) * isfinite(telValues)
+    valueMask = (telValues > -100) 
+    valueMask *=  np.isfinite(telImpacts) * np.isfinite(telSizes)
+    valueMask *=  (telImpacts > 0.0) 
+    valueMask *=  (telSizes > 0.0) 
     if ((valueMask==False).any()):
         print "WARNING: %d values were undefined?" % sum(valueMask==False)
-#    telMask *= valueMask  # mask off bad values
+    telMask *= valueMask  # mask off bad values
 
     # now, for each event, we want to calculate the MRSW/MRSL value,
     # which is just 1/Ntelsinevent sum( (V[tel] -

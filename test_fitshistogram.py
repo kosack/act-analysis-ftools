@@ -26,8 +26,8 @@ class TestHisto(unittest.TestCase):
         H.fill( a )
         H.fill( b )
 
-        va = H.getValue( pa )
-        vb = H.getValue( pb )
+        va = H.getValue( pa )[0]
+        vb = H.getValue( pb )[0]
 
         # print b
         # print H.hist

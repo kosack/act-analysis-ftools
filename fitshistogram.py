@@ -203,8 +203,6 @@ class Histogram(object):
         bins = np.array([np.digitize( world[:,ii], self._binLowerEdges[ii] )-1 
                          for ii in xrange(ndims)])
 
-        print "DEBUG bins=",bins
-
         if (outlierValue==None):
             #extrapolate (simply for now, just takes edge value)
             bins[bins<0] = 0
@@ -214,7 +212,5 @@ class Histogram(object):
             if (bins>=maxbin).any() or (bins<0).any():
                 return outlierValue
         
-        print "DEBUG *bins=",bins
-
         return self.hist[tuple(bins)]
                 
