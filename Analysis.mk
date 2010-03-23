@@ -179,7 +179,7 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 # countmap 
 %_cmap.fits: %_event_selected.fits 
 	@echo COUNT MAP $*
-	$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
+	@$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
 
 # excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits
@@ -229,7 +229,7 @@ FIRSTCMAP=$(firstword $(RUNS_CMAP))
 # a loop over pixel positions)
 flatlist.fits: $(FIRSTCMAP)
 	@echo "FLAT EVENTLIST: $@ using $^"
-	$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
+	@$(FLATLIST) $(FIRSTCMAP) $@ $(REDIRECT)
 
 flatlist_excluded.fits: flatlist.fits $(EXCLUSIONFILE)
 	@echo "FLAT EVENTLIST EXCLUDED: $@"
@@ -247,7 +247,7 @@ flatmap.fits: flatlist.fits
 
 # mask large radii from field of view (the psi^2 cut)
 %_fovmask.fits: %_cmap.fits
-	$(FOVMASK) $(strip $(MAXEVENTRADIUS)) $< $@
+	@$(FOVMASK) $(strip $(MAXEVENTRADIUS)) $< $@
 
 
 # tophat correlation of a map
@@ -302,7 +302,7 @@ fov_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits
 
 ring.fits: exclmap.fits
 	@echo "GENERATING RING: $@"
-	$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
+	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		--gap $(RINGGAP) \
 		--areafactor $(RINGAREAFACTOR) $^ $(REDIRECT)
 

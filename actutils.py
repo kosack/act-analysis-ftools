@@ -359,7 +359,7 @@ def makeRadialFOVMask(imagehdu,radius,centerWorld=None):
             centerWorld = tran(proj.toworld( centerPix ))
 
     dists = makeDistanceMap( imagehdu, centerWorld )
-    mask = np.zeros( dists.shape )
+    mask = np.zeros_like( dists )
     mask[dists<radius] = 1.0
     return mask
 
@@ -432,24 +432,23 @@ def histFromFITS(hdu):
     - `hdu`: hdu containing the histogram
     """
     
-    hist = hdu.data
-    bins = hdu.data.shape
+    hist = hdu.data.transpose()
+    bins = hist.shape
     proj = wcs.Projection ( hdu.header ) # for going between world and pix coords
     
-    # x,y are reversed?
-    xed,tmp = proj.toworld( (np.arange(bins[1])+0.5, np.zeros(bins[1])+0.5) )
-    tmp,yed = proj.toworld( (np.zeros(bins[0])+0.5,np.arange(bins[0])+0.5) )
+    # bin edges (not centers) start at 0.5 in pixel coordinates, since
+    # centers are at 1.0
+    xed,tmp = proj.toworld( (np.arange(bins[0]) + 0.5, np.zeros(bins[0])  + 0.5) )
+    tmp,yed = proj.toworld( (np.zeros(bins[1])  + 0.5, np.arange(bins[1]) + 0.5) )
     
-    raise "BREAK"
-
-    return xed,yed, hist.tranpose() 
+    return xed,yed,hist # same format as numpy.histogram2d()
         
 
 def displayFITS(header, data):
-    from pylab import *
+    import pylab
 
-    f = maputils.FITSimage( externalheader=header, externaldata=data)
-    frame = figure()
+    f = pylab.maputils.FITSimage( externalheader=header, externaldata=data)
+    frame = pylab.figure()
     img = f.Annotatedimage(frame)
     colorbar = img.Colorbar()
     img.Image()
@@ -460,5 +459,7 @@ def displayFITS(header, data):
     img.interact_toolbarinfo()
     img.interact_writepos()
 
-    plt.title( fname )
-    plt.show()
+    pylab.plt.title( fname )
+    pylab.plt.show()
+
+
