@@ -34,7 +34,6 @@ class Histogram(object):
         self.axisTypes=axisTypes
         self.axisNames=axisNames
         self.name = name
-        self._proj = None
 
         if (initFromFITS):
             self.loadFromFITS(initFromFITS)
@@ -168,23 +167,13 @@ class Histogram(object):
             self.valueZero = hdu.header["BZERO"]
     
 
-    def getProjection(self ):
-        """
-        """
-        
-        if (self._proj == None):
-            self._proj = wcs.Projection( self.asFITS().header )
-
-        return self._proj
-
-        
     def getValue(self, coords, outlierValue=None):
         """ Returns the values of the histogram at the given world
         coordinate(s) 
         
         Arguments:
 
-        - `coords`: list of M coordinates of dimension N (where
+        - `coords`: list/array of M coordinates of dimension N (where
           the N is the histogram dimension)
 
         - `outlierValue`: value for outliers, if None, coordinates
@@ -203,8 +192,10 @@ class Histogram(object):
                                       self._binLowerEdges[ii][1:-1] ) 
                          for ii in xrange(ndims)])
 
+
+        # deal with out-of-range values:
         if (outlierValue==None):
-            #extrapolate (simply for now, just takes edge value)
+            # extrapolate (simply for now, just takes edge value)
             maxbin = np.array(self.hist.shape)
             bins[bins<0] = 0
             for ii in xrange(ndims):
