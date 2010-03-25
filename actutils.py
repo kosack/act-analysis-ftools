@@ -384,7 +384,7 @@ def displayFITS(header, data):
 
 def getTelTypeMap( telarray_hdu ):
     """
-    returns two dictionaries: telId2Type,telType2Id telid to type, and
+    returns two dictionaries: telId2Type,type2TelId telid to type, and
     vice-versa, given the TELARRAY hdu of an eventlist.
 
     Telescope types are a tuple consisting of the (type,subtype)

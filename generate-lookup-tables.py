@@ -20,7 +20,7 @@ from fitshistogram import Histogram
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                             bins = [100,100], histrange =[[0.5,6],[0,2000.0]],
                             debug=False, namebase=None, 
-                            valueScale=1.0, useLogScale=False):
+                            valueScale=1.0, useLogScale=False,outputByType=True):
     """
     generates lookup table for the given variable (average and sigma
     as a function of logSIZE and IMPACT DISTANCE)
@@ -97,6 +97,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         figure( figsize=(15,10))
         subplot(1,1,1)
 
+
+    tel2type,type2tel = actutils.getTelTypeMap( telarray )
+
     # now, generate the lookup table for each telescope separately:
     for itel in range(ntels):
 
@@ -115,8 +118,12 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
+        tag = "CT%03d" % telid[itel]
+        if (outputByType):
+            tag += "-TYPE%02d_%02d" % tel2type[telid[itel]]
+        
         if namebase:
-            filename = "%s-CT%03d-%s-lookup" % (namebase,telid[itel], varName)
+            filename = "%s-%s-%s-lookup" % (namebase,tag, varName)
         else:
             filename = "CT%03d-%s-lookup" % (telid[itel], varName)
 

@@ -37,8 +37,9 @@ class TelLookupTable(object):
     """ 
     Read and interpolate telescope-wise lookup tables
     
-    by default, this loads `CT<id>-<VALUE>-lookup-<param><tag>.fits`
-    where tag is generally blank
+    by default, this loads `<TYPE>-<VALUE>-lookup-<param><tag>.fits`
+    where tag is generally blank, and <TYPE> is either the telescope
+    id or the telescope type (class,subclass)
     
     `tag`: extra text to add (like "-gauss" for externally smoothed lookups)
     """
@@ -48,7 +49,7 @@ class TelLookupTable(object):
     telID = 0
 
     def __init__(self, lookupName, telID, valueScale=1.0,
-                 lookupDir= None,tag=""):
+                 lookupDir= None,tag="", byTelType=True):
         """
         initialize a lookup table
 
@@ -70,6 +71,11 @@ class TelLookupTable(object):
 
         for what in self.values:
             fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,tag)    
+            if byTelType:
+                fname = "TYPE%02d_%02d-%s-lookup-%s%s.fits" % (telID[0],
+                                                               telID[1],
+                                                               lookupName,what,tag)
+
             print "\t",fname
             hdu = pyfits.open(lookupDir+"/"+fname)[0]
             hist = Histogram(initFromFITS=hdu)
@@ -344,6 +350,7 @@ if __name__ == '__main__':
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
+    tel2type,type2tel = actutils.getTelTypeMap( telarray )
 
     # load telescope information
     tposx = telarray.data.field("POSX")
@@ -378,7 +385,9 @@ if __name__ == '__main__':
     telLookup = dict()
 
     for tel in telid:
-        telLookup[tel] = TelLookupTable(lookupName,tel, valueScale=valueScale)
+        ttype = tel2type[tel]
+        telLookup[tel] = TelLookupTable(lookupName,ttype, 
+                                        valueScale=valueScale, byTelType=True)
         #telLookup[tel].display()
 
 #    telLookup[1].display("mean")
