@@ -362,86 +362,6 @@ def makeRadialFOVMask(imagehdu,radius,centerWorld=None):
     mask = np.zeros_like( dists )
     mask[dists<radius] = 1.0
     return mask
-
-def histToFITS(histdata, bins, histrange, name="", valueScale=None):
-    """
-    turn the histogram output from numpy.histogram2d into a FITS image extension
-
-    Arguments:
-    - `histdata`: the data output from numpy.histogram2d (not transposed)
-    - `bins`: bin ranges given to numpy.histogram2d
-    - `range`: range that was given to histogram2d
-    """
-    
-    fullrange =  np.array( (histrange[0][1]- histrange[0][0], 
-                            histrange[1][1]- histrange[1][0]) )
-    nbins = np.array(bins)
-    delta = fullrange/nbins.astype(float)
-
-
-    # the lower-left edge of the first bin is (Xed[0],Yed[0]), which
-    # is (0.5,0.5) in FITS pixel coordinates (the center of the bin is
-    # at (1.0,1.0)):
-    bin0pix = np.array((0.5,0.5)) # reference coordinate is lower left
-                                  # corner of bin
-    bin0coord = np.array( (histrange[0][0], 
-                           histrange[1][0]) ) # world coord of
-                                              # lower-left corner is
-                                              # the lower-part of the
-                                              # range we specified
-
-    # now note that this defines the first pixel in FITS coordinates
-    # with the center (1.0,1.0). in integer python coordinates it is [0,0]
-
-    # to transform a world value, you need to subtract 1.0 and round
-    # down to get the bin number:
-    #       ibin = round( Vpix-1.0 )
-    # To get the value of ibin, you need to go the other way:
-    #       Vworld[ibin] = proj.toworld( ibin+0.5 )
-
-    #  note that histogram2d returns the histogram with X vertical and
-    #  Y horizontal (the reason is that for a general DD histogram,
-    #  the bin order makes more sense that way), so H[j,i] is the
-    #  value for bin [i,j], where i is in the x-direction, and j in
-    #  the y-direction for this reason, we transpose here, since FITS
-    #  uses the opposite convention:
-    ohdu = pyfits.ImageHDU(data=histdata.transpose())
-    ohdu.name = name
-    ohdu.header.update( "CTYPE1", "LSIZ", "log10(SIZE)" );
-    ohdu.header.update( "CUNIT1", "PE");
-    ohdu.header.update( "CTYPE2", "LDIS", "log10(impact_param)" );
-    ohdu.header.update( "CUNIT2", "m");
-    ohdu.header.update( "CDELT1", delta[0] )
-    ohdu.header.update( "CDELT2", delta[1] )
-    ohdu.header.update( "CRVAL1", bin0coord[0] )
-    ohdu.header.update( "CRVAL2", bin0coord[1] )
-    ohdu.header.update( "CRPIX1", bin0pix[0] )
-    ohdu.header.update( "CRPIX2", bin0pix[1] )
-
-    if (valueScale):
-        ohdu.header.update( "BSCALE", 1.0/float(valueScale) )
-
-
-    return ohdu
-
-def histFromFITS(hdu):
-    """
-    returns xed,yed,Hist (as in np.histogram2d)
-
-    Arguments:
-    - `hdu`: hdu containing the histogram
-    """
-    
-    hist = hdu.data.transpose()
-    bins = hist.shape
-    proj = wcs.Projection ( hdu.header ) # for going between world and pix coords
-    
-    # bin edges (not centers) start at 0.5 in pixel coordinates, since
-    # centers are at 1.0
-    xed,tmp = proj.toworld( (np.arange(bins[0]) + 0.5, np.zeros(bins[0])  + 0.5) )
-    tmp,yed = proj.toworld( (np.zeros(bins[1])  + 0.5, np.arange(bins[1]) + 0.5) )
-    
-    return xed,yed,hist # same format as numpy.histogram2d()
         
 
 def displayFITS(header, data):
@@ -462,4 +382,27 @@ def displayFITS(header, data):
     pylab.plt.title( fname )
     pylab.plt.show()
 
+def getTelTypeMap( telarray_hdu ):
+    """
+    returns two dictionaries: telId2Type,telType2Id telid to type, and
+    vice-versa, given the TELARRAY hdu of an eventlist.
 
+    Telescope types are a tuple consisting of the (type,subtype)
+        
+    """
+
+    telid    = telarray_hdu.data.field("TELID")
+    tclass    = telarray_hdu.data.field("CLASS")
+    tsubclass = telarray_hdu.data.field("SUBCLASS")
+    
+    telid_to_type = dict()
+    type_to_telid = dict()
+
+    for tid,tcl,tsub in zip(telid,tclass,tsubclass):
+        telid_to_type[tid] = (tcl,tsub)
+        if type_to_telid.has_key( (tcl,tsub) ):
+            type_to_telid[(tcl,tsub)].append(tid)
+        else:
+            type_to_telid[(tcl,tsub)] = [tid]
+
+    return telid_to_type,type_to_telid
