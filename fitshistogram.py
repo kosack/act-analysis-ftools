@@ -53,7 +53,9 @@ class Histogram(object):
 
     def fill(self, datapoints, **kwargs):
         """
-        generate a histogram from data points
+        generate a histogram from data points.  Since the results of
+        fill() are added to the current histogram, you can call fill()
+        multiple times to fill a single Histogram.
         
         Arguments:
         - `datapoints`: array of points (see numpy.histogramdd() documentation)
@@ -69,7 +71,6 @@ class Histogram(object):
 
 #        if ((binLowerEdges==self._binLowerEdges).all() == False):
 #            raise exceptions.ArithmaticError("Bad Geometry!")
-
             
         self.hist += hist
 
@@ -192,11 +193,11 @@ class Histogram(object):
                                       self._binLowerEdges[ii][1:-1] ) 
                          for ii in xrange(ndims)])
 
+        maxbin = np.array(self.hist.shape)
 
         # deal with out-of-range values:
         if (outlierValue==None):
             # extrapolate (simply for now, just takes edge value)
-            maxbin = np.array(self.hist.shape)
             bins[bins<0] = 0
             for ii in xrange(ndims):
                 bins[ii][bins[ii]>=maxbin[ii]] = maxbin[ii]-1 

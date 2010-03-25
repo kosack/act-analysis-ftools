@@ -52,7 +52,7 @@ class TestHisto(unittest.TestCase):
                 H = fitshistogram.Histogram( bins=[nxbins,10],
                                              range=[[-2.5,2.5],[-1,1]] )
                 H.fill(coords)
-                val = H.getValue( pp )
+                val = H.getValue( pp )[0]
                 self.assertEqual( val, N )
                 del H
 
@@ -61,8 +61,8 @@ class TestHisto(unittest.TestCase):
         Check that out-of-range values work as expected 
         """
         H = fitshistogram.Histogram( bins=[5,10], range=[[-2.5,2.5],[-1,1]] )
-        val1= H.getValue( (100,100), outlierValue = -10000)
-        val2= H.getValue( (-100,0), outlierValue = None)
+        val1= H.getValue( (100,100), outlierValue = -10000)[0]
+        val2= H.getValue( (-100,0), outlierValue = None)[0]
         self.assertEqual(val1,-10000)
         self.assertEqual(val2,0)
 
