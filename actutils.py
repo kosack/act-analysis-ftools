@@ -384,8 +384,9 @@ def displayFITS(header, data):
 
 def getTelTypeMap( telarray_hdu ):
     """
-    returns two dictionaries: telId2Type,type2TelId telid to type, and
-    vice-versa, given the TELARRAY hdu of an eventlist.
+    returns two dictionaries: telId2Type,type2TelId mapping telescope
+    id number to telescope type (class), and vice-versa, given the
+    TELARRAY hdu of an eventlist.
 
     Telescope types are a tuple consisting of the (type,subtype)
         
@@ -406,3 +407,41 @@ def getTelTypeMap( telarray_hdu ):
             type_to_telid[(tcl,tsub)] = [tid]
 
     return telid_to_type,type_to_telid
+
+
+def loadLookupTableColumns( events, telarray ):
+
+    tposx = telarray.data.field("POSX")
+    tposy = telarray.data.field("POSY")
+    telid = np.array(events.header['TELLIST'].split(",")).astype(int)
+    telMask   = events.data.field("TELMASK") 
+
+    coreX = events.data.field("COREX") 
+    coreY = events.data.field("COREY") 
+
+    # sizes are already by telescope
+    try:
+        telSizes = events.data.field("HIL_TEL_SIZE") 
+    except KeyError:
+        telSizes = events.data.field("INT_TEL_SIZE") 
+
+    nevents,ntels = telSizes.shape
+    
+    # impacts distances need to be calculated for each telescope (the
+    # impact distance stored is relative to the array center)
+    telImpacts = np.zeros( (nevents,ntels) )
+    for itel in range(ntels):
+        print "CT%03d"%itel, " at ", tposx[itel],tposy[itel]
+        telImpacts[:,itel] = np.sqrt( (coreX-tposx[itel])**2 +
+                                      (coreY-tposy[itel])**2 )
+
+
+
+    # apply some basic cuts to get rid of bad values
+    valueMask =  np.isfinite(telImpacts) * np.isfinite(telSizes)
+    valueMask *=  (telImpacts > 0.0) 
+    valueMask *=  (telSizes > 0.0) 
+
+    telMask *= valueMask  # mask off bad values
+
+    return (telImpacts, np.log10(telSizes), telid,telMask )
