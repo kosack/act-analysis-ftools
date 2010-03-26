@@ -42,21 +42,13 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
 
+    # these are the data fields as NxM arrays (where N is number of events,
+    # and M is number of telescopes):    
+    telImpacts,telSizes,telid,telMask=actutils.loadLookupTableColumns( events, telarray )
+
     print "-------------------------------------"
     print infile
 
-    tposx = telarray.data.field("POSX")
-    tposy = telarray.data.field("POSY")
-    telid = np.array(events.header['TELLIST'].split(",")).astype(int)
-    
-    # these are the data fields as NxM arrays (where N is number of events,
-    # and M is number of telescopes):
-    telMask   = events.data.field("TELMASK") 
-    telSizes = events.data.field("HIL_TEL_SIZE") 
-    telCoreX = events.data.field("COREX") 
-    telCoreY = events.data.field("COREY") 
-    mccorex = events.data.field("MC_COREX") 
-    mccorey = events.data.field("MC_COREY") 
     nevents,ntels = telSizes.shape
 
     telValues = events.data.field(varName) 
@@ -72,31 +64,12 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             tmp[:,ii] *= telValues
         telValues = tmp
 
-
-
-    cogx = events.data.field("HIL_TEL_COGX")
-    cogy = events.data.field("HIL_TEL_COGY")
-
-    # impacts distances need to be calculated for each telescope (the
-    # global impact distance stored is relative to the array center)
-    telImpacts = np.zeros_like( telValues )
-
-    for itel in range(telValues.shape[1]):
-        nev = telImpacts.shape[0]
-        telImpacts[:,itel] = np.sqrt( (telCoreX-tposx[itel])**2 +
-                                      (telCoreY-tposy[itel])**2 )
-
-
-    # we want to do some basic cuts on width, removing ones with bad
-    # values (why do bad value widths still exist for triggered
-    # events?)
-    valueMask = telValues > -100 
-    telMask *= valueMask  # mask off bad values
+    # exclude some bad values
+    telMask *= telValues > -1000
     
     if (debug):
         figure( figsize=(15,10))
         subplot(1,1,1)
-
 
     tel2type,type2tel = actutils.getTelTypeMap( telarray )
 
@@ -106,15 +79,15 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         goodEvents = telMask[:,itel]  
         value = telValues[:,itel][goodEvents]  * valueScale # scale to mrad
         impact = telImpacts[:,itel][goodEvents]
-        logsiz = np.log10(telSizes[:,itel][goodEvents])
+        size = telSizes[:,itel][goodEvents]
 
         sumHist    = Histogram( range=histrange, bins=bins,name="SUM" )
         sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR" )
         countHist  = Histogram( range=histrange, bins=bins,name="COUNT" )
 
-        sumHist.fill(    (logsiz,impact), weights=value, normed=False )
-        sumSqrHist.fill( (logsiz,impact), weights=value**2, normed=False )
-        countHist.fill(  (logsiz,impact), normed=False )
+        sumHist.fill(    (size,impact), weights=value, normed=False )
+        sumSqrHist.fill( (size,impact), weights=value**2, normed=False )
+        countHist.fill(  (size,impact), normed=False )
         
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
@@ -131,24 +104,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         print "outliers=",len(value)-sum(countHist.hist),
         print "out:",filename
 
-        hdu1=sumHist.asFITS()
-        hdu2=sumSqrHist.asFITS()
-        hdu3=countHist.asFITS()
-
-        # hdu1=actutils.histToFITS( sumHist, bins=bins,
-        #                           histrange=histrange,name="SUM",
-        #                           valueScale=valueScale )
-        # hdu2=actutils.histToFITS( sumSqrHist, bins=bins,
-        #                           histrange=histrange, name="SUMSQR",
-        #                           valueScale=valueScale )
-        # hdu3=actutils.histToFITS( countHist, bins=bins,
-        #                           histrange=histrange, name="COUNTS" )
-
-
-        hdu1.writeto( filename+"-sum.fits", clobber=True )
-        hdu2.writeto( filename+"-sum2.fits", clobber=True )
-        hdu3.writeto( filename+"-count.fits", clobber=True )
-        
+        sumHist.asFITS().writeto( filename+"-sum.fits", clobber=True )
+        sumSqrHist.asFITS().writeto( filename+"-sum2.fits", clobber=True )
+        countHist.asFITS().writeto( filename+"-count.fits", clobber=True )
 
 if __name__ == '__main__':
     
@@ -185,7 +143,7 @@ if __name__ == '__main__':
 
     generateTelLookupTables( infile, varName="MC_ENERGY", 
                              debug=opts.debug, namebase=namebase,
-                             valueScale=1.0, useLogScale=True)
+                             valueScale=1.0, useLogScale=False)
 
 
  
