@@ -4,7 +4,7 @@ import sys
 import math
 import os
 import re
-from scipy import interpolate
+from scipy import interpolate,signal
 
 from optparse import OptionParser
 from kapteyn import wcs
@@ -84,14 +84,14 @@ class TelLookupTable(object):
     
 
         self.extrapolateLookups()
-#        self.smoothLookups(3)
+#        self.smoothLookups(10)
 
     def extrapolateLookups(self, minCounts=10):
         """
         Make the lookup tables nicer by extrapolating unfilled values
         
         Arguments:
-hg p        - `self`:
+        - `self`:
         """
 
         for what in self.values:
@@ -272,31 +272,24 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     sumOfWeights = 0.0  # sum of weights
     sum2 = 0.0
 
-    for itel in xrange(ntels):
-        vMean  = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
-        vSigma = lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
+    vMean = array([lookupDict[tels[itel]].getValue( coords[itel], "mean" )[0] 
+                   for itel in xrange(ntels)])
 
-        if (np.isfinite(vMean) == False or np.isfinite(vSigma)==False
-            or np.abs(vSigma <EPSILON)):
-            ntels -= 1 # skip telescopes that don't have a good value
-            continue
-        
-        weight = 1.0/(vSigma**2)
-        weightedSum += vMean*weight
-        sum2 += vMean**2
-        sumOfWeights += weight
-        if debug:
-            print "CT",tels[itel],"coord=",coords[itel],
-            print " val=",vals[itel],"mean=",vMean,"sig=",vSigma
+    vSigma = array([lookupDict[tels[itel]].getValue( coords[itel], "stddev" )[0] 
+                    for itel in xrange(ntels)])
+
+    if debug:
+        for t,c,m,s in zip(tels,coords,vMean,vSigma):
+            print "CT%03d  coord="%t,c,"mean=",m,"sig=",s
+
+    wmean,sumOfWeights = np.average( vMean, weights=1.0/vSigma, returned=True)
+    wstddev = 1.0/sumOfWeights
 
     if (math.fabs(sumOfWeights) > EPSILON):
-        wmean = weightedSum/sumOfWeights
-        wstddev = math.sqrt( 1.0/sumOfWeights )
         if debug:
             print "-------------------------"
             print "     WeightedAvg=",wmean
             print "     WeightSigma=",wstddev
-
         return wmean, wstddev
 
     else:
@@ -321,8 +314,11 @@ def testValue(value,error,trueValue):
     pylab.hist( percentError, range=[-5,5], bins=50 )
 
     pylab.figure()
+    loglog()
     H,x,y = np.histogram2d( trueValue,value,
-                            range=[[-1.5,3],[-1.5,3]], bins=[100,100] )
+                            range=[[0.1,100],[0.1,100]], bins=(logspace(-1,2,100),
+                                                               logspace(-1,2,100)) )
+#                            range=[[-1.5,3],[-1.5,3]], bins=[100,100] )
     pylab.pcolormesh( x,y, H)
     pylab.plot(x,x,'r')
 
@@ -352,10 +348,7 @@ if __name__ == '__main__':
     telarray = evfile["TELARRAY"]
     tel2type,type2tel = actutils.getTelTypeMap( telarray )
 
-    # load telescope information
-    tposx = telarray.data.field("POSX")
-    tposy = telarray.data.field("POSY")
-    telid = np.array(events.header['TELLIST'].split(",")).astype(int)
+    telImpacts,telSizes,telid,telMask=actutils.loadLookupTableColumns( events, telarray )
 
     lookupName = ""
     outputName = ""
@@ -397,52 +390,16 @@ if __name__ == '__main__':
 
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
-    telMask   = events.data.field("TELMASK") 
-
-
-    try:
-        telSizes = events.data.field("HIL_TEL_SIZE") 
-    except KeyError:
-        telSizes = events.data.field("INT_TEL_SIZE") 
-
-    coreX = events.data.field("COREX") 
-    coreY = events.data.field("COREY") 
-    nevents,ntels = telSizes.shape
-
-    
     if (computeFromValue==True):
         telValues = events.data.field(lookupName) # values of the
                                                   # requested
                                                   # parameter
+        telMask *= telValues > -1000  # mask off some bad values
     else:
         # for e.g. energy, there's no "value" to compute from
         telValues = np.zeros_like(telSizes) # dummy
 
-    # impacts distances need to be calculated for each telescope (the
-    # impact distance stored is relative to the array center)
-    telImpacts = np.zeros_like( telValues )
-    for ii in range(telValues.shape[1]):
-        print "CT%03d"%ii, " at ", tposx[ii],tposy[ii]
-        telImpacts[:,ii] = np.sqrt( (coreX-tposx[ii])**2 +
-                                    (coreY-tposy[ii])**2 )
-
-
-    # we want to do some basic cuts on width, removing ones with bad
-    # values (why do bad value widths still exist for triggered
-    # events?)
-
-    valueMask = (telValues > -100) 
-    valueMask *=  np.isfinite(telImpacts) * np.isfinite(telSizes)
-    valueMask *=  (telImpacts > 0.0) 
-    valueMask *=  (telSizes > 0.0) 
-    if ((valueMask==False).any()):
-        print "WARNING: %d values were undefined?" % sum(valueMask==False)
-    telMask *= valueMask  # mask off bad values
-
-    # now, for each event, we want to calculate the MRSW/MRSL value,
-    # which is just 1/Ntelsinevent sum( (V[tel] -
-    # Vmean[tel])/Vsigma[tel] )
-
+    nevents,ntels = telSizes.shape
     print "="*70
     print "Calculating", outputName,"from the",lookupName,
     print "lookups for %d events" % nevents
@@ -454,15 +411,15 @@ if __name__ == '__main__':
 
     evdebug=0
 
-    for evnum in xrange(telValues.shape[0]):
+    for evnum in xrange(nevents):
         vals = telValues[evnum][ telMask[evnum] ]
         tels = telid[ telMask[evnum] ]
-        lsizes = np.log10(telSizes[evnum][ telMask[evnum] ])
+        sizes = telSizes[evnum][ telMask[evnum] ]
         impacts = telImpacts[evnum][ telMask[evnum] ]
-        coords = zip(lsizes,impacts)
+        coords = zip(sizes,impacts)
 
-        if(evnum==421): evdebug=1
-        if(evnum==422): evdebug=0
+        if(evnum==4): evdebug=1
+        if(evnum==10): evdebug=0
 
         # call the appropriate reduction function (defined earlier)
         value[evnum],error[evnum] = reductionFunction( tels,
@@ -479,26 +436,17 @@ if __name__ == '__main__':
 
     gmask = value > -1000
     gmask *= value < 1000
+#    gmask *= error < 0.5
     
     if (paramType == "energy"):
-        testValue( value, error, 
-                   log10(events.data.field("MC_ENERGY")) )
+        testValue( value[gmask], error[gmask], 
+                   events.data.field("MC_ENERGY")[gmask] )
     elif(paramType=="msw"):
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )
 
-    pylab.figure()
-    [hist(telImpacts[:,ii],
-          range=[-10,1000],bins=100,histtype='step') for ii in range(ntels)]
-    pylab.xlabel("Impact Distance")
-
-    pylab.figure()
-    [hist(log10(telSizes[:,ii]),
-          range=[-1,3],bins=100,histtype='step') for ii in range(ntels)]
-    pylab.xlabel("log10(SIZE)")
-
-    if (paramType == "energy"):
-        value = 10**value # not log scale
+#    if (paramType == "energy"):
+#        value = 10**value # not log scale
     
     # check if column already exists, if so rename it
     coldic = dict()
