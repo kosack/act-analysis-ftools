@@ -186,7 +186,7 @@ class Histogram(object):
         if np.isnan(coords).any():
             raise ValueError("Bad coordinate value")
 
-        world = np.array( coords, ndmin=2 )
+        world = np.array( coords, ndmin=2 ) # at least 2D
         ndims = len(self._bins)
 
         bins = np.array([np.digitize( world[:,ii], 

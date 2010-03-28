@@ -16,9 +16,11 @@ from fitshistogram import Histogram
 # already been appluied before generating the eventlist (no
 # localDistance cut is made here)
 
+# old histrange =[[0.5,6],[0,2000.0]],
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [100,100], histrange =[[0.5,6],[0,2000.0]],
+                            bins = [200,200], 
+                            histrange =[[3,13],[0,1500.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False,outputByType=True):
     """
@@ -54,7 +56,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     telValues = events.data.field(varName) 
 
     if (useLogScale):
-        telValues = np.log10(telValues)
+        telValues = np.log(telValues)
 
     if (telValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
@@ -63,6 +65,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         for ii in xrange(tmp.shape[1]):
             tmp[:,ii] *= telValues
         telValues = tmp
+
 
     # exclude some bad values
     telMask *= telValues > -1000

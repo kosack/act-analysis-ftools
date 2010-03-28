@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from kapteyn import wcs,maputils
+from matplotlib import pyplot as plt
 
 # various utility functions 
 
@@ -367,8 +368,9 @@ def makeRadialFOVMask(imagehdu,radius,centerWorld=None):
 def displayFITS(header, data):
     import pylab
 
-    f = pylab.maputils.FITSimage( externalheader=header, externaldata=data)
-    frame = pylab.figure()
+    f = maputils.FITSimage( externalheader=header, externaldata=data)
+    fig = plt.figure()
+    frame = fig.add_subplot(1,1,1)
     img = f.Annotatedimage(frame)
     colorbar = img.Colorbar()
     img.Image()
@@ -379,8 +381,9 @@ def displayFITS(header, data):
     img.interact_toolbarinfo()
     img.interact_writepos()
 
-    pylab.plt.title( fname )
-    pylab.plt.show()
+    if header.has_key("EXTNAME"):
+        plt.title( header["EXTNAME"] )
+    plt.show()
 
 def getTelTypeMap( telarray_hdu ):
     """
@@ -413,7 +416,8 @@ def loadLookupTableColumns( events, telarray ):
 
     tposx = telarray.data.field("POSX")
     tposy = telarray.data.field("POSY")
-    telid = np.array(events.header['TELLIST'].split(",")).astype(int)
+    telid = telarray.data.field("TELID")
+
     telMask   = events.data.field("TELMASK") 
 
     coreX = events.data.field("COREX") 
@@ -431,7 +435,7 @@ def loadLookupTableColumns( events, telarray ):
     # impact distance stored is relative to the array center)
     telImpacts = np.zeros( (nevents,ntels) )
     for itel in range(ntels):
-        print "CT%03d"%itel, " at ", tposx[itel],tposy[itel]
+        print "CT%03d"%telid[itel], " at ", tposx[itel],tposy[itel]
         telImpacts[:,itel] = np.sqrt( (coreX-tposx[itel])**2 +
                                       (coreY-tposy[itel])**2 )
 
@@ -444,4 +448,4 @@ def loadLookupTableColumns( events, telarray ):
 
     telMask *= valueMask  # mask off bad values
 
-    return (telImpacts, np.log10(telSizes), telid,telMask )
+    return (telImpacts, np.log(telSizes), telid,telMask )

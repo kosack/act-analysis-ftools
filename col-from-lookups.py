@@ -178,17 +178,18 @@ class TelLookupTable(object):
         - `what`:
         """
 
-        val = self._valueDict[what].hist
+        hdu = self._valueDict[what].asFITS()
+        actutils.displayFITS( hdu.header, hdu.data ) 
 
-        if (len(val.shape)==2):
-            xed,yed =  self._valueDict[what].binLowerEdges
-            figure()
-            pcolormesh( xed, yed, val.transpose())
-            title("CT%d: %s" % (self.telID, what))
-            xlabel("log10(SIZE)")
-            ylabel("IMPACT (m)")
-            colorbar()
-            show()                   
+        # if (len(val.shape)==2):
+        #     xed,yed =  self._valueDict[what].binLowerEdges
+        #     figure()
+        #     pcolormesh( xed, yed, val.transpose())
+        #     title("CT%d: %s" % (self.telID, what))
+        #     xlabel("log10(SIZE)")
+        #     ylabel("IMPACT (m)")
+        #     colorbar()
+        #     show()                   
         
 # ===========================================================================
 
@@ -262,15 +263,11 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     EPSILON = 1e-12
     ntels = vals.shape[0]
 
-    if ntels==0:
-        return -10000
+    if ntels == 0:   
+        return (-100000,-100000)
 
     if debug:
         print "========================",tels
-
-    weightedSum  = 0.0  # weighted sum
-    sumOfWeights = 0.0  # sum of weights
-    sum2 = 0.0
 
     vMean = array([lookupDict[tels[itel]].getValue( coords[itel], "mean" )[0] 
                    for itel in xrange(ntels)])
@@ -308,20 +305,17 @@ def testValue(value,error,trueValue):
     
     import pylab
 
-    percentError = (trueValue-value)/trueValue 
-    
-    pylab.figure()
-    pylab.hist( percentError, range=[-5,5], bins=50 )
+#    percentError = (trueValue-value)/trueValue 
+#    pylab.figure()
+#    pylab.hist( percentError, range=[-5,5], bins=50 )
 
-    pylab.figure()
-    loglog()
-    H,x,y = np.histogram2d( trueValue,value,
-                            range=[[0.1,100],[0.1,100]], bins=(logspace(-1,2,100),
-                                                               logspace(-1,2,100)) )
-#                            range=[[-1.5,3],[-1.5,3]], bins=[100,100] )
-    pylab.pcolormesh( x,y, H)
-    pylab.plot(x,x,'r')
+    H = Histogram( range=[[-1,2],[-1,2]], bins=[100,100] )
+    H.fill( (log10(trueValue),log10(value)) )
+    hdu=H.asFITS()
+    actutils.displayFITS( hdu.header, hdu.data )
 
+
+                                 
 #    figure()
 #    scatter( trueValue, percentError ) #range=[[-4,4],[-4,4]]
 #    print x,y
@@ -383,8 +377,8 @@ if __name__ == '__main__':
                                         valueScale=valueScale, byTelType=True)
         #telLookup[tel].display()
 
-#    telLookup[1].display("mean")
-#    telLookup[1].display("stddev")
+    telLookup[1].display("mean")
+    telLookup[1].display("stddev")
 #    telLookup[1].display("count")
 
 
@@ -410,6 +404,7 @@ if __name__ == '__main__':
     error  = np.zeros( nevents ) # the error on the reduced value
 
     evdebug=0
+
 
     for evnum in xrange(nevents):
         vals = telValues[evnum][ telMask[evnum] ]
@@ -445,6 +440,7 @@ if __name__ == '__main__':
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )
 
+        
 #    if (paramType == "energy"):
 #        value = 10**value # not log scale
     

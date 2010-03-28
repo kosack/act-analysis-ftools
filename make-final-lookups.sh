@@ -25,19 +25,6 @@ for tel in TYPE01_00; do
 	    b=${tel}-${val}-lookup-count.fits \
 	    c=${tel}-${val}-lookup-sum2.fits  clobber=true
 
-	# gaussian smoothing:
-
-	gaussargs="2.0 nullval=1e-5 ratio=1.0 theta=0.0  nsigma=2.0"
-	gaussargs="${gaussargs} boundary=nearest constant=0.0 clobber=yes"
-
-	fgauss ${tel}-${val}-lookup-mean.fits tmp1.fits $gaussargs
-	mv tmp1.fits ${tel}-${val}-lookup-mean-gauss.fits
-
-	fgauss ${tel}-${val}-lookup-stddev.fits  tmp2.fits $gaussargs
-	mv tmp2.fits ${tel}-${val}-lookup-stddev-gauss.fits
-
-        fgauss ${tel}-${val}-lookup-count.fits tmp3.fits $gaussargs
-	mv  tmp3.fits ${tel}-${val}-lookup-count-gauss.fits
 
     done
 done
