@@ -19,10 +19,10 @@ from fitshistogram import Histogram
 # old histrange =[[0.5,6],[0,2000.0]],
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [200,200], 
+                            bins = [100,100], 
                             histrange =[[3,13],[0,1500.0]],
                             debug=False, namebase=None, 
-                            valueScale=1.0, useLogScale=False,outputByType=True):
+                            valueScale=1.0, useLogScale=False,includeTelTypeInFilename=True):
     """
     generates lookup table for the given variable (average and sigma
     as a function of logSIZE and IMPACT DISTANCE)
@@ -95,7 +95,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         # write it out as a FITS file with 2 image HDUs VALUE and SIGMA
 
         tag = "CT%03d" % telid[itel]
-        if (outputByType):
+        if (includeTelTypeInFilename):
             tag += "-TYPE%02d_%02d" % tel2type[telid[itel]]
         
         if namebase:

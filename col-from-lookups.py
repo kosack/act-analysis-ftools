@@ -49,7 +49,7 @@ class TelLookupTable(object):
     telID = 0
 
     def __init__(self, lookupName, telID, valueScale=1.0,
-                 lookupDir= None,tag="", byTelType=True):
+                 lookupDir= None,tag="", byTelType=False):
         """
         initialize a lookup table
 
@@ -81,10 +81,10 @@ class TelLookupTable(object):
             hist = Histogram(initFromFITS=hdu)
             self._valueDict[what] = hist
 
-    
+            
 
         self.extrapolateLookups()
-#        self.smoothLookups(10)
+#        self.smoothLookups(2)
 
     def extrapolateLookups(self, minCounts=10):
         """
@@ -309,11 +309,11 @@ def testValue(value,error,trueValue):
 #    pylab.figure()
 #    pylab.hist( percentError, range=[-5,5], bins=50 )
 
-    H = Histogram( range=[[-1,2],[-1,2]], bins=[100,100] )
+    H = Histogram( range=[[-1,2],[-1,2]], bins=[50,50] )
     H.fill( (log10(trueValue),log10(value)) )
     hdu=H.asFITS()
     actutils.displayFITS( hdu.header, hdu.data )
-
+    return H
 
                                  
 #    figure()
@@ -374,7 +374,7 @@ if __name__ == '__main__':
     for tel in telid:
         ttype = tel2type[tel]
         telLookup[tel] = TelLookupTable(lookupName,ttype, 
-                                        valueScale=valueScale, byTelType=True)
+                                        valueScale=valueScale, byTelType=False)
         #telLookup[tel].display()
 
     telLookup[1].display("mean")
@@ -434,8 +434,8 @@ if __name__ == '__main__':
 #    gmask *= error < 0.5
     
     if (paramType == "energy"):
-        testValue( value[gmask], error[gmask], 
-                   events.data.field("MC_ENERGY")[gmask] )
+        testh = testValue( value[gmask], error[gmask], 
+                           events.data.field("MC_ENERGY")[gmask] )
     elif(paramType=="msw"):
         testValue( value[gmask], error[gmask], 
                    (events.data.field("HIL_MSW")[gmask]) )

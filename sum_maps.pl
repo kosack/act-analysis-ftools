@@ -3,7 +3,7 @@
 # summaps.pl -o <sumfile> file1 [file2 ...]
 
 use Getopt::Std;
-getopts('o:v');
+getopts('o:vV');
 
 $output = "sum.fits";
 $output = $opt_o if $opt_o;
@@ -17,6 +17,7 @@ foreach $image (@ARGV) {
 	$count++;
 	$pct = $count/$tot*100;
 	printf("[%3d%%] ADDING $image to $output ...\n",$pct) if $opt_v;
+	printf("[%3d%%] ADDING $image to $output ...                  \r",$pct) if $opt_V;
 	$cmd = "ftpixcalc temp_$output 'A+B' a=$output b=$image clobber=true history=no";
 	print `$cmd`; #	    or die "Failed to run: $cmd\n";
 	rename( "temp_$output", $output);

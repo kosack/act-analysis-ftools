@@ -433,12 +433,16 @@ def loadLookupTableColumns( events, telarray ):
     
     # impacts distances need to be calculated for each telescope (the
     # impact distance stored is relative to the array center)
+
     telImpacts = np.zeros( (nevents,ntels) )
     for itel in range(ntels):
         print "CT%03d"%telid[itel], " at ", tposx[itel],tposy[itel]
         telImpacts[:,itel] = np.sqrt( (coreX-tposx[itel])**2 +
                                       (coreY-tposy[itel])**2 )
 
+    # cogX = events.data.field("HIL_TEL_COGX")
+    # cogY = events.data.field("HIL_TEL_COGY")
+    # telImpacts= np.sqrt( cogX**2 + cogY**2 )
 
 
     # apply some basic cuts to get rid of bad values

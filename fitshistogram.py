@@ -3,6 +3,7 @@ import numpy as np
 import math
 #from scipy import signal,ndimage
 
+from matplotlib import pyplot
 from kapteyn import wcs,maputils
 
 
@@ -207,3 +208,12 @@ class Histogram(object):
         
         return self.hist[tuple(bins)]
                 
+    def draw2D(self, ):
+        """
+        draw the histogram using pcolormesh() (only works for 2D)
+        """
+        if self.hist.ndim != 2:
+            raise ValueError("Bad Dimensions")
+
+        pyplot.pcolormesh( self._binLowerEdges[0], self._binLowerEdges[1], self.hist )
+

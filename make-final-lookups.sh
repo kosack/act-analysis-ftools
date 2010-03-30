@@ -8,8 +8,8 @@ TOOLSDIR=~/Source/Working/PyFITSTools
 
 
 
-#for tel in CT001 CT002 CT003 CT004; do
-for tel in TYPE01_00; do
+for tel in CT001 CT002 CT003 CT004; do
+#for tel in TYPE01_00; do
     for val in HIL_TEL_WIDTH HIL_TEL_LENGTH MC_ENERGY; do
 
 	echo LOOKUPS FOR CT $tel $val  ...
