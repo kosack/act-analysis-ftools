@@ -8,6 +8,7 @@ from scipy import spatial
 import scipy.signal
 import re
 from pylab import *
+import os.path
 
 import actutils
 from fitshistogram import Histogram
@@ -49,7 +50,8 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     telImpacts,telSizes,telid,telMask=actutils.loadLookupTableColumns( events, telarray )
 
     print "-------------------------------------"
-    print infile
+    print "DIRECTORY:",os.path.dirname(infile)
+    print "EVENTLIST:",os.path.basename(infile)
 
     nevents,ntels = telSizes.shape
 
@@ -104,8 +106,8 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
             filename = "CT%03d-%s-lookup" % (telid[itel], varName)
 
         print "CT",telid[itel],varName,"Nevents=",len(value),
-        print "outliers=",len(value)-sum(countHist.hist),
-        print "out:",filename
+        print "outliers=",len(value)-sum(countHist.hist)
+#        print "out:",filename
 
         sumHist.asFITS().writeto( filename+"-sum.fits", clobber=True )
         sumSqrHist.asFITS().writeto( filename+"-sum2.fits", clobber=True )
