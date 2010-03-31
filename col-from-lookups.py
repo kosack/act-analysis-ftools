@@ -84,9 +84,9 @@ class TelLookupTable(object):
             
 
         self.extrapolateLookups()
-#        self.smoothLookups(2) # note smoothing seems to cause an energy bias
+#        self.smoothLookups(1) # note smoothing seems to cause an energy bias
 
-    def extrapolateLookups(self, minCounts=10):
+    def extrapolateLookups(self, minCounts=5):
         """
         Make the lookup tables nicer by extrapolating unfilled values
         
@@ -309,10 +309,11 @@ def testValue(value,error,trueValue):
 #    pylab.figure()
 #    pylab.hist( percentError, range=[-5,5], bins=50 )
 
-    H = Histogram( range=[[-1,2],[-1,2]], bins=[50,50] )
+    H = Histogram( range=[[-1,2],[-1,2]], bins=[70,70] )
     H.fill( (log10(trueValue),log10(value)) )
     hdu=H.asFITS()
     actutils.displayFITS( hdu.header, hdu.data )
+    title("Reconstructed vs Simulated energy")
     return H
 
                                  

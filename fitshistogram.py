@@ -113,7 +113,11 @@ class Histogram(object):
             bin0pix = 0.5 # lower-left corner of first bin
             bin0coord = self._range[dim][0]
 
-            ohdu.header.update("CTYPE%d"%(dim+1),"LIN","Linear parameter") 
+            name ="VARIABLE"
+            if self.axisNames != None:
+                name = self.axisNames[dim]
+
+            ohdu.header.update("CTYPE%d"%(dim+1), name[0:4]+"-   ",name) 
             ohdu.header.update("CDELT%d"%(dim+1), delta)
             ohdu.header.update("CRVAL%d"%(dim+1), bin0coord)
             ohdu.header.update("CRPIX%d"%(dim+1), bin0pix)

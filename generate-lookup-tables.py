@@ -20,7 +20,7 @@ from fitshistogram import Histogram
 # old histrange =[[0.5,6],[0,2000.0]],
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [200,200], 
+                            bins = [100,100], 
                             histrange =[[0.5,6.0],[0,2000.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False,includeTelTypeInFilename=True):
@@ -86,9 +86,10 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         impact = telImpacts[:,itel][goodEvents]
         size = telSizes[:,itel][goodEvents]
 
-        sumHist    = Histogram( range=histrange, bins=bins,name="SUM" )
-        sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR" )
-        countHist  = Histogram( range=histrange, bins=bins,name="COUNT" )
+        names = ["LSIZE","DIST"]
+        sumHist    = Histogram( range=histrange, bins=bins,name="SUM", axisNames=names )
+        sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR",axisNames=names )
+        countHist  = Histogram( range=histrange, bins=bins,name="COUNT",axisNames=names )
 
         sumHist.fill(    (size,impact), weights=value, normed=False )
         sumSqrHist.fill( (size,impact), weights=value**2, normed=False )
