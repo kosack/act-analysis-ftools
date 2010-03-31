@@ -8,16 +8,23 @@ getopts('o:vV');
 $output = "sum.fits";
 $output = $opt_o if $opt_o;
 
-print "SUMMING: $output \n" if $opt_v;
+print "SUMMING: $output                                           \n" if $opt_v;
 
 $count=0;
+$bcount = 0;
 $tot= scalar(@ARGV);
+
+$bunchsize = 26; # letters available in ftpixcalc
+@V = 'A'..'Z'; # alphabet
+
+
+
 foreach $image (@ARGV) {
     if (-e $output) {
 	$count++;
 	$pct = $count/$tot*100;
-	printf("[%3d%%] ADDING $image to $output ...\n",$pct) if $opt_v;
-	printf("[%3d%%] ADDING $image to $output ...                  \r",$pct) if $opt_V;
+	printf("[%3d%%] ADDING $image ...\n",$pct) if $opt_v;
+	printf("[%3d%%] ADDING $image ...                  \r",$pct) if $opt_V;
 	$cmd = "ftpixcalc temp_$output 'A+B' a=$output b=$image clobber=true history=no";
 	print `$cmd`; #	    or die "Failed to run: $cmd\n";
 	rename( "temp_$output", $output);

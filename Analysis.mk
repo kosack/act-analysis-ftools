@@ -93,7 +93,7 @@ MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 
 MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
 ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=$(strip $(MAXEVENTRADIUS))
-SUMMER=$(TOOLSDIR)/sum_maps.pl
+SUMMER=$(PYTHON) $(TOOLSDIR)/sum-maps.py
 FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
 MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
 CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py

@@ -20,8 +20,8 @@ from fitshistogram import Histogram
 # old histrange =[[0.5,6],[0,2000.0]],
 
 def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
-                            bins = [100,100], 
-                            histrange =[[3,13],[0,1500.0]],
+                            bins = [200,200], 
+                            histrange =[[0.5,6.0],[0,2000.0]],
                             debug=False, namebase=None, 
                             valueScale=1.0, useLogScale=False,includeTelTypeInFilename=True):
     """
@@ -58,7 +58,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     telValues = events.data.field(varName) 
 
     if (useLogScale):
-        telValues = np.log(telValues)
+        telValues = np.log10(telValues)
 
     if (telValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     generateTelLookupTables( infile, varName="MC_ENERGY", 
                              debug=opts.debug, namebase=namebase,
-                             valueScale=1.0, useLogScale=False)
+                             valueScale=1.0, useLogScale=True)
 
 
  

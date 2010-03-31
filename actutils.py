@@ -455,4 +455,4 @@ def loadLookupTableColumns( events, telarray ):
 
     telMask *= valueMask  # mask off bad values
 
-    return (telImpacts, np.log(telSizes), telid,telMask )
+    return (telImpacts, np.log10(telSizes), telid,telMask )

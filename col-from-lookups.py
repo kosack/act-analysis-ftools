@@ -84,7 +84,7 @@ class TelLookupTable(object):
             
 
         self.extrapolateLookups()
-#        self.smoothLookups(2)
+#        self.smoothLookups(2) # note smoothing seems to cause an energy bias
 
     def extrapolateLookups(self, minCounts=10):
         """
@@ -432,6 +432,9 @@ if __name__ == '__main__':
     gmask = value > -1000
     gmask *= value < 1000
 #    gmask *= error < 0.5
+
+    if (paramType == "energy"):
+        value = 10**value # want it to be not log scale
     
     if (paramType == "energy"):
         testh = testValue( value[gmask], error[gmask], 
@@ -441,8 +444,6 @@ if __name__ == '__main__':
                    (events.data.field("HIL_MSW")[gmask]) )
 
         
-#    if (paramType == "energy"):
-#        value = 10**value # not log scale
     
     # check if column already exists, if so rename it
     coldic = dict()
