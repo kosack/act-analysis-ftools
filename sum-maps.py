@@ -37,7 +37,7 @@ for bunch in bunches:
 
     if opts.verbose:
         count += len(bunch)
-        pct = count/tot*100
+        pct = count/float(tot)*100
         print "[%3d%%] SUMMING %d of %d total images ..." % (pct,len(bunch),tot) 
 
     expr = "+".join( alpha[0:len(bunch)] )
