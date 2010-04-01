@@ -16,12 +16,13 @@ class Histogram(object):
     """
     
     
-    def __init__(self, bins=None, range=None, name=None,
-                 axisTypes=None, axisNames=None,initFromFITS=None):
+    def __init__(self, bins=None, range=None, name="Histogram",
+                 axisNames=None,initFromFITS=None):
         """ Initialize an unfilled histogram (need to call either
-        fill() or loadFromFITS() to put data into it)
+        fill() or specify initFromFITS to put data into it)
 
-        `bins`: array listing binsize for each dimension
+        `bins`: array listing binsize for each dimension (this defines
+                the dimensions of the histogram)
         `ranges`: array of ranges for each dimension
         `name`: name (use for FITS extension name) 
         """
@@ -32,12 +33,29 @@ class Histogram(object):
         self._range=range
         self.valueScale = None
         self.valueZero = None
-        self.axisTypes=axisTypes
-        self.axisNames=axisNames
         self.name = name
 
         if (initFromFITS):
             self.loadFromFITS(initFromFITS)
+
+        # sanity check on inputs:
+            
+        if self.ndims < 1:
+            raise ValueError("No dimensions specified")
+        if self.ndims != len(self._range):
+            raise ValueError("Dimensions of range don't match bins")
+
+        if axisNames != None: # ensure the array is size ndims
+            self.axisNames = np.array(axisNames)
+            self.axisNames.resize( self.ndims )
+        else:
+            self.axisNames = []
+            for x in xrange(self.ndims):
+                self.axisNames.append("") 
+        
+
+            
+
 
     @property
     def binLowerEdges(self):
@@ -51,6 +69,9 @@ class Histogram(object):
     def range(self):
         return self._range
 
+    @property
+    def ndims(self):
+        return len(self._bins)
 
     def fill(self, datapoints, **kwargs):
         """
@@ -212,12 +233,15 @@ class Histogram(object):
         
         return self.hist[tuple(bins)]
                 
-    def draw2D(self, ):
+    def draw2D(self):
         """
         draw the histogram using pcolormesh() (only works for 2D)
         """
         if self.hist.ndim != 2:
             raise ValueError("Bad Dimensions")
 
-        pyplot.pcolormesh( self._binLowerEdges[0], self._binLowerEdges[1], self.hist )
-
+        pyplot.pcolormesh( self._binLowerEdges[0], 
+                           self._binLowerEdges[1], self.hist )
+        pyplot.title( self.name )
+        pyplot.xlabel( self.axisNames[0] )
+        pyplot.ylabel( self.axisNames[1] )
