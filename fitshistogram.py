@@ -34,6 +34,8 @@ class Histogram(object):
         self.valueScale = None
         self.valueZero = None
         self.name = name
+        self._ctypes = None
+        self.axisNames = axisNames
 
         if (initFromFITS):
             self.loadFromFITS(initFromFITS)
@@ -45,15 +47,15 @@ class Histogram(object):
         if self.ndims != len(self._range):
             raise ValueError("Dimensions of range don't match bins")
 
-        if axisNames != None: # ensure the array is size ndims
-            self.axisNames = np.array(axisNames)
+        if self.axisNames != None: # ensure the array is size ndims
+            self.axisNames = np.array(self.axisNames)
             self.axisNames.resize( self.ndims )
         else:
             self.axisNames = []
             for x in xrange(self.ndims):
                 self.axisNames.append("") 
         
-
+        
             
 
 
@@ -134,14 +136,17 @@ class Histogram(object):
             bin0pix = 0.5 # lower-left corner of first bin
             bin0coord = self._range[dim][0]
 
-            name ="VARIABLE"
-            if self.axisNames != None:
-                name = self.axisNames[dim]
+            name = self.axisNames[dim]
 
-            ohdu.header.update("CTYPE%d"%(dim+1), name[0:4]+"-   ",name) 
+            ctype = name[0:4]+"-   "
+            if (self._ctypes != None):
+                ctype = self._ctypes[dim]
+
+            ohdu.header.update("CTYPE%d"%(dim+1), ctype,name) 
             ohdu.header.update("CDELT%d"%(dim+1), delta)
             ohdu.header.update("CRVAL%d"%(dim+1), bin0coord)
             ohdu.header.update("CRPIX%d"%(dim+1), bin0pix)
+            ohdu.header.update("CNAME%d"%(dim+1), self.axisNames[dim])
             
         if (self.valueScale):
             ohdu.header.update( "BSCALE", 1.0/float(self.valueScale) )
@@ -174,6 +179,8 @@ class Histogram(object):
         
         edges = []
         self._range = []
+        axisnames = []
+        self._ctypes = []
 
         for dim in xrange(ndim):
             # note that histogramdd returns edges for 0-N+1 (including
@@ -183,7 +190,14 @@ class Histogram(object):
             a[:,dim] = np.arange( self._bins[dim]+1 )+0.5
             edges.append(proj.toworld( a )[:,dim])
             self._range.append( (edges[dim][0],edges[dim][-1]) )
+            self._ctypes.append(hdu.header["CTYPE%d"%(dim+1)])
+            if (hdu.header.get("CNAME%d"%(dim+1))):
+                axisnames.append(hdu.header["CNAME%d"%(dim+1)])
+            else:
+                axisnames.append(self._ctypes[dim][0:4])
             
+        self.axisNames = np.array(axisnames)
+
         self._binLowerEdges = edges 
         self._range = np.array(self._range)
         
@@ -193,6 +207,8 @@ class Histogram(object):
         if(hdu.header.get("BSCALE")):
             self.valueZero = hdu.header["BZERO"]
     
+
+
 
     def getValue(self, coords, outlierValue=None):
         """ Returns the values of the histogram at the given world
@@ -235,13 +251,13 @@ class Histogram(object):
                 
     def draw2D(self):
         """
-        draw the histogram using pcolormesh() (only works for 2D)
+        draw the histogram using pcolormesh() (only works for 2D histograms currently)
         """
         if self.hist.ndim != 2:
             raise ValueError("Bad Dimensions")
 
         pyplot.pcolormesh( self._binLowerEdges[0], 
-                           self._binLowerEdges[1], self.hist )
+                           self._binLowerEdges[1], self.hist.transpose() )
         pyplot.title( self.name )
         pyplot.xlabel( self.axisNames[0] )
         pyplot.ylabel( self.axisNames[1] )
