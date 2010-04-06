@@ -5,6 +5,12 @@ import sys
 from numpy import random 
 import math
 
+
+# This is just a simple script to generate fake event lists for
+# testing algorithms. Eventually it should be replaced with a fancier
+# toy model that samples from physical parameter distributions.
+
+
 def makePowerLaw(num, gamma=2.7,E0=1.0, Erange=[0.01,200.0]):
     """
     
@@ -44,11 +50,6 @@ if __name__ == '__main__':
     parser.add_option( "-f", "--fov", dest="fov", default=5.0, 
                        help="field-of-view for background events" )
     (opts, args) = parser.parse_args()
-
-
-    # TODO, make a fancier toy model for the energyies (and model the
-    # size/scaled parameter distributions too)
-
 
     center = np.array(opts.center.split(",")).astype(float)
     if len(center) != 2:
