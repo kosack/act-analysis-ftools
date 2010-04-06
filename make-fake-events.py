@@ -5,6 +5,22 @@ import sys
 from numpy import random 
 import math
 
+def makePowerLaw(num, gamma=2.7,E0=1.0, Erange=[0.01,200.0]):
+    """
+    
+    Arguments:
+    - `num`:
+    - `gamma`:
+    - `E0`:
+    """
+
+    maxdist = ((Erange[0]/E0)**(-1.0/gamma))
+    mindist = ((Erange[1]/E0)**(-1.0/gamma))
+    unif = random.uniform(low=mindist,high=maxdist, size=num)
+    E = unif**(-gamma)
+    return E
+
+
 if __name__ == '__main__':
     
     parser = OptionParser()
@@ -19,10 +35,19 @@ if __name__ == '__main__':
     parser.add_option( "-o","--output", dest="output", help="output file name")
     parser.add_option( "-b", "--num-background", dest="nbg", default=None, 
                        help="number of background events")
+
+    parser.add_option( "--index", dest="gamma_src", default=2.5, 
+                       help="spectral index of the source")
+    parser.add_option( "--bgindex", dest="gamma_bg", default=3.0, 
+                       help="spectral index of the background")
+
     parser.add_option( "-f", "--fov", dest="fov", default=5.0, 
                        help="field-of-view for background events" )
     (opts, args) = parser.parse_args()
 
+
+    # TODO, make a fancier toy model for the energyies (and model the
+    # size/scaled parameter distributions too)
 
 
     center = np.array(opts.center.split(",")).astype(float)
@@ -40,9 +65,8 @@ if __name__ == '__main__':
     nevt = int(opts.nevt)
     sig = float(opts.sigma)
 
-    print "CENTER: ",center
-    print "OFFSET: ",offset
-    print "   NUM: ",nevt
+    for opt,val in eval(opts.__str__()).items():
+        print "%20s = %s" %(opt.upper(),val)
 
     random.seed()
 
@@ -54,6 +78,9 @@ if __name__ == '__main__':
                                                           # circular
                                                           # in sky
                                                           # degrees
+    gam = float(opts.gamma_src)
+    E = makePowerLaw( nevt, gamma=float(opts.gamma_src ))
+
     types = np.zeros(nevt)
     nbg = int(opts.nbg)
 
@@ -70,6 +97,8 @@ if __name__ == '__main__':
         decs = np.array(decs.tolist() + decsb.tolist())
         types = np.array(types.tolist() + np.ones(nbg).tolist()).astype(bool)
 
+        Ebg = makePowerLaw( nbg, gamma=float(opts.gamma_bg ))
+        E = np.append(E,Ebg)
 
     msw = np.zeros(nevt+nbg)
     msl = np.zeros(nevt+nbg)
@@ -81,8 +110,9 @@ if __name__ == '__main__':
     c5 = pyfits.Column( name='TYPE', format='B', array = types )
     c6 = pyfits.Column( name='HIL_MSW', format='D', array = msw )
     c7 = pyfits.Column( name='HIL_MSL', format='D', array = msl )
+    c8 = pyfits.Column( name='ENERGY', format='D', array = E )
 
-    evlist = pyfits.new_table([c1,c2,c3,c4,c5,c6,c7])
+    evlist = pyfits.new_table([c1,c2,c3,c4,c5,c6,c7,c8])
     evlist.name = "EVENTS"
     evlist.header.update( "RA_PNT", point[0] )
     evlist.header.update( "DEC_PNT", point[1] )
