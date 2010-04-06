@@ -309,7 +309,8 @@ def testValue(value,error,trueValue):
 #    pylab.figure()
 #    pylab.hist( percentError, range=[-5,5], bins=50 )
 
-    H = Histogram( range=[[-1,2],[-1,2]], bins=[70,70] )
+    H = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],axisNames=["log10(true)",
+                                                                  "log10(reco)"])
     H.fill( (log10(trueValue),log10(value)) )
     hdu=H.asFITS()
     actutils.displayFITS( hdu.header, hdu.data )
