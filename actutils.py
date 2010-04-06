@@ -414,14 +414,15 @@ def getTelTypeMap( telarray_hdu ):
 
 def loadLookupTableColumns( events, telarray ):
 
-    tposx = telarray.data.field("POSX")
-    tposy = telarray.data.field("POSY")
-    telid = telarray.data.field("TELID")
-
-    telMask   = events.data.field("TELMASK") 
-
-    coreX = events.data.field("COREX") 
-    coreY = events.data.field("COREY") 
+    try:
+        tposx = telarray.data.field("POSX")
+        tposy = telarray.data.field("POSY")
+        telid = telarray.data.field("TELID")
+        telMask   = events.data.field("TELMASK")
+        telImpacts = events.data.field("HIL_TEL_IMPACT")
+    except KeyError err:
+        print "One or more required columns was missing in the eventlist!"
+        raise err
 
     # sizes are already by telescope
     try:
@@ -432,22 +433,8 @@ def loadLookupTableColumns( events, telarray ):
     nevents,ntels = telSizes.shape
 
 
-    telImpacts = events.data.field("HIL_TEL_IMPACT")
+
     
-    # impacts distances need to be calculated for each telescope (the
-    # impact distance stored is relative to the array center)
-
-    # telImpacts = np.zeros( (nevents,ntels) )
-    # for itel in range(ntels):
-    #     print "CT%03d"%telid[itel], " at ", tposx[itel],tposy[itel]
-    #     telImpacts[:,itel] = np.sqrt( (coreX-tposx[itel])**2 +
-    #                                   (coreY-tposy[itel])**2 )
-
-    # cogX = events.data.field("HIL_TEL_COGX")
-    # cogY = events.data.field("HIL_TEL_COGY")
-    # telImpacts= np.sqrt( cogX**2 + cogY**2 )
-
-
     # apply some basic cuts to get rid of bad values
     valueMask =  np.isfinite(telImpacts) * np.isfinite(telSizes)
     valueMask *=  (telImpacts > 0.0) 
