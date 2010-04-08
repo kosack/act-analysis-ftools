@@ -305,10 +305,6 @@ def testValue(value,error,trueValue):
     
     import pylab
 
-#    percentError = (trueValue-value)/trueValue 
-#    pylab.figure()
-#    pylab.hist( percentError, range=[-5,5], bins=50 )
-
     H = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],axisNames=["log10(true)",
                                                                   "log10(reco)"])
     H.fill( (log10(trueValue),log10(value)) )
@@ -317,19 +313,17 @@ def testValue(value,error,trueValue):
     title("Reconstructed vs Simulated energy")
     return H
 
-                                 
-#    figure()
-#    scatter( trueValue, percentError ) #range=[[-4,4],[-4,4]]
-#    print x,y
 
-
+#===============================================================================
+#===============================================================================
 
 if __name__ == '__main__':
 
     from pylab import *
 
     parser = OptionParser()
-    parser.add_option("-t","--type", dest="paramType", 
+    parser.add_option("-t","--type", dest="paramType", type="choice", 
+                      choices=["energy", "msw", "msl"],
                       help="column to generate (energy, msw, msl")
     (opts,args) = parser.parse_args()
 
@@ -344,7 +338,8 @@ if __name__ == '__main__':
     telarray = evfile["TELARRAY"]
     tel2type,type2tel = actutils.getTelTypeMap( telarray )
 
-    telImpacts,telSizes,telid,telMask=actutils.loadLookupTableColumns( events, telarray )
+    (telImpacts,telSizes,telid,telMask)=actutils.loadLookupTableColumns(events, 
+                                                                        telarray)
 
     lookupName = ""
     outputName = ""
@@ -377,12 +372,10 @@ if __name__ == '__main__':
         ttype = tel2type[tel]
         telLookup[tel] = TelLookupTable(lookupName,ttype, 
                                         valueScale=valueScale, byTelType=False)
-        #telLookup[tel].display()
+
 
     telLookup[1].display("mean")
     telLookup[1].display("stddev")
-#    telLookup[1].display("count")
-
 
     # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
          
@@ -459,5 +452,10 @@ if __name__ == '__main__':
     outputCol = pyfits.Column( name=outputName, format='D', array=value )
     cols = events.columns + outputCol
     outputTable = pyfits.new_table( cols )
-    outputTable.writeto("testtable.fits", clobber=True)
+    outputTable.name="EVENTS"
+
+    del evfile["EVENTS"] # remove the old events table
+    evfile.insert(1,outputTable)
+
+    evfile.writeto("testtable.fits", clobber=True)
     
