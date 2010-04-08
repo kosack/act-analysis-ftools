@@ -25,6 +25,8 @@ if __name__ == '__main__':
     NtrueAthrown_tot = None
     NrecoAthrown_tot = None
     Nthrown_tot = None
+    energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
+                                    axisNames=["log10(Etrue)", "log10(Ereco)"])
     count = 0
 
     for eventlist_filename in args:
@@ -61,8 +63,10 @@ if __name__ == '__main__':
         
         Etrue = events.data.field("MC_ENERGY")
         Ereco = events.data.field("ENERGY")
-        Ntrue,bins = np.histogram( np.log10(Etrue), bins=nbins, range=histrange )
-        Nreco,bins = np.histogram( np.log10(Ereco), bins=nbins, range=histrange )
+        Ntrue,bins = np.histogram( np.log10(Etrue), bins=nbins, 
+                                   range=histrange )
+        Nreco,bins = np.histogram( np.log10(Ereco), bins=nbins, 
+                                   range=histrange )
         
         if (NrecoAthrown_tot == None):
             NrecoAthrown_tot = Nreco.copy()*Athrown
@@ -77,6 +81,10 @@ if __name__ == '__main__':
             Nreco_tot += Nreco
             Ntrue_tot += Ntrue
         
+        # fill 2D histograms
+
+        energyResponseHist.fill( zip(np.log10(Etrue),np.log10(Ereco)) )
+
         evfile.close()
 
 
@@ -86,10 +94,19 @@ if __name__ == '__main__':
 
     # todo: calculate statistical errors
 
-    plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",label="Reco", color="red" )
-    plot( bins[0:-1], Aeff_true, drawstyle="steps-post",label="True", color="blue" )
-    legend()
+    subplot(2,1,1)
+
+    semilogy()
+    plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
+          label="Reco", color="red" )
+    plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
+          label="True", color="blue" )
+    legend(loc="lower right")
     title("Effective Area")
     xlabel("$Log_{10}(E)$")
     ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
-        
+
+    subplot(2,1,2)
+    
+    energyResponseHist.draw2D()
+    title("Energy Response")
