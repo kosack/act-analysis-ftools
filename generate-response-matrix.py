@@ -40,7 +40,7 @@ if __name__ == '__main__':
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
                                     axisNames=["log10(Etrue)", "log10(Ereco)"])
 
-    energyResolutionHist = Histogram( range=[[-1,2],[-2,2]], bins=[70,100],
+    energyResolutionHist = Histogram( range=[[-1,2],[-2,2]], bins=[50,100],
                                       axisNames=["log10(Etrue)", 
                                                  "log10(Ereco/Etrue)"])
     count = 0
@@ -127,6 +127,7 @@ if __name__ == '__main__':
     title("Effective Area")
     xlabel("$Log_{10}(E)$")
     ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
+    grid()
 
     subplot(2,2,3)
     energyResponseHist.draw2D()
@@ -141,6 +142,8 @@ if __name__ == '__main__':
     # for a given Etrue)
     np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
     subplot(2,2,4)
-    energyResolutionHist.draw2D()
+    energyResolutionHist.draw2D( vmax=0.25 )
     colorbar()
     title("Normalized Energy Resolution")
+    l = energyResolutionHist.binLowerEdges[0]
+    plot( l,zeros_like(l), color="black")
