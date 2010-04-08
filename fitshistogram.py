@@ -85,7 +85,7 @@ class Histogram(object):
         - `datapoints`: array of points (see numpy.histogramdd() documentation)
         """
 
-        hist, binLowerEdges = np.histogramdd( datapoints, 
+        hist, binLowerEdges = np.histogramdd( np.array(datapoints), 
                                               bins=self._bins, 
                                               range=self._range, **kwargs)
         
