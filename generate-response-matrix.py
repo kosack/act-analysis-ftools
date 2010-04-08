@@ -16,6 +16,18 @@ from pylab import *
 # external parameters (zenith angle, azimuth, offset) of the
 # simulations are the same.
 
+def normalizeToProb(x):
+    """
+    Makes x a probability distribution
+    Arguments:
+    - `x`:
+    """
+    x[x>0] /= np.sum(x)
+    return x
+
+
+
+
 if __name__ == '__main__':
     parser = OptionParser()
     (opts,args) = parser.parse_args()
@@ -27,6 +39,10 @@ if __name__ == '__main__':
     Nthrown_tot = None
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
                                     axisNames=["log10(Etrue)", "log10(Ereco)"])
+
+    energyResolutionHist = Histogram( range=[[-1,2],[-2,2]], bins=[70,100],
+                                      axisNames=["log10(Etrue)", 
+                                                 "log10(Ereco/Etrue)"])
     count = 0
 
     for eventlist_filename in args:
@@ -84,7 +100,8 @@ if __name__ == '__main__':
         # fill 2D histograms
 
         energyResponseHist.fill( zip(np.log10(Etrue),np.log10(Ereco)) )
-
+        energyResolutionHist.fill( zip(np.log10(Etrue), 
+                                       np.log10(Ereco)-np.log10(Etrue)))
         evfile.close()
 
 
@@ -93,6 +110,11 @@ if __name__ == '__main__':
     Aeff_true = NtrueAthrown_tot/Nthrown_tot
 
     # todo: calculate statistical errors
+
+
+    # TODO: for energy response matrix, need to normalize each column
+    # (so that it is in probability units)
+
 
     subplot(2,1,1)
 
@@ -106,7 +128,19 @@ if __name__ == '__main__':
     xlabel("$Log_{10}(E)$")
     ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
 
-    subplot(2,1,2)
-    
+    subplot(2,2,3)
     energyResponseHist.draw2D()
-    title("Energy Response")
+    l = energyResponseHist.binLowerEdges[0]
+    plot( l,l, color="white") 
+    colorbar()
+    title("")
+    
+
+    # make this histogram normalized to have an integral of 1.0 along
+    # the Y axis (so it is now a probability of reconstructing Ereco
+    # for a given Etrue)
+    np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
+    subplot(2,2,4)
+    energyResolutionHist.draw2D()
+    colorbar()
+    title("Normalized Energy Resolution")
