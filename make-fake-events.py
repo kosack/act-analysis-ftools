@@ -30,24 +30,24 @@ def makePowerLaw(num, gamma=2.7,E0=1.0, Erange=[0.01,200.0]):
 if __name__ == '__main__':
     
     parser = OptionParser()
-    parser.add_option( "-n","--num-events", dest="nevt", default=100,
+    parser.add_option( "-n","--num-events", dest="nevt", default=100, type="int",
                        help="number of events")
     parser.add_option( "-c","--center", dest="center", default="0.0,90.0",
                        help="center pos")
     parser.add_option( "-d","--offset", dest="offset", default="0.0,0.7",
                        help="center pos")
-    parser.add_option( "-s","--sigma", dest="sigma", default="0.1",
+    parser.add_option( "-s","--sigma", dest="sigma", default="0.1",type="float",
                        help="gaussian sigma")
     parser.add_option( "-o","--output", dest="output", help="output file name")
-    parser.add_option( "-b", "--num-background", dest="nbg", default=None, 
+    parser.add_option( "-b", "--num-background", dest="nbg", default=None, type="int",
                        help="number of background events")
 
-    parser.add_option( "--index", dest="gamma_src", default=2.5, 
+    parser.add_option( "--index", dest="gamma_src", default=2.5, type="float",
                        help="spectral index of the source")
-    parser.add_option( "--bgindex", dest="gamma_bg", default=3.0, 
+    parser.add_option( "--bgindex", dest="gamma_bg", default=3.0, type="float",
                        help="spectral index of the background")
 
-    parser.add_option( "-f", "--fov", dest="fov", default=5.0, 
+    parser.add_option( "-f", "--fov", dest="fov", default=5.0, type="float",
                        help="field-of-view for background events" )
     (opts, args) = parser.parse_args()
 
