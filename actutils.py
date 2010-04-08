@@ -420,7 +420,7 @@ def loadLookupTableColumns( events, telarray ):
         telid = telarray.data.field("TELID")
         telMask   = events.data.field("TELMASK")
         telImpacts = events.data.field("HIL_TEL_IMPACT")
-    except KeyError err:
+    except KeyError(err):
         print "One or more required columns was missing in the eventlist!"
         raise err
 
