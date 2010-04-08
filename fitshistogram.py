@@ -249,7 +249,7 @@ class Histogram(object):
         
         return self.hist[tuple(bins)]
                 
-    def draw2D(self):
+    def draw2D(self, **kwargs):
         """
         draw the histogram using pcolormesh() (only works for 2D histograms currently)
         """
@@ -257,7 +257,8 @@ class Histogram(object):
             raise ValueError("Bad Dimensions")
 
         pyplot.pcolormesh( self._binLowerEdges[0], 
-                           self._binLowerEdges[1], self.hist.transpose() )
+                           self._binLowerEdges[1], 
+                           self.hist.transpose(),**kwargs )
         pyplot.title( self.name )
         pyplot.xlabel( self.axisNames[0] )
         pyplot.ylabel( self.axisNames[1] )
