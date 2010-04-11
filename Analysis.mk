@@ -405,7 +405,7 @@ diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_signifi
 
 %_event_verify.txt: $(SOURCEDIR)/%_eventlist.fits.gz
 	@echo "VERIFY $*"
-	@$(VERIFY) $< > $@
+	@$(VERIFY) $< $@
 
 verify: $(addsuffix _event_verify.txt, $(BASERUNS))
 	@echo "VERIFY: Your runlist passes verification"
