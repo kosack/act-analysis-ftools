@@ -38,7 +38,7 @@ def makeRingMap(hdu, radii):
 
     dists = actutils.makeDistanceMap( hdu )
         
-    ring = np.ones(dists.shape)
+    ring = np.ones_like(dists)
     ring[dists<radii[0]] = 0.0
     ring[dists>radii[1]] = 0.0
 
