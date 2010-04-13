@@ -183,16 +183,6 @@ class TelLookupTable(object):
         hdu = self._valueDict[what].asFITS()
         actutils.displayFITS( hdu.header, hdu.data ) 
 
-        # if (len(val.shape)==2):
-        #     xed,yed =  self._valueDict[what].binLowerEdges
-        #     figure()
-        #     pcolormesh( xed, yed, val.transpose())
-        #     title("CT%d: %s" % (self.telID, what))
-        #     xlabel("log10(SIZE)")
-        #     ylabel("IMPACT (m)")
-        #     colorbar()
-        #     show()                   
-        
 # ===========================================================================
 
 def calcMeanReducedScaledValue( tels, coords, vals, lookupDict,debug=0):
@@ -294,28 +284,25 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     else:
         return (-100000,-100000)
 
-
-def testValue(value,error,trueValue):
-    """
-    display some tests
-
-    Arguments:
-    - `value`: array of values calculated 
-    - `error`: array of errors
-    - `trueValue`: array true value for comparison
+def makeOutFileName(infilename, tag=""):
     """
     
-    import pylab
+    Arguments:
+    - `infilename`:
+    """
+    
+    base = os.path.basename(infilename)
+    (name,ext) = os.path.splitext(base)
+    if (ext == ".gz"):
+        (name,ext) = os.path.splitext(name)
 
-    H = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],axisNames=["log10(true)",
-                                                                  "log10(reco)"])
-    H.fill( (log10(trueValue),log10(value)) )
-    hdu=H.asFITS()
-    actutils.displayFITS( hdu.header, hdu.data )
-    title("Reconstructed vs Simulated energy")
-    return H
+    return name+tag+ext
 
-def processRun(ineventlistfile):
+
+def processRun(ineventlistfile, telLookup):
+    """
+    Add column to a single run
+    """
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
@@ -348,7 +335,6 @@ def processRun(ineventlistfile):
         sys.exit(1)
 
     # load the lookups:
-    telLookup = dict()
 
     for tel in telid:
         ttype = tel2type[tel]
@@ -360,8 +346,6 @@ def processRun(ineventlistfile):
     telLookup[1].display("mean")
     telLookup[1].display("stddev")
 
-    # THE FOLLOWING IS SIMILAR TO generate-lookup-tables (should combine them)
-         
     if (computeFromValue==True):
         telValues = events.data.field(lookupName) # values of the
                                                   # requested
@@ -391,8 +375,8 @@ def processRun(ineventlistfile):
         impacts = telImpacts[evnum][ telMask[evnum] ]
         coords = zip(sizes,impacts)
 
-        if(evnum==4): evdebug=1
-        if(evnum==10): evdebug=0
+#        if(evnum==4): evdebug=1
+#        if(evnum==10): evdebug=0
 
         # call the appropriate reduction function (defined earlier)
         value[evnum],error[evnum] = reductionFunction( tels,
@@ -413,14 +397,6 @@ def processRun(ineventlistfile):
     if (paramType == "energy"):
         value = 10**value # want it to be not log scale
     
-    if (paramType == "energy"):
-        testh = testValue( value[gmask], error[gmask], 
-                           events.data.field("MC_ENERGY")[gmask] )
-    elif(paramType=="msw"):
-        testValue( value[gmask], error[gmask], 
-                   (events.data.field("HIL_MSW")[gmask]) )
-
-        
     
     # check if column already exists, if so rename it
     coldic = dict()
@@ -436,10 +412,12 @@ def processRun(ineventlistfile):
     outputTable = pyfits.new_table( cols )
     outputTable.name="EVENTS"
 
+    outfilename = makeOutFileName( ineventlistfile )
+
     del evfile["EVENTS"] # remove the old events table
     evfile.insert(1,outputTable)
-
-    evfile.writeto("testtable.fits", clobber=True)
+    print "Writing: ", outfilename
+    evfile.writeto(outfilename, clobber=True)
     
 
 #===============================================================================
@@ -461,6 +439,7 @@ if __name__ == '__main__':
     paramType = opts.paramType
 
     # open the input eventlist
+    telLookup = dict()
 
-    ineventlistfile = args.pop(0)
-    processRun( ineventlistfile )
+    for ineventlistfile in args:
+        processRun( ineventlistfile, telLookup=telLookup )
