@@ -48,7 +48,7 @@ class TelLookupTable(object):
     values = dict()
     telID = 0
 
-    def __init__(self, lookupName, telID, valueScale=1.0,
+    def __init__(self, lookupName, telID, telType=None, valueScale=1.0,
                  lookupDir= None,tag="", byTelType=False):
         """
         initialize a lookup table
@@ -65,16 +65,18 @@ class TelLookupTable(object):
         self.values = ["mean","stddev","count"]    
         self._valueDict = dict()
         self.telID = telID
+        self.telType = telType
         self._valueScale = valueScale
 
-        print ("Loading Lookups for CT%03d"%tel).center(79,"-")
+        print ("Loading Lookups for CT%03d"%telID).center(79,"-")
 
         for what in self.values:
-            fname = "CT%03d-%s-lookup-%s%s.fits" % (tel,lookupName,what,tag)    
+            fname = "CT%03d-%s-lookup-%s%s.fits" % (telID,lookupName,what,tag)  
             if byTelType:
-                fname = "TYPE%02d_%02d-%s-lookup-%s%s.fits" % (telID[0],
-                                                               telID[1],
-                                                               lookupName,what,tag)
+                fname = "TYPE%02d_%02d-%s-lookup-%s%s.fits" % (telType[0],
+                                                               telType[1],
+                                                               lookupName,
+                                                               what,tag)
 
             print "\t",fname
             hdu = pyfits.open(lookupDir+"/"+fname)[0]
@@ -313,31 +315,11 @@ def testValue(value,error,trueValue):
     title("Reconstructed vs Simulated energy")
     return H
 
-
-#===============================================================================
-#===============================================================================
-
-if __name__ == '__main__':
-
-    from pylab import *
-
-    parser = OptionParser()
-    parser.add_option("-t","--type", dest="paramType", type="choice", 
-                      choices=["energy", "msw", "msl"],
-                      help="column to generate (energy, msw, msl")
-    (opts,args) = parser.parse_args()
-
-    debug=0
-    paramType = opts.paramType
-
-    # open the input eventlist
-
-    ineventlistfile = args.pop(0)
+def processRun(ineventlistfile):
     evfile = pyfits.open(ineventlistfile)
     events = evfile["EVENTS"]
     telarray = evfile["TELARRAY"]
     tel2type,type2tel = actutils.getTelTypeMap( telarray )
-
     (telImpacts,telSizes,telid,telMask)=actutils.loadLookupTableColumns(events, 
                                                                         telarray)
 
@@ -370,8 +352,9 @@ if __name__ == '__main__':
 
     for tel in telid:
         ttype = tel2type[tel]
-        telLookup[tel] = TelLookupTable(lookupName,ttype, 
-                                        valueScale=valueScale, byTelType=False)
+        if telLookup.has_key(tel) == False:
+            telLookup[tel] = TelLookupTable(lookupName,tel,telType=ttype, 
+                                            valueScale=valueScale,byTelType=False)
 
 
     telLookup[1].display("mean")
@@ -422,7 +405,6 @@ if __name__ == '__main__':
         
     value[ np.isnan(value) ] = -10000
     print "Done."
-    
 
     gmask = value > -1000
     gmask *= value < 1000
@@ -459,3 +441,26 @@ if __name__ == '__main__':
 
     evfile.writeto("testtable.fits", clobber=True)
     
+
+#===============================================================================
+#===============================================================================
+
+
+
+if __name__ == '__main__':
+
+    from pylab import *
+
+    parser = OptionParser()
+    parser.add_option("-t","--type", dest="paramType", type="choice", 
+                      choices=["energy", "msw", "msl"],
+                      help="column to generate (energy, msw, msl")
+    (opts,args) = parser.parse_args()
+
+    debug=0
+    paramType = opts.paramType
+
+    # open the input eventlist
+
+    ineventlistfile = args.pop(0)
+    processRun( ineventlistfile )
