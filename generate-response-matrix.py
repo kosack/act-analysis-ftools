@@ -40,7 +40,7 @@ if __name__ == '__main__':
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
                                     axisNames=["log10(Etrue)", "log10(Ereco)"])
 
-    energyResolutionHist = Histogram( range=[[-1,2],[-2,2]], bins=[50,100],
+    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
                                       axisNames=["log10(Etrue)", 
                                                  "log10(Ereco/Etrue)"])
     count = 0

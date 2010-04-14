@@ -23,7 +23,8 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
                             bins = [100,100], 
                             histrange =[[0.5,6.0],[0,2000.0]],
                             debug=False, namebase=None, 
-                            valueScale=1.0, useLogScale=False,includeTelTypeInFilename=True):
+                            valueScale=1.0, useLogScale=False,
+                            includeTelTypeInFilename=True):
     """
     generates lookup table for the given variable (average and sigma
     as a function of logSIZE and IMPACT DISTANCE)
@@ -60,6 +61,9 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     if (useLogScale):
         telValues = np.log10(telValues)
 
+    # TEST:::::::::::::::::::::::::
+#    telValues /= telSizes
+
     if (telValues.ndim == 1):
         # this is not a telescope-wise parameter, like ENERGY, so need
         # to make it one:
@@ -87,9 +91,12 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
         size = telSizes[:,itel][goodEvents]
 
         names = ["LSIZE","DIST"]
-        sumHist    = Histogram( range=histrange, bins=bins,name="SUM", axisNames=names )
-        sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR",axisNames=names )
-        countHist  = Histogram( range=histrange, bins=bins,name="COUNT",axisNames=names )
+        sumHist    = Histogram( range=histrange, bins=bins,name="SUM", 
+                                axisNames=names )
+        sumSqrHist = Histogram( range=histrange, bins=bins,name="SUMSQR",
+                                axisNames=names )
+        countHist  = Histogram( range=histrange, bins=bins,name="COUNT",
+                                axisNames=names )
 
         sumHist.fill(    (size,impact), weights=value, normed=False )
         sumSqrHist.fill( (size,impact), weights=value**2, normed=False )
