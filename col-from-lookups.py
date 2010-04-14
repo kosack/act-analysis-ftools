@@ -343,8 +343,8 @@ def processRun(ineventlistfile, telLookup):
                                             valueScale=valueScale,byTelType=False)
 
 
-    telLookup[1].display("mean")
-    telLookup[1].display("stddev")
+#    telLookup[1].display("mean")
+#    telLookup[1].display("stddev")
 
     if (computeFromValue==True):
         telValues = events.data.field(lookupName) # values of the
