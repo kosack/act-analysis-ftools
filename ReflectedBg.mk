@@ -38,3 +38,8 @@ MAKEREGIONS=$(PYTHON) $(TOOLSDIR)/regionbg.py $(ONTH2)
 # makes a FITS table with runwise statistics (N_on, N_off, Exp_on,
 # Exp_off, Alpha, excess, signif), or alternately add these to the
 # header of each region_on/off file (probably more flexible)
+
+RUNS_OFFEVENTS=$(addsuffix _event_region_on.fits,$(BASERUNS))
+RUNS_ONEVENTS=$(addsuffix _event_region_on.fits,$(BASERUNS))
+
+spectrum: $(RUNS_OFFEVENTS) $(RUNS_ONEVENTS)
