@@ -25,7 +25,25 @@ def normalizeToProb(x):
     x[x>0] /= np.sum(x)
     return x
 
+def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
+    """ 
+    Write out effective area curve in ARF format
+    
+    - `EBinlow/High`: lower edges of bins (in linear energy units)
+    - `effectiveArea`: effective area in cm^2 for each energy bin
+    """
 
+    colE_lo = pyfits.Column( name="ENERG_LO", format="E",
+                             unit="TeV",array=EBinlow )
+    colE_hi = pyfits.Column( name="ENERG_HI", format="E", 
+                             unit="TeV", array=EBinHigh )
+    colSpecResp = pyfits.Column( name="SPECRESP", format="E", 
+                                 unit="cm2",array=effectiveArea )
+    
+    coldefs = pyfits.ColDefs( [colE_lo,colE_hi,colSpecResp])
+    hdu = pyfits.new_table( coldefs )
+    hdu.writeto( outputFileName, clobber=True )
+    print "DEBUG:",hdu.header
 
 
 if __name__ == '__main__':
@@ -147,3 +165,6 @@ if __name__ == '__main__':
     title("Normalized Energy Resolution")
     l = energyResolutionHist.binLowerEdges[0]
     plot( l,zeros_like(l), color="black")
+
+
+    writeARF( Emin, Emax, Aeff_reco*(100**2) )
