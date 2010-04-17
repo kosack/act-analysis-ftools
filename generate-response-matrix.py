@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     # TODO: calculate statistical errors
 
-    subplot(2,1,1)
+    subplot(2,2,1)
 
     semilogy()
     plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
@@ -148,9 +148,24 @@ if __name__ == '__main__':
     ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
     grid()
 
+    subplot(2,2,2)
+    obstimeHrs = 50.0
+    obstime = obstimeHrs*60.0*60.0
+    nevents= 10.0
+    M2_CM2 = 100*2
+    sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
+    sensitivity[isinf(sensitivity)] = 0
+    semilogy()
+    plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
+    title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
+    xlabel("$Log_{10}(E)$")
+    ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
+    grid()
+
     subplot(2,2,3)
     energyResponseHist.draw2D()
     l = energyResponseHist.binLowerEdges[0]
+
     plot( l,l, color="white") 
     colorbar()
     title("")
