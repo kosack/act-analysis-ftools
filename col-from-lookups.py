@@ -412,7 +412,7 @@ def processRun(ineventlistfile, telLookup):
     outputTable = pyfits.new_table( cols )
     outputTable.name="EVENTS"
 
-    outfilename = makeOutFileName( ineventlistfile )
+    outfilename = makeOutFileName( ineventlistfile, tag="_reco" )
 
     del evfile["EVENTS"] # remove the old events table
     evfile.insert(1,outputTable)

@@ -58,7 +58,7 @@ if __name__ == '__main__':
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
                                     axisNames=["log10(Etrue)", "log10(Ereco)"])
 
-    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
+    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[40,40],
                                       axisNames=["log10(Etrue)", 
                                                  "log10(Ereco/Etrue)"])
     count = 0
@@ -144,21 +144,24 @@ if __name__ == '__main__':
           label="True", color="blue" )
     legend(loc="lower right")
     title("Effective Area")
-    xlabel("$Log_{10}(E)$")
+    xlabel("$Log_{10}(E/\mathrm{TeV})$")
     ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
     grid()
 
-    subplot(2,2,2)
+
+    # TODO: include background here:
     obstimeHrs = 50.0
     obstime = obstimeHrs*60.0*60.0
     nevents= 10.0
     M2_CM2 = 100*2
     sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
     sensitivity[isinf(sensitivity)] = 0
+
+    subplot(2,2,2)
     semilogy()
     plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
     title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-    xlabel("$Log_{10}(E)$")
+    xlabel("$Log_{10}(E/\mathrm{TeV})$")
     ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
     grid()
 
@@ -180,6 +183,6 @@ if __name__ == '__main__':
     title("Normalized Energy Resolution")
     l = energyResolutionHist.binLowerEdges[0]
     plot( l,zeros_like(l), color="black")
-
+    savefig("response.pdf", papertype="a4")
 
 
