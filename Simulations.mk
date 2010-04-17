@@ -17,8 +17,9 @@ RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 
 %_eventlist_reco.fits: $(SOURCEDIR)/%_eventlist.fits.gz
 	@echo "ENERGY RECONSTRUCTION $*"
-	@$(PYTHON) $(TOOLSDIR)/col-from-lookups.py --type energy $<
+	@$(PYTHON) $(TOOLSDIR)/col-from-lookups.py --type energy $< $(REDIRECT)
 
-spec_arf.fits: $(RUNS_SIMSELECTED)
-	@echo "Generating Effective Area file from runs $*..."
-	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py $(RUNS_SIMSELECTED)
+response.pdf spec_arf.fits: $(RUNS_SIMSELECTED)
+	@echo "EFFECTIVE AREA: $@"
+	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py \
+		$(RUNS_SIMSELECTED) $(REDIRECT)
