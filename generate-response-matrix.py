@@ -56,11 +56,12 @@ if __name__ == '__main__':
     NrecoAthrown_tot = None
     Nthrown_tot = None
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
-                                    axisNames=["log10(Etrue)", "log10(Ereco)"])
+                                    axisNames=["$\log_{10}(E_{true})$", 
+                                               "$\log_{10}(E_{reco})$"])
 
     energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[40,40],
-                                      axisNames=["log10(Etrue)", 
-                                                 "log10(Ereco/Etrue)"])
+                                      axisNames=["$\log_{10}(E_{true})$", 
+                                                 "$\log_{10}(E_{reco}/E_{true})$"])
     count = 0
 
     for eventlist_filename in args:
@@ -135,6 +136,8 @@ if __name__ == '__main__':
 
     # TODO: calculate statistical errors
 
+
+    figure( figsize = (10,8), dpi=80 )
     subplot(2,2,1)
 
     semilogy()
@@ -161,7 +164,7 @@ if __name__ == '__main__':
     semilogy()
     plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
     title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-    xlabel("$Log_{10}(E/\mathrm{TeV})$")
+    xlabel("$\log_{10}(E/\mathrm{TeV})$")
     ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
     grid()
 
