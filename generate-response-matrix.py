@@ -127,12 +127,13 @@ if __name__ == '__main__':
     Aeff_reco = NrecoAthrown_tot/Nthrown_tot
     Aeff_true = NtrueAthrown_tot/Nthrown_tot
 
-    # todo: calculate statistical errors
+    writeARF( Emin, Emax, Aeff_reco*(100**2) )
 
+    # Normalize the phonton distribution matrix (the integral along
+    # the vertical axis should be 1.0, since it's a probability)
+    np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
 
-    # TODO: for energy response matrix, need to normalize each column
-    # (so that it is in probability units)
-
+    # TODO: calculate statistical errors
 
     subplot(2,1,1)
 
@@ -158,7 +159,6 @@ if __name__ == '__main__':
     # make this histogram normalized to have an integral of 1.0 along
     # the Y axis (so it is now a probability of reconstructing Ereco
     # for a given Etrue)
-    np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
     subplot(2,2,4)
     energyResolutionHist.draw2D( vmax=0.25 )
     colorbar()
@@ -167,4 +167,4 @@ if __name__ == '__main__':
     plot( l,zeros_like(l), color="black")
 
 
-    writeARF( Emin, Emax, Aeff_reco*(100**2) )
+
