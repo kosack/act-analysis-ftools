@@ -55,11 +55,11 @@ if __name__ == '__main__':
     NtrueAthrown_tot = None
     NrecoAthrown_tot = None
     Nthrown_tot = None
-    energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[70,70],
+    energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[100,100],
                                     axisNames=["$\log_{10}(E_{true})$", 
                                                "$\log_{10}(E_{reco})$"])
 
-    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[40,40],
+    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
                                       axisNames=["$\log_{10}(E_{true})$", 
                                                  "$\log_{10}(E_{reco}/E_{true})$"])
     count = 0
@@ -92,7 +92,6 @@ if __name__ == '__main__':
         histrange = (logEmin[0],logEmax[-1])
 
         print "Athrown=",Athrown
-        print "Histogram:",nbins,"bins, range=",histrange
         
         # Effective area is Athrown*(Nreco/Nthrown)
         
@@ -152,7 +151,7 @@ if __name__ == '__main__':
     grid()
 
 
-    # TODO: include background here:
+    # TODO: include background here, and 5 sigma requirement:
     obstimeHrs = 50.0
     obstime = obstimeHrs*60.0*60.0
     nevents= 10.0
@@ -183,9 +182,10 @@ if __name__ == '__main__':
     subplot(2,2,4)
     energyResolutionHist.draw2D( vmax=0.25 )
     colorbar()
-    title("Normalized Energy Resolution")
+    title("Energy Response")
     l = energyResolutionHist.binLowerEdges[0]
     plot( l,zeros_like(l), color="black")
+    grid()
     savefig("response.pdf", papertype="a4")
 
 
