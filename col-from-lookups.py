@@ -3,11 +3,9 @@ import numpy as np
 import sys
 import math
 import os
-import re
-from scipy import interpolate,signal
+from scipy import signal
 
 from optparse import OptionParser
-from kapteyn import wcs
 
 import actutils
 from fitshistogram import Histogram
@@ -27,8 +25,8 @@ def gauss_kern(size, sizey=None):
         sizey = size
     else:
         sizey = int(sizey)
-    x, y = mgrid[-size:size+1, -sizey:sizey+1]
-    g = exp(-(x**2/float(size)+y**2/float(sizey)))
+    x, y = np.mgrid[-size:size+1, -sizey:sizey+1]
+    g = np.exp(-(x**2/float(size)+y**2/float(sizey)))
     return g / g.sum()
 
 
@@ -261,10 +259,10 @@ def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
     if debug:
         print "========================",tels
 
-    vMean = array([lookupDict[tels[itel]].getValue( coords[itel], "mean" )[0] 
+    vMean = np.array([lookupDict[tels[itel]].getValue( coords[itel], "mean" )[0] 
                    for itel in xrange(ntels)])
 
-    vSigma = array([lookupDict[tels[itel]].getValue( coords[itel], "stddev" )[0] 
+    vSigma = np.array([lookupDict[tels[itel]].getValue( coords[itel], "stddev" )[0] 
                     for itel in xrange(ntels)])
 
     if debug:
@@ -426,8 +424,6 @@ def processRun(ineventlistfile, telLookup):
 
 
 if __name__ == '__main__':
-
-    from pylab import *
 
     parser = OptionParser()
     parser.add_option("-t","--type", dest="paramType", type="choice", 
