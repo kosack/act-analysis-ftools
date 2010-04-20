@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # TODO: calculate statistical errors
 
 
-    pylab.figure( figsize = (11,8), dpi=80 )
+    pylab.figure( figsize = (15.0,11.0), dpi=80 )
     pylab.subplot(2,2,1)
 
     pylab.semilogy()
