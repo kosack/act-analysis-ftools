@@ -200,9 +200,11 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict,debug=0):
     mrsv = 0.0
     ntels = vals.shape[0]
     EPSILON = 1e-12
+    bad = (-100000,-100000)
+
 
     if ntels==0:
-        return -10000
+        return bad
 
     if debug:
         print "========================",tels
@@ -211,7 +213,7 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict,debug=0):
         vMean = lookupDict[tels[itel]].getValue( coords[itel], "mean" )
         vSigma = lookupDict[tels[itel]].getValue( coords[itel], "stddev" )
 
-        if (np.isfinite(vMean) == False or np.isfinite(vSigma)==False
+        if (not np.isfinite(vMean)  or not np.isfinite(vSigma) 
             or np.abs(vSigma <EPSILON)):
             ntels -= 1 # skip telescopes that don't have a good value
             continue
@@ -229,7 +231,7 @@ def calcMeanReducedScaledValue( tels, coords, vals, lookupDict,debug=0):
     if (ntels >0):
         return mrsv/float(ntels), 0.0
     else:
-        return (-100000,-100000)
+        return bad
     
 
 def calcWeightedAverage( tels, coords, vals, lookupDict,debug=0):
@@ -336,7 +338,7 @@ def processRun(ineventlistfile, telLookup):
 
     for tel in telid:
         ttype = tel2type[tel]
-        if telLookup.has_key(tel) == False:
+        if not telLookup.has_key(tel):
             telLookup[tel] = TelLookupTable(lookupName,tel,telType=ttype, 
                                             valueScale=valueScale,byTelType=False)
 
@@ -344,7 +346,7 @@ def processRun(ineventlistfile, telLookup):
 #    telLookup[1].display("mean")
 #    telLookup[1].display("stddev")
 
-    if (computeFromValue==True):
+    if (computeFromValue):
         telValues = events.data.field(lookupName) # values of the
                                                   # requested
                                                   # parameter
