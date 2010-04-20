@@ -1,11 +1,10 @@
 import pyfits
 import numpy as np
 from optparse import OptionParser
-from kapteyn import wcs
 import actutils
 from fitshistogram import Histogram
 import math
-from pylab import *
+import pylab 
 
 
 # generates response functions from simulation data (e.g. effective
@@ -67,7 +66,7 @@ if __name__ == '__main__':
     for eventlist_filename in args:
 
         count += 1
-        print eventlist_filename
+
 
         evfile = pyfits.open(eventlist_filename)
         events = evfile["EVENTS"]
@@ -91,7 +90,7 @@ if __name__ == '__main__':
         nbins = len(Nthrown)
         histrange = (logEmin[0],logEmax[-1])
 
-        print "Athrown=",Athrown
+        print eventlist_filename,": Athrown=",Athrown
         
         # Effective area is Athrown*(Nreco/Nthrown)
         
@@ -129,6 +128,7 @@ if __name__ == '__main__':
 
     writeARF( Emin, Emax, Aeff_reco*(100**2) )
 
+
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
     np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
@@ -136,19 +136,19 @@ if __name__ == '__main__':
     # TODO: calculate statistical errors
 
 
-    figure( figsize = (10,8), dpi=80 )
-    subplot(2,2,1)
+    pylab.figure( figsize = (11,8), dpi=80 )
+    pylab.subplot(2,2,1)
 
-    semilogy()
-    plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
+    pylab.semilogy()
+    pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
           label="Reco", color="red" )
-    plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
+    pylab.plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
           label="True", color="blue" )
-    legend(loc="lower right")
-    title("Effective Area")
-    xlabel("$Log_{10}(E/\mathrm{TeV})$")
-    ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
-    grid()
+    pylab.legend(loc="lower right")
+    pylab.title("Effective Area")
+    pylab.xlabel("$Log_{10}(E/\mathrm{TeV})$")
+    pylab.ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
+    pylab.grid()
 
 
     # TODO: include background here, and 5 sigma requirement:
@@ -157,35 +157,38 @@ if __name__ == '__main__':
     nevents= 10.0
     M2_CM2 = 100*2
     sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
-    sensitivity[isinf(sensitivity)] = 0
+    sensitivity[np.isinf(sensitivity)] = 0
 
-    subplot(2,2,2)
-    semilogy()
-    plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
-    title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-    xlabel("$\log_{10}(E/\mathrm{TeV})$")
-    ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
-    grid()
+    pylab.subplot(2,2,2)
+    pylab.semilogy()
+    pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
+    pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
+    pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
+    pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
+    pylab.grid()
 
-    subplot(2,2,3)
+    pylab.subplot(2,2,3)
     energyResponseHist.draw2D()
     l = energyResponseHist.binLowerEdges[0]
 
-    plot( l,l, color="white") 
-    colorbar()
-    title("")
+    pylab.plot( l,l, color="white") 
+    pylab.colorbar()
+    pylab.title("")
     
 
     # make this histogram normalized to have an integral of 1.0 along
     # the Y axis (so it is now a probability of reconstructing Ereco
     # for a given Etrue)
-    subplot(2,2,4)
+    pylab.subplot(2,2,4)
     energyResolutionHist.draw2D( vmax=0.25 )
-    colorbar()
-    title("Energy Response")
+    pylab.colorbar()
+    pylab.title("Energy Response")
     l = energyResolutionHist.binLowerEdges[0]
-    plot( l,zeros_like(l), color="black")
-    grid()
-    savefig("response.pdf", papertype="a4")
+    pylab.plot( l,np.zeros_like(l), color="black")
+    pylab.grid()
+    pylab.savefig("response.pdf", papertype="a4")
 
 
+
+
+ 
