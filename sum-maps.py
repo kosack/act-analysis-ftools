@@ -26,7 +26,7 @@ bunchsize = len(alpha)
 bunches = np.array_split( args, floor(len(args)/bunchsize)+1 )
 tmpname = "temp-"+opts.output
 
-if verbose: print args
+if opts.verbose: print args
 
 tot = len(args) # first file is already summed
 count = 0
@@ -44,7 +44,7 @@ for bunch in bunches:
         vals += " %s=%s" % (var,fname)
         
     cmd = "ftpixcalc %s '%s' %s" % (tmpname,expr,vals)
-    if  verbose: print "DEBUG: ",cmd
+    if  opts.verbose: print "DEBUG: ",cmd
     os.system(cmd)
     os.rename( tmpname, opts.output )
         
