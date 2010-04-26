@@ -185,7 +185,7 @@ if __name__ == '__main__':
     pylab.title("Energy Response")
     l = energyResolutionHist.binLowerEdges[0]
     pylab.plot( l,np.zeros_like(l), color="black")
-    pylab.grid()
+    pylab.grid(color='w')
     pylab.savefig("response.pdf", papertype="a4")
 
 
