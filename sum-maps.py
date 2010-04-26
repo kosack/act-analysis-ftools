@@ -17,7 +17,6 @@ parser.add_option( "-o","--output", dest="output",
 parser.add_option( "-v","--verbose", dest="verbose",action="store_true" )
 
 (opts, args) = parser.parse_args()
-firstfile = args.pop(0)
 
 alpha = np.array(list( 'ABCDEGHIJKLMNOPQRSUVWXYZ' )) # note no t or f
                                                      # since they are
@@ -27,9 +26,9 @@ bunchsize = len(alpha)
 bunches = np.array_split( args, floor(len(args)/bunchsize)+1 )
 tmpname = "temp-"+opts.output
 
-shutil.copyfile( firstfile, opts.output )
+print args
 
-tot = len(args)
+tot = len(args) # first file is already summed
 count = 0
 
 for bunch in bunches:
@@ -45,6 +44,7 @@ for bunch in bunches:
         vals += " %s=%s" % (var,fname)
         
     cmd = "ftpixcalc %s '%s' %s" % (tmpname,expr,vals)
+    print "DEBUG: ",cmd
     os.system(cmd)
     os.rename( tmpname, opts.output )
         
