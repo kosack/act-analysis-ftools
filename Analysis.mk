@@ -351,7 +351,6 @@ ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
 		clobber=true $(REDIRECT)
 
 
-# TODO: need to properly calcualte alpha and use Li/Ma formula! 
 LIMA='sqrt(2)*sqrt( A*log( (1+C)/C * (A/(A+B))) + B*log((1+C)*B/(A+B)) )'
 ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_sum_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
@@ -366,6 +365,7 @@ ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_
 		c=ring_alpha_tophat.fits \
 		clobber=yes $(REDIRECT)
 
+# TODO: need to divide by exclmap_tophat to get the right values in the exclusion region!
 ring_significance_exmasked.fits: cmap_sum_tophat_exmasked.fits ring_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
 	@ftpixcalc alt_$@ $(LIMA)\
