@@ -1,5 +1,7 @@
 
 
+CUTS = '(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
+
 RUNS_SIMSELECTED=$(addsuffix _event_reco_selected.fits,$(BASERUNS))
 RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 

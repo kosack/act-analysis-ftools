@@ -26,7 +26,12 @@ bunchsize = len(alpha)
 bunches = np.array_split( args, floor(len(args)/bunchsize)+1 )
 tmpname = "temp-"+opts.output
 
-tot = len(args) # first file is already summed
+tot = len(args) 
+
+if (tot==0):
+    print "!!!! NO FILES SPECIFIED TO SUM INTO: ",opts.output
+    exit(1)
+
 count = 0
 
 for bunch in bunches:

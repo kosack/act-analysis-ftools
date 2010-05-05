@@ -152,20 +152,19 @@ if __name__ == '__main__':
 
 
     # TODO: include background here, and 5 sigma requirement:
-    obstimeHrs = 50.0
-    obstime = obstimeHrs*60.0*60.0
-    nevents= 10.0
-    M2_CM2 = 100*2
-    sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
-    sensitivity[np.isinf(sensitivity)] = 0
-
-    pylab.subplot(2,2,2)
-    pylab.semilogy()
-    pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
-    pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-    pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
-    pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
-    pylab.grid()
+    # obstimeHrs = 50.0
+    # obstime = obstimeHrs*60.0*60.0
+    # nevents= 10.0
+    # M2_CM2 = 100*2
+    # sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
+    # sensitivity[np.isinf(sensitivity)] = 0
+    # pylab.subplot(2,2,2)
+    # pylab.semilogy()
+    # pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
+    # pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
+    # pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
+    # pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
+    # pylab.grid()
 
     pylab.subplot(2,2,3)
     energyResponseHist.draw2D()

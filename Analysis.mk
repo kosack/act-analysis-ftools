@@ -38,7 +38,7 @@
 # =========================================================================
 
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
-CUTS ?= '(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0)'
+CUTS ?= '(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0)&&MULTIP>=2'
 SOURCEDIR ?=$(HOME)/Analysis/FITSEventLists/HESS_Crab
 FOVX ?= 7.0                   # Field of view of output map (X degrees)
 FOVY ?= 7.0                   # Field of view of output map (Y degrees)
@@ -57,6 +57,10 @@ MAXEVENTRADIUS ?= 3.0         # maximum event radius in degrees (psi cut)
 TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
 PYTHONPATH+=:$TOOLSDIR
+
+TARGETS = diagnostic_significance.ps 
+TARGETS += fov_excess_gauss.fits fov_significance.fits
+TARGETS += ring_excess_gauss.fits
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -91,25 +95,25 @@ MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
 	--proj $(strip $(PROJECTION))
 
-MAKEMAP=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
-ACCEPTANCE=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=$(strip $(MAXEVENTRADIUS))
-SUMMER=$(PYTHON) $(TOOLSDIR)/sum-maps.py
-FLATLIST=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
-MAKERING=$(PYTHON) $(TOOLSDIR)/make-ring.py
-CONVOLVE=$(PYTHON) $(TOOLSDIR)/convolve-images.py
-FOVMASK=$(PYTHON) $(TOOLSDIR)/make-radial-cutmask.py 
+MAKEMAP:=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
+ACCEPTANCE:=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=$(strip $(MAXEVENTRADIUS))
+SUMMER:=$(PYTHON) $(TOOLSDIR)/sum-maps.py
+FLATLIST:=$(PYTHON) $(TOOLSDIR)/make-flat-eventlist.py --oversample 1 
+MAKERING:=$(PYTHON) $(TOOLSDIR)/make-ring.py
+CONVOLVE:=$(PYTHON) $(TOOLSDIR)/convolve-images.py
+FOVMASK:=$(PYTHON) $(TOOLSDIR)/make-radial-cutmask.py 
 ifndef NOVERIFY
-VERIFY=$(PYTHON) $(TOOLSDIR)/verify-eventlist.py
+VERIFY:=$(PYTHON) $(TOOLSDIR)/verify-eventlist.py
 else
-VERIFY=echo
+VERIFY:=echo
 endif 
 
 .SECONDARY: # clear secondary rule, so intermediate files aren't deleted
 
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some clean-maps show
 
-all:  setup show diagnostic_significance.ps ring_excess_gauss.fits fov_excess_gauss.fits fov_significance.fits
-	@echo "Done processing runs"
+all::  setup show $(TARGETS)
+	@echo "Done processing: $(TARGETS)"
 
 deps.ps: Makefile
 	$(TOOLSDIR)/dependencies.pl | dot -Tps -o $@
@@ -171,6 +175,7 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 	@echo EVENT SELECTION $*
 	@ftselect $< $@ $(CUTS) clobber=true $(REDIRECT)
 
+
 # masked eventlist
 %_event_excluded.fits: %_event_selected.fits $(EXCLUSIONFILE)
 	@echo EVENT EXCLUSION $*
@@ -203,6 +208,7 @@ RUNS_ACCMAP=$(addsuffix _accmap.fits,$(BASERUNS))
 RUNS_ACCMAP_RING=$(addsuffix _accmap_ring.fits,$(BASERUNS))
 
 %_sum.fits: 
+	@echo "CREATING SUM: $@"
 	@$(RM) $@
 	@$(SUMMER) -v -o $@ $^ 
 
@@ -429,21 +435,21 @@ clean-some: clean-runs clean-sums clean-excl
 
 
 clean-runs:
-	$(RM) $(RUNS_CMAP)
+	$(RM) $(RUNS_CMAP) $(CLEANUP_RUNS)
 	$(RM) $(RUNS_CMAP_EXCL)
 	$(RM) $(RUNS_ACCMAP)
 	$(RM) $(RUNS_ACCMAP_RING)
 	$(RM) $(RUNS_OFFMAP_RING)
 
 clean-events:
-	$(RM) *_event_excluded.fits
+	$(RM) *_event_excluded.fits $(CLEANUP_EVENTS)
 	$(RM) *_event_selected.fits
 
 clean-sums:
 	$(RM) *_sum.fits *_sum_*.fits
 
 clean-bg:
-	$(RM) fov_*.fits	
+	$(RM) fov_*.fits $(CLEANUP_BG)
 	$(RM) ring*.fits *_ring*.fits
 	$(RM) tophat.fits
 
