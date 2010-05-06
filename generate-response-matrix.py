@@ -39,8 +39,18 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     colSpecResp = pyfits.Column( name="SPECRESP", format="E", 
                                  unit="cm2",array=effectiveArea )
     
+    # TODO: add all dependent parameters for effective areas (offset angle, azimuth, etc.)
+
     coldefs = pyfits.ColDefs( [colE_lo,colE_hi,colSpecResp])
     hdu = pyfits.new_table( coldefs )
+    # put in required headers defined by OGIP:
+
+    hdu.header.update("HDUCLASS", "OGIP", "Organization of definition" );
+    hdu.header.update("HDUDOC", "CAL/GEN/92-019", "Document describing format" );
+    hdu.header.update("HDUCLAS1", "RESPONSE" );
+    hdu.header.update("HDUCLAS2", "EFFAREA" );
+    hdu.header.update("HDUVERS", "1.0.0" );
+    hdu.name = "EFF_AREA"
     hdu.writeto( outputFileName, clobber=True )
     print "DEBUG:",hdu.header
 
@@ -126,8 +136,8 @@ if __name__ == '__main__':
     Aeff_reco = NrecoAthrown_tot/Nthrown_tot
     Aeff_true = NtrueAthrown_tot/Nthrown_tot
 
-    writeARF( Emin, Emax, Aeff_reco*(100**2) )
-
+    writeARF( Emin, Emax, Aeff_reco*(100**2), outputFileName="spec_arf_reco.fits" )
+    writeARF( Emin, Emax, Aeff_true*(100**2), outputFileName="spec_arf_true.fits" )
 
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)

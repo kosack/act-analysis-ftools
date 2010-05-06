@@ -1,6 +1,8 @@
 
 
-CUTS = '(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
+CUTS='(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
+# TODO: add spatial cut on events inside ON region (using regfilter and a modified version of the reflected-region generator (to work on alt-az regions)
+SPATIALCUT=''
 
 RUNS_SIMSELECTED=$(addsuffix _event_reco_selected.fits,$(BASERUNS))
 RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
@@ -21,7 +23,7 @@ RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 	@echo "ENERGY RECONSTRUCTION $*"
 	@$(PYTHON) $(TOOLSDIR)/col-from-lookups.py --type energy $< $(REDIRECT)
 
-response.pdf spec_arf.fits: $(RUNS_SIMSELECTED)
+response.pdf spec_arf_true.fits spec_arf_reco.fits: $(RUNS_SIMSELECTED)
 	@echo "EFFECTIVE AREA: $@"
 	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py \
 		$(RUNS_SIMSELECTED) #$(REDIRECT)
