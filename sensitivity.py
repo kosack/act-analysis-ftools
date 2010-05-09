@@ -5,9 +5,7 @@ from scipy import integrate,interpolate
 
 
 #
-# BUG: E range for protons is different than for gammas! Need to
-# correctly interpolate. Also, integration could be done over dLogE
-# instead of dE, since deltaLogE is constant.
+# TODO: integrate in dLogE intead of dE to make it more well-behaved
 #
 
 
@@ -30,13 +28,11 @@ def backgroundSpectrum(E):
 
 if __name__ == '__main__':
     
-    # TODO: 
-    #  - don't use Aeff histograms directly, interpolate (so you can use any set of E's)
-    #  - make the ARF file conform to OGIP standards (each row has a vector of Aeffs)
+    # TODO:  make the ARF file conform to OGIP standards (each row
+    # has a vector of Aeffs)
     
-    pn = 3
-    pm = 2
-    pi = 1
+    pn = 3; pm=2 # plot grid MxN
+    pi = 1       # current plot
 
     arf_gamma = "gamma_arf.fits"
     arf_proton = "proton_arf.fits"
@@ -91,12 +87,12 @@ if __name__ == '__main__':
     pi+=1
 
     # differential rates: (dN/dt)
-    rate_gamma = sourceSpectrum(E) * Aeff_gamma(E) * dE
-    rate_backg = backgroundSpectrum(E) * Aeff_backg(E) * dE
+    rate_gamma = lambda E: sourceSpectrum(E) * Aeff_gamma(E) * E
+    rate_backg = lambda E: backgroundSpectrum(E) * Aeff_backg(E) * E
     
     subplot(pn,pm,pi)
-    loglog( E, rate_gamma,color='b', label="gamma" )
-    loglog( E, rate_backg, color='r', label="background")
+    loglog( E, rate_gamma(E),color='b', label="gamma" )
+    loglog( E, rate_backg(E), color='r', label="background")
     title("Differential Rate")
     xlabel("E (TeV)")
     ylabel("dN/dt")
@@ -104,15 +100,15 @@ if __name__ == '__main__':
     pi+=1
 
     # integral number of gamma-ray events
-    # TODO: do with real interpolation/integration (integrate.quadriture)
     t_exp_hrs = 50.0
     t_exp_sec = t_exp_hrs *60.0*60.0;
     N_gamma = zeros_like( E )
     N_backg = zeros_like( E )
     intflux = zeros_like( E )
     for ii in range( len(E) ):
-        N_gamma[ii] = np.sum(rate_gamma[ii:])
-        N_backg[ii] = np.sum(rate_backg[ii:])
+        print "Integrating: E > {0}".format(E[ii])
+        N_gamma[ii],err = integrate.quad( rate_gamma, E[ii], 1000.0 )
+        N_backg[ii],err = integrate.quad( rate_backg, E[ii], 1000.0 ) 
         intflux[ii],err = integrate.quad( sourceSpectrum, E[ii], 1000.0 )
 
     N_gamma *= t_exp_sec
