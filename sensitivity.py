@@ -1,7 +1,14 @@
 import numpy as np
 from pylab import *
 import pyfits
-from scipy import integrate
+from scipy import integrate,interpolate
+
+
+#
+# BUG: E range for protons is different than for gammas! Need to
+# correctly interpolate. Also, integration could be done over dLogE
+# instead of dE, since deltaLogE is constant.
+#
 
 
 def sourceSpectrum(E):
@@ -16,9 +23,9 @@ def backgroundSpectrum(E):
     CM2_per_M2 = 100**2
     GeV_per_TeV = 1000
 
-    N0 = 1.0e-5 *(1.0/CM2_per_M2) * GeV_per_TeV * FOV_ster
+    N0 = 1.0e-6 *(1.0/CM2_per_M2) * GeV_per_TeV * FOV_ster
 
-    return N0 * E**(-2.7)
+    return N0 * E**(-3.0)
 
 
 if __name__ == '__main__':
@@ -38,37 +45,54 @@ if __name__ == '__main__':
     print "    GAMMA: ", arf_gamma
     print "   PROTON: ", arf_proton
     
-    # load the effective areas for protons and gamma-rays:
+    # load the effective areas for protons and gamma-rays and set up
+    # interpolatin functions for them:
     
-    table_reco_gamma = pyfits.open(arf_gamma)["EFF_AREA"]
-    table_reco_proton = pyfits.open(arf_proton)["EFF_AREA"]
+    table_gamma = pyfits.open(arf_gamma)["EFF_AREA"]
+    table_proton = pyfits.open(arf_proton)["EFF_AREA"]
 
-    Emin = table_reco_gamma.data.field("ENERG_LO")
-    Emax = table_reco_gamma.data.field("ENERG_HI")
-    E = (Emax+Emin)/2.0 # TODO: correctly weight center for log scale
-    dE = Emax-Emin
-    Aeff_gamma = table_reco_gamma.data.field("SPECRESP")
-    Aeff_backg    = table_reco_proton.data.field("SPECRESP")
+    Egmin = table_gamma.data.field("ENERG_LO")
+    Egmax = table_gamma.data.field("ENERG_HI")
+    Eg = (Egmax+Egmin)/2.0 # TODO: correctly weight center for log scale
+    Epmin = table_proton.data.field("ENERG_LO")
+    Epmax = table_proton.data.field("ENERG_HI")
+    Ep = (Epmax+Epmin)/2.0 # TODO: correctly weight center for log scale
+    Aeff_gamma = interpolate.interp1d(Eg,table_gamma.data.field("SPECRESP"),
+                                      bounds_error=False, fill_value=0)
+    Aeff_backg = interpolate.interp1d(Ep,table_proton.data.field("SPECRESP"),
+                                      bounds_error=False, fill_value=0)
+
+    # set up plotting and calculating range
+    E = logspace( -2,2,40)
+    dE = E[1:]-E[0:-1]
+    E = E[0:-1]
 
     figure( figsize=(10,10) )
     subplot(pn,pm,pi)
     loglog( E, sourceSpectrum(E), color='b', label="Source" )
     loglog( E, backgroundSpectrum(E), color='r', label="Background" )
     legend()
+    title("Intrinsic Spectra")
+    ylabel("Flux")
+    xlabel("E (TeV)")
     grid()
     pi+=1
 
 
     subplot(pn,pm,pi)
-    loglog( E, Aeff_gamma, color="b", label="Source" )
-    loglog( E, Aeff_backg, color="r", label="Background" )
+    loglog( Eg, Aeff_gamma(Eg), color="g", drawstyle="steps-mid" )
+    loglog( Ep, Aeff_backg(Ep), color="g", drawstyle="steps-mid" )
+    loglog( E, Aeff_gamma(E), color="b", label="Source" )
+    loglog( E, Aeff_backg(E), color="r", label="Background" )
     title("Effective Area")
+    ylabel("$A_{eff} (m)$")
+    xlabel("E (TeV)")
     grid()
     pi+=1
 
     # differential rates: (dN/dt)
-    rate_gamma = sourceSpectrum(E) * Aeff_gamma * dE
-    rate_backg = backgroundSpectrum(E) * Aeff_backg * dE
+    rate_gamma = sourceSpectrum(E) * Aeff_gamma(E) * dE
+    rate_backg = backgroundSpectrum(E) * Aeff_backg(E) * dE
     
     subplot(pn,pm,pi)
     loglog( E, rate_gamma,color='b', label="gamma" )
@@ -76,7 +100,6 @@ if __name__ == '__main__':
     title("Differential Rate")
     xlabel("E (TeV)")
     ylabel("dN/dt")
-    legend()
     grid()
     pi+=1
 
@@ -102,7 +125,6 @@ if __name__ == '__main__':
     title("Integral Counts in {time} hrs".format(time=t_exp_hrs))
     xlabel("E (TeV)")
     ylabel("N")
-    legend()
     grid()
     pi+=1
 
@@ -112,7 +134,7 @@ if __name__ == '__main__':
     sig[np.isfinite(sig)==False] = 0
     semilogx( E, sig, color='b' )
     xlabel("E (TeV)")
-    ylabel("Significance")
+    ylabel("Significance (sigma)")
     pi+=1
 
 
@@ -130,6 +152,7 @@ if __name__ == '__main__':
     mask = mask_sig
     sens[mask] *= (5.0/sig[mask])
     loglog( E, sens,color="b" )
+    ylabel("Min Flux (dN/dE/dA/dt)")
     grid()
 
 

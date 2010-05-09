@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
 
     pylab.figure( figsize = (15.0,11.0), dpi=80 )
-    pylab.subplot(2,2,1)
+    pylab.subplot(2,1,1)
 
     pylab.semilogy()
     pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
