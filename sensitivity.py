@@ -87,8 +87,8 @@ if __name__ == '__main__':
     pi+=1
 
     # differential rates: (dN/dt)
-    rate_gamma = lambda E: sourceSpectrum(E) * Aeff_gamma(E) * E
-    rate_backg = lambda E: backgroundSpectrum(E) * Aeff_backg(E) * E
+    rate_gamma = lambda Ex: sourceSpectrum(Ex) * Aeff_gamma(Ex) * Ex
+    rate_backg = lambda Ex: backgroundSpectrum(Ex) * Aeff_backg(Ex) * Ex
     
     subplot(pn,pm,pi)
     loglog( E, rate_gamma(E),color='b', label="gamma" )
@@ -106,10 +106,10 @@ if __name__ == '__main__':
     N_backg = zeros_like( E )
     intflux = zeros_like( E )
     for ii in range( len(E) ):
-        print "Integrating: E > {0}".format(E[ii])
-        N_gamma[ii],err = integrate.quad( rate_gamma, E[ii], 1000.0 )
-        N_backg[ii],err = integrate.quad( rate_backg, E[ii], 1000.0 ) 
-        intflux[ii],err = integrate.quad( sourceSpectrum, E[ii], 1000.0 )
+        print "Integrating: E > {0:.2f}".format(E[ii])
+        N_gamma[ii],err = integrate.quadrature( rate_gamma, E[ii], 200.0 )
+        N_backg[ii],err = integrate.quadrature( rate_backg, E[ii], 200.0 ) 
+        intflux[ii],err = integrate.quadrature( sourceSpectrum, E[ii], 200.0 )
 
     N_gamma *= t_exp_sec
     N_backg *= t_exp_sec
@@ -125,15 +125,18 @@ if __name__ == '__main__':
     pi+=1
 
     # Significance:
-    subplot(pn,pm,pi)
+
     sig = N_gamma/np.sqrt(N_backg)
     sig[np.isfinite(sig)==False] = 0
+
+
+    subplot(pn,pm,pi)
     semilogx( E, sig, color='b' )
     xlabel("E (TeV)")
     ylabel("Significance (sigma)")
     pi+=1
 
-
+    # calculate minimum flux
     subplot(pn,pm,pi)
     loglog( E, intflux,color="r", label="Integral Flux" )
     sens = intflux.copy()
