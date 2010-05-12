@@ -36,7 +36,7 @@ if __name__ == '__main__':
     curplot = 1       # current plot
 
     t_exp_hrs = 50.0
-
+    nbins = 40
 
     arf_gamma = "gamma_arf.fits"   # true effective area
     arf_proton = "proton_arf.fits" # reco effective area
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                                       bounds_error=False, fill_value=0)
 
     # set up plotting and calculating range
-    E = logspace( -2,2,20)
+    E = logspace( -2,2,nbins)
     dE = E[1:]-E[0:-1]
     E = E[0:-1]
 
@@ -155,18 +155,21 @@ if __name__ == '__main__':
     sens[mask_sig] *= (minsigma/sig[mask_sig])
 
     # scale to at least 10 excess events:
-#    mincounts = 10.0
-#    mask_count = N_exc<mincounts
-#    sens[mask_count] *= (mincounts/(N_exc[mask_count]+1e-20))
-#    loglog( E, sens,color="g" )
-#    ylim(1e-16, 1e-10)
+    mincounts = 10.0
+    mask_count = N_gamma<mincounts
+    sens[mask_count] *= (mincounts/(N_gamma[mask_count]))
+    sens[isinf(sens)] = 0
 
     senscrab = sens/intflux
 
+    Emin = E[Aeff_gamma(E)>1e8][0]
+    senscrab[E<Emin] = 0 # don't plot below the first sensitive point
+
     subplot(plot_rows,plot_cols,curplot)
     loglog( E, senscrab, color="b" )
-    ylabel("Minimum integral flux (C.U.)")
+    ylabel("Min integral flux (C.U.)")
     xlabel("E (TeV)")
-    title("$\mathrm{Sensitivity} (%.1f\sigma,%.1f \mathrm{hrs})$"%(minsigma,t_exp_hrs))
+    title("$\mathrm{Sensitivity} (%.1f\sigma,%.1f \mathrm{hrs})$"
+          %(minsigma,t_exp_hrs))
     grid()
     
