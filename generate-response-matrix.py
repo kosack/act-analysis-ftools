@@ -136,8 +136,10 @@ if __name__ == '__main__':
     Aeff_reco = NrecoAthrown_tot/Nthrown_tot
     Aeff_true = NtrueAthrown_tot/Nthrown_tot
 
-    writeARF( Emin, Emax, Aeff_reco*(100**2), outputFileName="spec_arf_reco.fits" )
-    writeARF( Emin, Emax, Aeff_true*(100**2), outputFileName="spec_arf_true.fits" )
+    writeARF( Emin, Emax, Aeff_reco*(100**2), 
+              outputFileName="spec_arf_reco.fits" )
+    writeARF( Emin, Emax, Aeff_true*(100**2), 
+              outputFileName="spec_arf_true.fits" )
 
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)

@@ -31,40 +31,46 @@ if __name__ == '__main__':
     # TODO:  make the ARF file conform to OGIP standards (each row
     # has a vector of Aeffs)
     
-    pn = 3; pm=2 # plot grid MxN
-    pi = 1       # current plot
+    plot_rows = 3
+    plot_cols = 2 
+    curplot = 1       # current plot
 
-    arf_gamma = "gamma_arf.fits"
-    arf_proton = "proton_arf.fits"
+    t_exp_hrs = 50.0
+
+
+    arf_gamma = "gamma_arf.fits"   # true effective area
+    arf_proton = "proton_arf.fits" # reco effective area
     
     print "EFFECTIVE AREAS:";
     print "    GAMMA: ", arf_gamma
     print "   PROTON: ", arf_proton
     
     # load the effective areas for protons and gamma-rays and set up
-    # interpolatin functions for them:
+    # interpolating functions for them:
     
     table_gamma = pyfits.open(arf_gamma)["EFF_AREA"]
     table_proton = pyfits.open(arf_proton)["EFF_AREA"]
 
     Egmin = table_gamma.data.field("ENERG_LO")
     Egmax = table_gamma.data.field("ENERG_HI")
-    Eg = (Egmax+Egmin)/2.0 # TODO: correctly weight center for log scale
+    Eg = (Egmax+Egmin)/2.0  
     Epmin = table_proton.data.field("ENERG_LO")
     Epmax = table_proton.data.field("ENERG_HI")
-    Ep = (Epmax+Epmin)/2.0 # TODO: correctly weight center for log scale
+    Ep = (Epmax+Epmin)/2.0 
     Aeff_gamma = interpolate.interp1d(Eg,table_gamma.data.field("SPECRESP"),
+                                      kind='linear',copy=False,
                                       bounds_error=False, fill_value=0)
     Aeff_backg = interpolate.interp1d(Ep,table_proton.data.field("SPECRESP"),
+                                      kind='linear',  copy=False,
                                       bounds_error=False, fill_value=0)
 
     # set up plotting and calculating range
-    E = logspace( -2,2,40)
+    E = logspace( -2,2,20)
     dE = E[1:]-E[0:-1]
     E = E[0:-1]
 
     figure( figsize=(10,10) )
-    subplot(pn,pm,pi)
+    subplot(plot_rows,plot_cols,curplot)
     loglog( E, sourceSpectrum(E), color='b', label="Source" )
     loglog( E, backgroundSpectrum(E), color='r', label="Background" )
     legend()
@@ -72,86 +78,95 @@ if __name__ == '__main__':
     ylabel("Flux")
     xlabel("E (TeV)")
     grid()
-    pi+=1
+    curplot+=1
 
 
-    subplot(pn,pm,pi)
+    subplot(plot_rows,plot_cols,curplot)
     loglog( Eg, Aeff_gamma(Eg), color="g", drawstyle="steps-mid" )
     loglog( Ep, Aeff_backg(Ep), color="g", drawstyle="steps-mid" )
     loglog( E, Aeff_gamma(E), color="b", label="Source" )
     loglog( E, Aeff_backg(E), color="r", label="Background" )
     title("Effective Area")
-    ylabel("$A_{eff} (m)$")
+    ylabel("$A_{eff} (cm)$")
     xlabel("E (TeV)")
     grid()
-    pi+=1
+    curplot+=1
 
-    # differential rates: (dN/dt)
-    rate_gamma = lambda Ex: sourceSpectrum(Ex) * Aeff_gamma(Ex) * Ex
-    rate_backg = lambda Ex: backgroundSpectrum(Ex) * Aeff_backg(Ex) * Ex
+    # differential rates: (dN/dt/dE)
+    rate_gamma = lambda ee: sourceSpectrum(ee) * Aeff_gamma(ee) 
+    rate_backg = lambda ee: backgroundSpectrum(ee) * Aeff_backg(ee) 
     
-    subplot(pn,pm,pi)
+    subplot(plot_rows,plot_cols,curplot)
     loglog( E, rate_gamma(E),color='b', label="gamma" )
     loglog( E, rate_backg(E), color='r', label="background")
     title("Differential Rate")
     xlabel("E (TeV)")
     ylabel("dN/dt")
     grid()
-    pi+=1
+    curplot+=1
 
     # integral number of gamma-ray events
-    t_exp_hrs = 50.0
+    # N = \int( dN/(dt dE) dE ) * t_{exp}
     t_exp_sec = t_exp_hrs *60.0*60.0;
     N_gamma = zeros_like( E )
     N_backg = zeros_like( E )
     intflux = zeros_like( E )
+
+    emax = np.max(E[rate_gamma(E) > 1e-10])
+    emax=200
+    print "E_max=",emax
+
     for ii in range( len(E) ):
         print "Integrating: E > {0:.2f}".format(E[ii])
-        N_gamma[ii],err = integrate.quadrature( rate_gamma, E[ii], 200.0 )
-        N_backg[ii],err = integrate.quadrature( rate_backg, E[ii], 200.0 ) 
-        intflux[ii],err = integrate.quadrature( sourceSpectrum, E[ii], 200.0 )
+        N_gamma[ii],err = integrate.quadrature( rate_gamma, E[ii], emax )
+        N_backg[ii],err = integrate.quadrature( rate_backg, E[ii], emax ) 
+        intflux[ii],err = integrate.quadrature( sourceSpectrum, E[ii], emax )
 
-    N_gamma *= t_exp_sec
+    N_gamma *= t_exp_sec 
     N_backg *= t_exp_sec
     N_exc = N_gamma - N_backg
 
-    subplot(pn,pm,pi)
+    subplot(plot_rows,plot_cols,curplot)
     loglog( E, N_gamma,color='b', label="gamma" )
     loglog( E, N_backg, color='r', label="background")
     title("Integral Counts in {time} hrs".format(time=t_exp_hrs))
     xlabel("E (TeV)")
     ylabel("N")
     grid()
-    pi+=1
+    curplot+=1
 
     # Significance:
 
     sig = N_gamma/np.sqrt(N_backg)
     sig[np.isfinite(sig)==False] = 0
 
-
-    subplot(pn,pm,pi)
+    subplot(plot_rows,plot_cols,curplot)
     semilogx( E, sig, color='b' )
     xlabel("E (TeV)")
     ylabel("Significance (sigma)")
-    pi+=1
+    curplot+=1
 
     # calculate minimum flux
-    subplot(pn,pm,pi)
-    loglog( E, intflux,color="r", label="Integral Flux" )
+    # scale to 5.0 sigma detection:
+
     sens = intflux.copy()
+    minsigma = 5.0
+    mask_sig = sig>minsigma
+    sens[mask_sig] *= (minsigma/sig[mask_sig])
 
     # scale to at least 10 excess events:
-    mask_count = N_exc>10.0
-    sens[mask_count] *= (10.0/N_exc[mask_count])
-    loglog( E, sens,color="g" )
+#    mincounts = 10.0
+#    mask_count = N_exc<mincounts
+#    sens[mask_count] *= (mincounts/(N_exc[mask_count]+1e-20))
+#    loglog( E, sens,color="g" )
+#    ylim(1e-16, 1e-10)
 
-    # scale to 5.0 sigma detection:
-    mask_sig = sig>5.0
-    mask = mask_sig
-    sens[mask] *= (5.0/sig[mask])
-    loglog( E, sens,color="b" )
-    ylabel("Min Flux (dN/dE/dA/dt)")
+    senscrab = sens/intflux
+
+    subplot(plot_rows,plot_cols,curplot)
+    loglog( E, senscrab, color="b" )
+    ylabel("Minimum integral flux (C.U.)")
+    xlabel("E (TeV)")
+    title("$\mathrm{Sensitivity} (%.1f\sigma,%.1f \mathrm{hrs})$"%(minsigma,t_exp_hrs))
     grid()
-
-
+    
