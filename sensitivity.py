@@ -2,28 +2,37 @@ import numpy as np
 from pylab import *
 import pyfits
 from scipy import integrate,interpolate
-
+from Scientific.Physics.PhysicalQuantities import PhysicalQuantity as PQ
+import math
 
 #
 # TODO: integrate in dLogE intead of dE to make it more well-behaved
 #
 
 
+# physical quantities
+FOV_radius = PQ("5.0 deg")
+Flux0_cosmicray = PQ("1e-6 1/m**2/s/GeV/sr") # approximate, from Swordy plot
+Gamma_cosmicray = 3.0
+E0_cosmicray = PQ(1.0, "TeV")
+
+# calculate params
+SterPerDeg2 = PQ( (math.pi/180.0)**2, "sr/deg**2")
+FOV_area = math.pi * FOV_radius**2 * SterPerDeg2
+N0_background = (Flux0_cosmicray * FOV_area) 
+E0_cosmicray = PQ(1,"TeV")
+
 def sourceSpectrum(E):
     return 3.0e-11* E**(-2.5)
 
 def backgroundSpectrum(E):
 
-    # cosmic ray spectrum at 1 TeV is approx 10-3 1/(m^2 sr s GeV)
-    r_fov = 5.0
-    A_fov = math.pi * r_fov**2 # in square degrees
-    FOV_ster = A_fov * (math.pi/180.0)**2 # in steradians
-    CM2_per_M2 = 100**2
-    GeV_per_TeV = 1000
+    # TODO: how to access global vars in python?
+    
 
-    N0 = 1.0e-6 *(1.0/CM2_per_M2) * GeV_per_TeV * FOV_ster
-
-    return N0 * E**(-3.0)
+    n0 = N0_background.inUnitsOf("1/cm**2/s/TeV").value
+    e0 = E0_cosmicray.inUnitsOf("TeV").value
+    return n0 * (E/e0)**(-Gamma_cosmicray)
 
 
 if __name__ == '__main__':
@@ -36,10 +45,14 @@ if __name__ == '__main__':
     curplot = 1       # current plot
 
     t_exp_hrs = 50.0
+    mincounts = 10.0
+
     nbins = 40
 
     arf_gamma = "gamma_arf.fits"   # true effective area
     arf_proton = "proton_arf.fits" # reco effective area
+
+    
     
     print "EFFECTIVE AREAS:";
     print "    GAMMA: ", arf_gamma
@@ -144,6 +157,7 @@ if __name__ == '__main__':
     semilogx( E, sig, color='b' )
     xlabel("E (TeV)")
     ylabel("Significance (sigma)")
+    grid()
     curplot+=1
 
     # calculate minimum flux
@@ -155,7 +169,6 @@ if __name__ == '__main__':
     sens[mask_sig] *= (minsigma/sig[mask_sig])
 
     # scale to at least 10 excess events:
-    mincounts = 10.0
     mask_count = N_gamma<mincounts
     sens[mask_count] *= (mincounts/(N_gamma[mask_count]))
     sens[isinf(sens)] = 0
@@ -173,3 +186,4 @@ if __name__ == '__main__':
           %(minsigma,t_exp_hrs))
     grid()
     
+    show()
