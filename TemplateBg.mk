@@ -28,6 +28,7 @@ template_excess.fits: cmap_sum.fits template_alpha.fits template_cmap_sum.fits
 		clobber=yes $(REDIRECT)
 
 TARGETS+=template_excess_gauss.fits
+
 CLEANUP_RUNS+=$(RUNS_TEMPLATE_CMAP) $(RUNS_ACCMAP_TEMPLATE)
 CLEANUP_EVENTS+=$(addsuffix _template_event_selected.fits,$(BASERUNS))
 CLEANUP_BG+=template_alpha.fits template_excess.fits template_cmap_sum.fits accmap_template_sum.fits
