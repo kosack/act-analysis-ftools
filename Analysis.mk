@@ -357,32 +357,43 @@ ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
 		clobber=true $(REDIRECT)
 
 
-LIMA='sqrt(2)*sqrt( A*log( (1+C)/C * (A/(A+B))) + B*log((1+C)*B/(A+B)) )'
+EPSILON=1e-10
+LIMA_P1=(1.0+ALP)/ALP * ( NON/(NON+NOFF))
+LIMA_P2=(1.0+ALP)*(NOFF/(NON+NOFF))
+LIMASQR=2*NON*log( $(LIMA_P1) ) + NOFF*log( $(LIMA_P2) )
+LIMA_a=((NON-ALP*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
+
+LIMA=(ALP<0? 0: (ALP<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
+
+
 ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_sum_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
-	@ftpixcalc alt_$@ $(LIMA)\
-		a=cmap_sum_tophat.fits \
-		b=offmap_ring_sum_tophat.fits \
-		c=ring_alpha_tophat.fits \
+	@echo "DEBUG: $(LIMA)"
+	@ftpixcalc alt_$@ '$(LIMA)' \
+		a="NON=cmap_sum_tophat.fits" \
+		b="NOFF=offmap_ring_sum_tophat.fits" \
+		c="ALP=ring_alpha_tophat.fits" \
 		clobber=yes $(REDIRECT)
-	@ftpixcalc $@ '(A-B*C)/sqrt(C*(A+B))'\
-		a=cmap_sum_tophat.fits \
-		b=offmap_ring_sum_tophat.fits \
-		c=ring_alpha_tophat.fits \
+	@ftpixcalc $@ '(NON-NOFF*ALP)/sqrt(ALP*(NON+NOFF))'\
+		a="NON=cmap_sum_tophat.fits" \
+		b="NOFF=offmap_ring_sum_tophat.fits" \
+		c="ALP=ring_alpha_tophat.fits" \
 		clobber=yes $(REDIRECT)
 
 # TODO: need to divide by exclmap_tophat to get the right values in the exclusion region!
-ring_significance_exmasked.fits: cmap_sum_tophat_exmasked.fits ring_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits
+EXCLCORR=(EXCL/max(EXCL))
+ring_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ring_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits exclmap_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
-	@ftpixcalc alt_$@ $(LIMA)\
-		a=cmap_sum_tophat_exmasked.fits \
-		b=offmap_ring_sum_exmasked_tophat.fits \
-		c=ring_alpha_exmasked_tophat.fits \
+	@ftpixcalc alt_$@ '$(LIMA)' \
+		a="NON=cmap_sum_tophat_exmasked.fits" \
+		b="NOFF=offmap_ring_sum_exmasked_tophat.fits" \
+		c="ALP=ring_alpha_exmasked_tophat.fits" \
 		clobber=yes $(REDIRECT)
-	@ftpixcalc $@ '(A-B*C)/sqrt(C*(A+B))'\
-		a=cmap_sum_tophat_exmasked.fits \
-		b=offmap_ring_sum_tophat.fits \
-		c=ring_alpha_tophat.fits \
+	@ftimgcalc $@ '(NON-NOFF*$(EXCLCORR)*ALP)/sqrt(ALP*(NON+NOFF*$(EXCLCORR)))'\
+		a="NON=cmap_sum_exmasked_tophat.fits" \
+		b="NOFF=offmap_ring_sum_tophat.fits" \
+		c="ALP=ring_alpha_tophat.fits" \
+		d="EXCL=exclmap_tophat.fits" \
 		clobber=yes $(REDIRECT)
 
 
