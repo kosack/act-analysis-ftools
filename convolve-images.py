@@ -29,6 +29,10 @@ if __name__ == "__main__":
     if (opts.nofft):
         convolve = signal.convolve2d
 
+
+    imhdu1.data[np.isnan(imhdu1.data)] = 0
+    imhdu2.data[np.isnan(imhdu2.data)] = 0
+
     print "CONVOLVING:",imfile1,"with",imfile2
     conv = convolve( imhdu1.data, imhdu2.data, mode='same' )
                              

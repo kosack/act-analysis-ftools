@@ -49,8 +49,6 @@ CENTERDEC ?= 22.014444	      # center of output map in Dec
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
-RINGAREAFACTOR ?= 7.0
-RINGGAP ?= 0.2                # gap between ring and ON radius in degrees
 PROJECTION ?= CAR             # WCS projection type for the map 
 MAXEVENTRADIUS ?= 3.0         # maximum event radius in degrees (psi cut)
 
@@ -60,7 +58,6 @@ PYTHONPATH+=:$TOOLSDIR
 
 TARGETS = diagnostic_significance.ps 
 TARGETS += fovbg_excess_gauss.fits fovbg_significance.fits
-TARGETS += ringbg_excess_gauss.fits
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -112,7 +109,7 @@ endif
 
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some clean-maps show
 
-all::  setup show $(TARGETS)
+all:  setup show $(TARGETS)
 	@echo "Done processing: $(TARGETS)"
 
 deps.ps: Makefile
@@ -301,114 +298,17 @@ fovbg_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits
 		b=accmap_sum_tophat.fits \
 		clobber=yes $(REDIRECT)
 
-#-------------------------------------------------------------------------
-# ring background model (off events are sum of on events in annulus about
-# each bin)
-#-------------------------------------------------------------------------
-
-ring.fits: exclmap.fits
-	@echo "GENERATING RING: $@"
-	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
-		--gap $(RINGGAP) \
-		--areafactor $(RINGAREAFACTOR) $^ $(REDIRECT)
-
-
-exclmap_ring.fits: exclmap.fits ring.fits
-	@echo "CONVOLVE RING EXCLMAP: $@"
-	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
-
-flatmap_ring.fits: flatmap.fits ring.fits
-	@echo "CONVOLVE RING FLATMAP: $@"
-	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
-
-%_offmap_ring.fits: %_cmap_excluded.fits ring.fits exclmap_ring.fits
-	@echo "RING OFF MAP: $*"
-	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
-	@ftimgcalc $@ 'A*sum(C)/B' a=tmp_$@ b=exclmap_ring.fits c=ring.fits clobber=true $(REDIRECT)
-	@$(RM) tmp_$@
-
-
-%_accmap_ring.fits: %_accmap.fits ring.fits flatmap_ring.fits
-	@echo "CONVOLVE RING ACCMAP: $*"
-	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
-#	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
-#	@ftpixcalc $@ 'A/B' a=tmp_$@ b=flatmap_ring.fits clobber=true $(REDIRECT)
-#	@$(RM) tmp_$@
-
-
-ringbg_alpha.fits: accmap_sum.fits accmap_ring_sum.fits
-	@echo "RING ALPHA MAP"
-	@ftpixcalc $@ 'A/B' a=accmap_sum.fits b=accmap_ring_sum.fits \
-		clobber=true $(REDIRECT)
-
-
-ringbg_excess.fits: cmap_sum.fits ringbg_alpha.fits offmap_ring_sum.fits
-	@echo "RING EXCESS: $@"
-	@ftpixcalc $@ 'A-B*C' \
-		a=cmap_sum.fits \
-		b=offmap_ring_sum.fits \
-		c=ringbg_alpha.fits \
-		clobber=yes $(REDIRECT)
-
-
-ringbg_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
-	@echo "RING ALPHA MAP TOPHAT: $@"
-	@ftpixcalc $@ 'A/B' a=accmap_sum_tophat.fits b=accmap_ring_sum_tophat.fits \
-		clobber=true $(REDIRECT)
 
 
 EPSILON=1e-10
-LIMA_P1=(1.0+ALP)/ALP * ( NON/(NON+NOFF))
-LIMA_P2=(1.0+ALP)*(NOFF/(NON+NOFF))
+LIMA_P1=(1.0+ALPHA)/ALPHA * ( NON/(NON+NOFF))
+LIMA_P2=(1.0+ALPHA)*(NOFF/(NON+NOFF))
 LIMASQR=2*NON*log( $(LIMA_P1) ) + NOFF*log( $(LIMA_P2) )
-LIMA_a=((NON-ALP*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
+LIMA_a=((NON-ALPHA*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
 
-LIMA=(ALP<0? 0: (ALP<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
-
-
-ringbg_significance.fits: cmap_sum_tophat.fits ringbg_alpha_tophat.fits offmap_ring_sum_tophat.fits
-	@echo "RING SIGNIFICANCE: $@"
-	@echo "DEBUG: $(LIMA)"
-	@ftpixcalc alt_$@ '$(LIMA)' \
-		a="NON=cmap_sum_tophat.fits" \
-		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ringbg_alpha_tophat.fits" \
-		clobber=yes $(REDIRECT)
-	@ftpixcalc $@ '(NON-NOFF*ALP)/sqrt(ALP*(NON+NOFF))'\
-		a="NON=cmap_sum_tophat.fits" \
-		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ringbg_alpha_tophat.fits" \
-		clobber=yes $(REDIRECT)
-
-# TODO: need to divide by exclmap_tophat to get the right values in the exclusion region!
-EXCLCORR=(EXCL/max(EXCL))
-ringbg_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ringbg_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits exclmap_tophat.fits
-	@echo "RING SIGNIFICANCE: $@"
-	@ftpixcalc alt_$@ '$(LIMA)' \
-		a="NON=cmap_sum_tophat_exmasked.fits" \
-		b="NOFF=offmap_ring_sum_exmasked_tophat.fits" \
-		c="ALP=ringbg_alpha_exmasked_tophat.fits" \
-		clobber=yes $(REDIRECT)
-	@ftimgcalc $@ '(NON-NOFF*$(EXCLCORR)*ALP)/sqrt(ALP*(NON+NOFF*$(EXCLCORR)))'\
-		a="NON=cmap_sum_exmasked_tophat.fits" \
-		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ringbg_alpha_tophat.fits" \
-		d="EXCL=exclmap_tophat.fits" \
-		clobber=yes $(REDIRECT)
+LIMA=(ALPHA<0? 0: (ALPHA<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
 
 
-#-------------------------------------------------------------------------
-# Diagnostic plots (some use gnuplot)
-#-------------------------------------------------------------------------
-
-diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ringbg_significance_imhist.fits ringbg_significance_exmasked_imhist.fits
-	@echo "DIAGNOSTIC: $@"
-	gnuplot $< > $@
-
-
-%_imhist.fits: %.fits
-	@echo "HISTOGRAM: $@"
-	@fimhisto $< $@ range=-10,100 binsize=1.0 clobber=yes  $(REDIRECT)
 
 # TODO: make a rule like:
 #  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
