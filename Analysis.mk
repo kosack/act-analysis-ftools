@@ -56,8 +56,7 @@ TOOLSDIR ?= $(HOME)/Source/PyFITSTools
 PYTHON ?= python
 PYTHONPATH+=:$TOOLSDIR
 
-TARGETS = diagnostic_significance.ps 
-TARGETS += fovbg_excess_gauss.fits fovbg_significance.fits
+TARGETS = fovbg_excess_gauss.fits fovbg_significance.fits
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -129,9 +128,8 @@ help:
 	@echo "COMMON TARGETS:            FUNCTION:"
 	@echo "    make show              - show the options for this analysis"
 	@echo "    make verify            - check that all event-lists are ok"
-	@echo "    make fovbg_excess.fits   - generate FOV model excess map"
-	@echo "    make ringbg_excess.fits  - generate Ring model excess map"
-	@echo "    make diagnostic_significance.ps - significance curves"
+	@echo "    make fovbg             - generate FOV model excess maps"
+	@echo "    make ringbg            - generate Ring model excess maps"
 	@echo ""
 	@echo "Note: if you have multiple processors, use 'make -jN' where N "
 	@echo "      is the number of simultaneous processes to start."
@@ -299,16 +297,24 @@ fovbg_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits
 		clobber=yes $(REDIRECT)
 
 
+# ==============================================================
+# Formulae 
+# ==============================================================
 
 EPSILON=1e-10
+
+
+# LIMA: Li and Ma significance calculation
 LIMA_P1=(1.0+ALPHA)/ALPHA * ( NON/(NON+NOFF))
 LIMA_P2=(1.0+ALPHA)*(NOFF/(NON+NOFF))
 LIMASQR=2*NON*log( $(LIMA_P1) ) + NOFF*log( $(LIMA_P2) )
 LIMA_a=((NON-ALPHA*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
-
 LIMA=(ALPHA<0? 0: (ALPHA<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
+LIMA_EXCL=$(subst NOFF,NOFF*$(EXCLCORR),$(LIMA))
 
-
+# SIGNIF: simplistic significance calculation:
+SIGNIF=(NON-NOFF*ALPHA)/sqrt(ALPHA*(NON+NOFF))
+SIGNIF_EXCL=$(subst NOFF,NOFF*$(EXCLCORR),$(SIGNIF))
 
 # TODO: make a rule like:
 #  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
@@ -370,3 +376,7 @@ clean-excl:
 # useful if you change map parameters (projection, center, etc) and
 # want to redo everything
 clean-maps: clean-bg clean-some
+
+
+include $(TOOLSDIR)/RingBg.mk
+include $(TOOLSDIR)/TemplateBg.mk

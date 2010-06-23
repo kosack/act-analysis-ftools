@@ -70,7 +70,7 @@ ringbg_significance.fits: cmap_sum_tophat.fits ringbg_alpha_tophat.fits offmap_r
 		b="NOFF=offmap_ring_sum_tophat.fits" \
 		c="ALPHA=ringbg_alpha_tophat.fits" \
 		clobber=yes $(REDIRECT)
-	@ftpixcalc $@ '(NON-NOFF*ALPHA)/sqrt(ALPHA*(NON+NOFF))'\
+	@ftpixcalc $@ '$(SIGNIF)' \
 		a="NON=cmap_sum_tophat.fits" \
 		b="NOFF=offmap_ring_sum_tophat.fits" \
 		c="ALPHA=ringbg_alpha_tophat.fits" \
@@ -78,7 +78,7 @@ ringbg_significance.fits: cmap_sum_tophat.fits ringbg_alpha_tophat.fits offmap_r
 
 # TODO: need to divide by exclmap_tophat to get the right values in the exclusion region!
 EXCLCORR=(EXCL/max(EXCL))
-LIMA_EXCL=$(subst NOFF,NOFF*$(EXCLCORR),$(LIMA))
+
 ringbg_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ringbg_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits exclmap_tophat.fits
 	@echo "RING MASKED SIGNIFICANCE: $@"
 	@echo "LIMA_EXCL: $(LIMA_EXCL)"
@@ -88,7 +88,7 @@ ringbg_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ringbg_alpha_ex
 		c="ALPHA=ringbg_alpha_exmasked_tophat.fits" \
 		d="EXCL=exclmap_tophat.fits" \
 		clobber=yes $(REDIRECT)
-	@ftimgcalc $@ '(NON-NOFF*$(EXCLCORR)*ALPHA)/sqrt(ALPHA*(NON+NOFF*$(EXCLCORR)))'\
+	@ftimgcalc $@ '$(SIGNIF_EXCL)'\
 		a="NON=cmap_sum_exmasked_tophat.fits" \
 		b="NOFF=offmap_ring_sum_tophat.fits" \
 		c="ALPHA=ringbg_alpha_tophat.fits" \
