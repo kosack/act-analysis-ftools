@@ -108,8 +108,9 @@ endif
 
 .PHONY: setup clean help all verify clean clean-runs clean-sums clean-bg clean-excl clean-events clean-some clean-maps show
 
-all:  setup show $(TARGETS)
-	@echo "Done processing: $(TARGETS)"
+
+all: 
+
 
 deps.ps: Makefile
 	$(TOOLSDIR)/dependencies.pl | dot -Tps -o $@
@@ -150,7 +151,7 @@ show:
 	@echo "    ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
 	@echo "   SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
 	@echo "=============================================================="
-
+	@echo "TARGETS: $(TARGETS)"
 # =========================================================================
 # exclusions
 # =========================================================================
@@ -380,3 +381,6 @@ clean-maps: clean-bg clean-some
 
 include $(TOOLSDIR)/RingBg.mk
 include $(TOOLSDIR)/TemplateBg.mk
+
+all:  setup show $(TARGETS)
+	@echo "Done processing: $(TARGETS)"
