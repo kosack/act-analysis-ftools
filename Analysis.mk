@@ -59,8 +59,8 @@ PYTHON ?= python
 PYTHONPATH+=:$TOOLSDIR
 
 TARGETS = diagnostic_significance.ps 
-TARGETS += fov_excess_gauss.fits fov_significance.fits
-TARGETS += ring_excess_gauss.fits
+TARGETS += fovbg_excess_gauss.fits fovbg_significance.fits
+TARGETS += ringbg_excess_gauss.fits
 
 # =========================================================================
 # CALCULATED PARAMETERS (not user-definable)
@@ -132,8 +132,8 @@ help:
 	@echo "COMMON TARGETS:            FUNCTION:"
 	@echo "    make show              - show the options for this analysis"
 	@echo "    make verify            - check that all event-lists are ok"
-	@echo "    make fov_excess.fits   - generate FOV model excess map"
-	@echo "    make ring_excess.fits  - generate Ring model excess map"
+	@echo "    make fovbg_excess.fits   - generate FOV model excess map"
+	@echo "    make ringbg_excess.fits  - generate Ring model excess map"
 	@echo "    make diagnostic_significance.ps - significance curves"
 	@echo ""
 	@echo "Note: if you have multiple processors, use 'make -jN' where N "
@@ -289,12 +289,12 @@ tophat.fits: exclmap.fits
 # Field-of-view background model maps (background is assumed to be the
 # scaled acceptance map)
 #-------------------------------------------------------------------------
-fov_excess.fits: accmap_sum.fits cmap_sum.fits
+fovbg_excess.fits: accmap_sum.fits cmap_sum.fits
 	@echo "FOV EXCESS MAP: $@"
 	@ftpixcalc $@ 'A-B' a=cmap_sum.fits b=accmap_sum.fits \
 		clobber=true $(REDIRECT)
 
-fov_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits 
+fovbg_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits 
 	@echo "FOV SIGNIFICANCE: $@"
 	@ftpixcalc $@ '(A-B)/sqrt(A)'\
 		a=cmap_sum_tophat.fits \
@@ -336,22 +336,22 @@ flatmap_ring.fits: flatmap.fits ring.fits
 #	@$(RM) tmp_$@
 
 
-ring_alpha.fits: accmap_sum.fits accmap_ring_sum.fits
+ringbg_alpha.fits: accmap_sum.fits accmap_ring_sum.fits
 	@echo "RING ALPHA MAP"
 	@ftpixcalc $@ 'A/B' a=accmap_sum.fits b=accmap_ring_sum.fits \
 		clobber=true $(REDIRECT)
 
 
-ring_excess.fits: cmap_sum.fits ring_alpha.fits offmap_ring_sum.fits
+ringbg_excess.fits: cmap_sum.fits ringbg_alpha.fits offmap_ring_sum.fits
 	@echo "RING EXCESS: $@"
 	@ftpixcalc $@ 'A-B*C' \
 		a=cmap_sum.fits \
 		b=offmap_ring_sum.fits \
-		c=ring_alpha.fits \
+		c=ringbg_alpha.fits \
 		clobber=yes $(REDIRECT)
 
 
-ring_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
+ringbg_alpha_tophat.fits: accmap_sum_tophat.fits accmap_ring_sum_tophat.fits
 	@echo "RING ALPHA MAP TOPHAT: $@"
 	@ftpixcalc $@ 'A/B' a=accmap_sum_tophat.fits b=accmap_ring_sum_tophat.fits \
 		clobber=true $(REDIRECT)
@@ -366,33 +366,33 @@ LIMA_a=((NON-ALP*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
 LIMA=(ALP<0? 0: (ALP<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
 
 
-ring_significance.fits: cmap_sum_tophat.fits ring_alpha_tophat.fits offmap_ring_sum_tophat.fits
+ringbg_significance.fits: cmap_sum_tophat.fits ringbg_alpha_tophat.fits offmap_ring_sum_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
 	@echo "DEBUG: $(LIMA)"
 	@ftpixcalc alt_$@ '$(LIMA)' \
 		a="NON=cmap_sum_tophat.fits" \
 		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ring_alpha_tophat.fits" \
+		c="ALP=ringbg_alpha_tophat.fits" \
 		clobber=yes $(REDIRECT)
 	@ftpixcalc $@ '(NON-NOFF*ALP)/sqrt(ALP*(NON+NOFF))'\
 		a="NON=cmap_sum_tophat.fits" \
 		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ring_alpha_tophat.fits" \
+		c="ALP=ringbg_alpha_tophat.fits" \
 		clobber=yes $(REDIRECT)
 
 # TODO: need to divide by exclmap_tophat to get the right values in the exclusion region!
 EXCLCORR=(EXCL/max(EXCL))
-ring_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ring_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits exclmap_tophat.fits
+ringbg_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ringbg_alpha_exmasked_tophat.fits offmap_ring_sum_exmasked_tophat.fits exclmap_tophat.fits
 	@echo "RING SIGNIFICANCE: $@"
 	@ftpixcalc alt_$@ '$(LIMA)' \
 		a="NON=cmap_sum_tophat_exmasked.fits" \
 		b="NOFF=offmap_ring_sum_exmasked_tophat.fits" \
-		c="ALP=ring_alpha_exmasked_tophat.fits" \
+		c="ALP=ringbg_alpha_exmasked_tophat.fits" \
 		clobber=yes $(REDIRECT)
 	@ftimgcalc $@ '(NON-NOFF*$(EXCLCORR)*ALP)/sqrt(ALP*(NON+NOFF*$(EXCLCORR)))'\
 		a="NON=cmap_sum_exmasked_tophat.fits" \
 		b="NOFF=offmap_ring_sum_tophat.fits" \
-		c="ALP=ring_alpha_tophat.fits" \
+		c="ALP=ringbg_alpha_tophat.fits" \
 		d="EXCL=exclmap_tophat.fits" \
 		clobber=yes $(REDIRECT)
 
@@ -401,14 +401,14 @@ ring_significance_exmasked.fits: cmap_sum_exmasked_tophat.fits ring_alpha_exmask
 # Diagnostic plots (some use gnuplot)
 #-------------------------------------------------------------------------
 
-diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ring_significance_imhist.fits ring_significance_exmasked_imhist.fits
+diagnostic_significance.ps: $(TOOLSDIR)/diagnostic_significance.gpl ringbg_significance_imhist.fits ringbg_significance_exmasked_imhist.fits
 	@echo "DIAGNOSTIC: $@"
 	gnuplot $< > $@
 
 
 %_imhist.fits: %.fits
 	@echo "HISTOGRAM: $@"
-	@fimhisto $< $@ range=-10,100 binsize=0.5 clobber=yes $(REDIRECT)
+	@fimhisto $< $@ range=-10,100 binsize=1.0 clobber=yes  $(REDIRECT)
 
 # TODO: make a rule like:
 #  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
@@ -460,8 +460,8 @@ clean-sums:
 	$(RM) *_sum.fits *_sum_*.fits
 
 clean-bg:
-	$(RM) fov_*.fits $(CLEANUP_BG)
-	$(RM) ring*.fits *_ring*.fits
+	$(RM) fovbg_*.fits $(CLEANUP_BG)
+	$(RM) ringbg_*.fits *_ring*.fits
 	$(RM) tophat.fits
 
 clean-excl:

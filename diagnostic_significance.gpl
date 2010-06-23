@@ -5,5 +5,5 @@ set grid
 set title "Significance Distributions (Ring Background)"
 set xlabel "Significance (standard deviations)"
 set ylabel "Frequency within image"
-plot '< ftlist ring_significance_imhist.fits t' u 2:3 w step t 'full' 2 , \
-     '< ftlist ring_significance_exmasked_imhist.fits t' u 2:3 w step t 'masked' 1
+plot '< ftlist ringbg_significance_imhist.fits t' u 2:3 w step t 'full' 2 , \
+     '< ftlist ringbg_significance_exmasked_imhist.fits t' u 2:3 w step t 'masked' 1
