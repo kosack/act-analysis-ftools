@@ -10,8 +10,10 @@ if __name__ == "__main__":
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option( "-o","--output", dest="output", help="output filename")
-    parser.add_option( "-f","--nofft", dest="nofft", 
-                       help="don't use FFT to convolve (slower)")
+    parser.add_option( "-f","--nofft", dest="nofft", action="store_true",
+                       default=False, help="don't use FFT to convolve (slower)")
+    parser.add_option( "-0","--round-to-zero", dest="zero", action="store_true",
+                       default=False, help="round small values to 0")    
 
     (opts, args) = parser.parse_args()
     
@@ -35,6 +37,9 @@ if __name__ == "__main__":
 
     print "CONVOLVING:",imfile1,"with",imfile2
     conv = convolve( imhdu1.data, imhdu2.data, mode='same' )
+
+    if (opts.zero==True):
+        conv[abs(conv)<1e-10] = 0.0
                              
     if (opts.output):
         pyfits.writeto( opts.output, header=imhdu1.header,

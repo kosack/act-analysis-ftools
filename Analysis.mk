@@ -255,7 +255,7 @@ flatmap.fits: flatlist.fits
 # tophat correlation of a map
 %_tophat.fits: %.fits tophat.fits
 	@echo "TOPHAT CONVOLUTION: $*"
-	@$(CONVOLVE) --output $@ $< tophat.fits $(REDIRECT)
+	@$(CONVOLVE) --round-to-zero --output $@ $< tophat.fits $(REDIRECT)
 
 # gaussian correlation of a map:
 %_gauss.fits: %.fits 
