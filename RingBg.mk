@@ -28,10 +28,18 @@ flatmap_ring.fits: flatmap.fits ring.fits
 	@echo "CONVOLVE RING FLATMAP: $@"
 	@$(CONVOLVE) --output $@ $^ $(REDIRECT)
 
+# the RingBg off map is the sum of events in a ring about each
+# position, taking into account exclusions.  Therefore it's the
+# convolution of the excluded countmap with a ring, with the
+# ring-convolved exclusion map used as a correction.
 %_offmap_ring.fits: %_cmap_excluded.fits ring.fits exclmap_ring.fits
 	@echo "RING OFF MAP: $*"
 	@$(CONVOLVE) --output tmp_$@ $^ $(REDIRECT)
-	@ftimgcalc $@ 'A*sum(C)/B' a=tmp_$@ b=exclmap_ring.fits c=ring.fits clobber=true $(REDIRECT)
+	@ftimgcalc $@ 'A*sum(C)/B' \
+		a=tmp_$@ \
+		b=exclmap_ring.fits \
+		c=ring.fits \
+		clobber=true $(REDIRECT)
 	@$(RM) tmp_$@
 
 
