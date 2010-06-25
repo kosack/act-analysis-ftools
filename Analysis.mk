@@ -255,7 +255,9 @@ flatmap.fits: flatlist.fits
 # tophat correlation of a map
 %_tophat.fits: %.fits tophat.fits
 	@echo "TOPHAT CONVOLUTION: $*"
-	@$(CONVOLVE) --round-to-zero --output $@ $< tophat.fits $(REDIRECT)
+	@$(CONVOLVE) --output tmp-$@ $< tophat.fits $(REDIRECT)
+	@ftcopy 'tmp-$@[pix abs(x)<1e-8?0:x]' $@  clobber=yes # round to 0
+	@$(RM) tmp-$@
 
 # gaussian correlation of a map:
 %_gauss.fits: %.fits 
@@ -369,6 +371,7 @@ clean-sums:
 clean-bg:
 	$(RM) fovbg_*.fits $(CLEANUP_BG)
 	$(RM) ringbg_*.fits *_ring*.fits
+	$(RM) templatebg_*.fits *_template*.fits
 	$(RM) tophat.fits
 
 clean-excl:
