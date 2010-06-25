@@ -13,7 +13,7 @@ if __name__ == '__main__':
         sys.exit( 1 )
 
     columns = ["RA","DEC","HIL_MSW"]
-    headers = ["RA_PNT","DEC_PNT","ALT_PNT", "AZ_PNT"]
+    headers = ["OBJECT","RUN_ID","RA_PNT","DEC_PNT","ALT_PNT", "AZ_PNT"]
 
     # check that events exist and necessary columns are there
 
