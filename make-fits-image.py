@@ -7,6 +7,8 @@ import sys
 import actutils
 from optparse import OptionParser
 
+from kapteyn import wcs
+
 #
 # TODO:
 #    - add a makeCube() function, with logEnergy as the 3rd dimension
@@ -33,6 +35,10 @@ parser.add_option( "-p","--projection", dest="proj", help="projection",
                    default="CAR")
 parser.add_option( "-v","--verbose", dest="verbose", help="more output")
 parser.add_option( "-r","--rmax", dest="rmax", help="maximum radius in deg")
+parser.add_option( "-s","--system", dest="system", 
+                   help="coordinate sys of output (e.g. 'fk5' or 'galactic')",
+                   default="fk5");
+
 parser.set_usage("makefits.py [options] eventsfile.fits")
 
 
@@ -50,6 +56,7 @@ if (options.center):
 if (options.rmax):
     rmax = float(options.rmax)
 
+
 if len(sys.argv)>1:
     inputfile = args.pop()
 else:
@@ -62,8 +69,9 @@ if options.verbose:
     print "   FOV:",FOV
 
 # generate blank output image:
-hdu = actutils.makeImageHDU(centerRADec=center, geom=geom, 
-                            FOV=FOV,projection=options.proj)
+hdu = actutils.makeImageHDU(center=center, geom=geom, 
+                            FOV=FOV,projection=options.proj, 
+                            system=options.system)
 
 # get events
 ff=pyfits.open(inputfile)
