@@ -130,14 +130,14 @@ def makeDistanceMap(imagehdu,posRADec=None):
     # pixel coordinates.
 
     proj = wcs.Projection( imagehdu.header )
-#    tran = wcs.Transformation( wcs.fk5, proj.skysys )
-#    pos = tran(posRADec) # transform to map's coordinates
 
     if (posRADec==None):
         # get the position from the map center:
         pos= proj.toworld(np.array(proj.naxis)/2.0+1.0)
     else:
-        pos = posRADec
+        tran = wcs.Transformation( wcs.fk5, proj.skysys )
+        pos = tran(posRADec) # transform to map's coordinates
+
 
     print "DISTANCE FROM POSITION: ", pos
     

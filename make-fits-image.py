@@ -33,7 +33,8 @@ parser.add_option( "-c","--center", dest="center", help="image center degrees",
 parser.add_option( "-o","--output", dest="output", help="output filename")
 parser.add_option( "-p","--projection", dest="proj", help="projection",
                    default="CAR")
-parser.add_option( "-v","--verbose", dest="verbose", help="more output")
+parser.add_option( "-v","--verbose", dest="verbose", 
+                   action="store_true", help="more output")
 parser.add_option( "-r","--rmax", dest="rmax", help="maximum radius in deg")
 parser.add_option( "-s","--system", dest="system", 
                    help="coordinate sys of output (e.g. 'fk5' or 'galactic')",

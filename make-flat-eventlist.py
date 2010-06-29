@@ -22,7 +22,8 @@ if __name__ == "__main__":
     
     from optparse import OptionParser
     parser = OptionParser()
-    parser.add_option( "-v","--verbose", dest="verbose", help="more output")
+    parser.add_option( "-v","--verbose", dest="verbose", 
+                       action="store_true",help="more output")
     parser.add_option( "-s","--oversample", dest="oversample", 
                        help="Number of times to oversample each pixel", default=1)
     parser.set_usage("make-flat-eventlist.py [options] <input fits image> "
@@ -60,11 +61,14 @@ if __name__ == "__main__":
 
     vals = image.data.flatten()/(oversample**2)
 
+    trans = wcs.Transformation( proj.skysys, wcs.fk5 )
+    ra,dec = trans((pix[0],pix[1]))
+
     # now write out an eventlist with columns RA,DEC,DETX,DETY
 
     names = np.array( ['RA', 'DEC'] )
-    c1 = pyfits.Column( name='RA', format='D', array = pix[0] )
-    c2 = pyfits.Column( name='DEC', format='D', array = pix[1] )
+    c1 = pyfits.Column( name='RA', format='D', array = ra )
+    c2 = pyfits.Column( name='DEC', format='D', array = dec )
     c3 = pyfits.Column( name='DETX', format='D', array = detx )
     c4 = pyfits.Column( name='DETY', format='D', array = dety )
     c5 = pyfits.Column( name="VALUE", format='D', array=vals )

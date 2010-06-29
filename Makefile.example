@@ -8,8 +8,9 @@ FOVX=7.0                   # Field of view of output map (X degrees)
 FOVY=7.0                   # Field of view of output map (Y degrees)
 GEOMX=301                  # number of X bins in map (integer)
 GEOMY=301       	   # number of Y bins in map (integer)
-CENTERRA=83.633333	   # center of output map in RA
-CENTERDEC=22.014444	   # center of output map in Dec
+SYSTEM=fk5                 # fk5 or galactic
+CENTERX=83.633333	   # center of output map in RA or gal-lon
+CENTERY=22.014444	   # center of output map in Dec or gal-lat
 EXCLUSIONFILE=excluded.reg # exclusion region file in ascii region format
 
 # =========================================================================

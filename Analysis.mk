@@ -44,8 +44,9 @@ FOVX ?= 7.0                   # Field of view of output map (X degrees)
 FOVY ?= 7.0                   # Field of view of output map (Y degrees)
 GEOMX ?= 301                  # number of X bins in map (integer)
 GEOMY ?= 301		      # number of Y bins in map (integer)
-CENTERRA ?= 83.633333	      # center of output map in RA
-CENTERDEC ?= 22.014444	      # center of output map in Dec
+SYSTEM ?= fk5                 # Coordinate System for maps
+CENTERX ?= 83.633333	      # center of output map in RA/GalB
+CENTERY ?= 22.014444	      # center of output map in Dec/GalL
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
@@ -88,8 +89,9 @@ EXCLMASK='regfilter("$(strip $(EXCLUSIONFILE))",RA,DEC)'
 # parameters passed to MAKEMAP to generate the images
 MAPARGS=--fov $(strip $(FOVX)),$(strip $(FOVY)) \
 	--geom $(strip $(GEOMX)),$(strip $(GEOMY)) \
-	--center $(strip $(CENTERRA)),$(strip $(CENTERDEC)) \
-	--proj $(strip $(PROJECTION))
+	--center $(strip $(CENTERX)),$(strip $(CENTERY)) \
+	--proj $(strip $(PROJECTION)) \
+	--system $(strip $(SYSTEM)) --verbose 
 
 MAKEMAP:=$(PYTHON) $(TOOLSDIR)/make-fits-image.py $(MAPARGS)
 ACCEPTANCE:=$(PYTHON) $(TOOLSDIR)/acceptance.py --rmax=$(strip $(MAXEVENTRADIUS))
@@ -130,7 +132,8 @@ help:
 	@echo "    make show              - show the options for this analysis"
 	@echo "    make verify            - check that all event-lists are ok"
 	@echo "    make fovbg             - generate FOV model excess maps"
-	@echo "    make ringbg            - generate Ring model excess maps"
+	@echo "    make ringbg            - generate ring model excess maps"
+	@echo "    make templatebg        - generate template model excess maps"
 	@echo ""
 	@echo "Note: if you have multiple processors, use 'make -jN' where N "
 	@echo "      is the number of simultaneous processes to start."
@@ -145,8 +148,9 @@ show:
 	@echo "      FOV: $(strip $(FOVX)) x $(strip $(FOVY)) deg"
 	@echo "     GEOM: $(strip $(GEOMX)) x $(strip $(GEOMY)) pix"
 	@echo "     PROJ: $(strip $(PROJECTION))"
-	@echo "       RA: $(strip $(CENTERRA)) deg"
-	@echo "      DEC: $(strip $(CENTERDEC)) deg"
+	@echo "   SYSTEM: $(strip $(SYSTEM))"
+	@echo "  CENTERX: $(strip $(CENTERX)) deg"
+	@echo "  CENTERY: $(strip $(CENTERY)) deg"
 	@echo "    R_max: $(strip $(MAXEVENTRADIUS)) deg"
 	@echo "    ONRAD: $(strip $(ONRADIUS)) deg ($(strip $(ONTH2)) sq deg)"
 	@echo "   SMOOTH: $(strip $(SMOOTHRAD)) deg ($(GAUSSSIG) pix)"
@@ -180,7 +184,7 @@ excluded.reg: $(HESSROOT)/hdanalysis/lists/ExcludedRegions_v11.dat
 # countmap 
 %_cmap.fits: %_event_selected.fits 
 	@echo COUNT MAP $*
-	@$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
+	$(MAKEMAP) --rmax $(strip $(MAXEVENTRADIUS)) --output $@ $< $(REDIRECT)
 
 # excluded count map
 %_cmap_excluded.fits: %_event_excluded.fits
@@ -240,7 +244,7 @@ flatlist_excluded.fits: flatlist.fits $(EXCLUSIONFILE)
 
 exclmap.fits: flatlist_excluded.fits
 	@echo "EXCLUSION MAP: $@"
-	@$(MAKEMAP) --output $@ $< $(REDIRECT)
+	$(MAKEMAP) --output $@ $< $(REDIRECT)
 
 flatmap.fits: flatlist.fits
 	@echo "FLAT MAP: $@"
