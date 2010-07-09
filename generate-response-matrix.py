@@ -55,6 +55,70 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     print "DEBUG:",hdu.header
 
 
+def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
+
+    # The redistribution matrix is just a set of 1D histogram (of
+    # probability), one for each true-energy bin, that has N_CHAN
+    # reco-energy bins.
+
+    # `channel`: a reco-energy bin, one element of the redistribution
+    # function, E_min to E_max
+
+    # `energy bin`: bin in true energy, E_LO to E_HI
+
+
+
+    Etrue_bins,Ereco_bins = responseHist.binLowerEdges
+    Etrue_bins = 10**Etrue_bins
+    Ereco_bins = 10**Ereco_bins
+    nchan = len(Ereco_bins)-1
+    nebin = len(Etrue_bins)-1
+
+    chan = np.arange( 1, nchan )
+
+    # first create the EBOUNDS extension (that defines the energy
+    # ranges for each "channel"
+
+    col_chan = pyfits.Column( name="CHANNEL", format='I',array=chan )
+    col_emin = pyfits.Column( name="E_MIN", format='E', unit='TeV',
+                              array=Ereco_bins[0:-1] )
+    col_emax = pyfits.Column( name="E_MAX", format='E', unit='TeV',
+                              array=Ereco_bins[1:] )
+
+    ebounds = pyfits.new_table( [col_chan, col_emin, col_emax])
+
+    
+    # now create the RMF table. FOr now there is only a fixed
+    # zenith/azimuth, etc, so we can just just a single group of
+    # channels (for the real data, this will be more complicated)
+
+    col_elo = pyfits.Column( name="E_LO", format='E', unit='TeV',
+                              array=Etrue_bins[0:-1] )
+    col_ehi = pyfits.Column( name="E_HI", format='E', unit='TeV',
+                              array=Etrue_bins[1:] )
+    col_ngrp = pyfits.Column( name="N_GRP", format='E', unit='TeV',
+                              array=ones(nebins) )
+
+    col_ngrp = pyfits.Column( name="N_GRP", format='I', unit='TeV',
+                              array=ones(nebins) )
+
+    col_fchan = pyfits.Column( name="F_CHAN", format='10I', unit='TeV',
+                              array=ones(nebins) )
+
+    col_nchan = pyfits.Column( name="N_CHAN", format='10I', unit='TeV',
+                              array=ones(nebins) )
+
+    # col_matrix = pyfits.Column( name="MATRIX", format='10I', unit='TeV',
+    #                             array=ones(nebins) )
+
+
+
+    ebounds.writeto( outputFileName, clobber=True )
+    
+
+    pass
+
+
 if __name__ == '__main__':
     parser = OptionParser()
     (opts,args) = parser.parse_args()
@@ -200,6 +264,6 @@ if __name__ == '__main__':
     pylab.savefig("response.pdf", papertype="a4")
 
 
-
+    writeRMF( energyResponseHist )
 
  
