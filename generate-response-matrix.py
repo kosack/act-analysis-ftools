@@ -19,7 +19,7 @@ def normalizeToProb(x):
     """
     Makes x a probability distribution
     Arguments:
-    - `x`:
+    - `x`: array-like
     """
     x[x>0] /= np.sum(x)
     return x
@@ -43,6 +43,7 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
 
     coldefs = pyfits.ColDefs( [colE_lo,colE_hi,colSpecResp])
     hdu = pyfits.new_table( coldefs )
+    hdu.name="EFFAREA"
     # put in required headers defined by OGIP:
 
     hdu.header.update("HDUCLASS", "OGIP", "Organization of definition" );
@@ -86,6 +87,20 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
                               array=Ereco_bins[1:] )
 
     ebounds = pyfits.new_table( [col_chan, col_emin, col_emax])
+    ebounds.name="EBOUNDS"
+    ebounds.header.update("HDUCLASS", "OGIP", "Organization of definition" );
+    ebounds.header.update("HDUCLAS1", "RESPONSE", 
+                         "dataset relates to spectral response" );
+    ebounds.header.update("HDUCLAS2", "EBOUNDS", "dataset is a response matrix" );
+    ebounds.header.update("HDUCLAS3", "REDIST", "photon redistribution matrix" );
+    ebounds.header.update("HDUVERS", "1.3.0", 
+                         "Version of format (OGIP memo CAL/GEN/92-002a)" );
+    ebounds.header.update("HDUVERS1", "1.3.0", 
+                          "Obsolete - included for backwards compatibility" );
+    ebounds.header.update("CHANTYPE", "PI", "Required keyword, X-ray relic" );
+    ebounds.header.update("TELESCOP", "HESS", "Mission name" );
+    ebounds.header.update("INSTRUME", "HESSI", "Instrument name" );
+    
 
     
     # now create the RMF table. FOr now there is only a fixed
@@ -96,31 +111,46 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
                               array=Etrue_bins[0:-1] )
     col_ehi = pyfits.Column( name="E_HI", format='E', unit='TeV',
                               array=Etrue_bins[1:] )
-    col_ngrp = pyfits.Column( name="N_GRP", format='E', unit='TeV',
-                              array=ones(nebins) )
 
     col_ngrp = pyfits.Column( name="N_GRP", format='I', unit='TeV',
-                              array=ones(nebins) )
+                              array=np.ones(nebin) )
 
-    col_fchan = pyfits.Column( name="F_CHAN", format='10I', unit='TeV',
-                              array=ones(nebins) )
+    col_fchan = pyfits.Column( name="F_CHAN", format='I', unit='TeV',
+                              array=np.ones(nebin) )
 
-    col_nchan = pyfits.Column( name="N_CHAN", format='10I', unit='TeV',
-                              array=ones(nebins) )
+    col_nchan = pyfits.Column( name="N_CHAN", format='I', unit='TeV',
+                              array=np.ones(nebin) )
 
-    # col_matrix = pyfits.Column( name="MATRIX", format='10I', unit='TeV',
-    #                             array=ones(nebins) )
+    
+    col_matrix = pyfits.Column( name="MATRIX", format='{0:d}E'.format(nchan), 
+                                array=responseHist.hist)
 
 
-
-    ebounds.writeto( outputFileName, clobber=True )
+    matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,col_fchan,col_matrix ] )
+    matrix.name="MATRIX"
+    matrix.header.update("HDUCLASS", "OGIP", "Organization of definition" );
+    matrix.header.update("HDUCLAS1", "RESPONSE", 
+                         "dataset relates to spectral response" );
+    matrix.header.update("HDUCLAS2", "RSP_MATRIX", "dataset is a response matrix" );
+    matrix.header.update("HDUCLAS3", "REDIST", "photon redistribution matrix" );
+    matrix.header.update("HDUVERS", "1.3.0", 
+                         "Version of format (OGIP memo CAL/GEN/92-002a)" );
+    matrix.header.update("HDUVERS1", "1.3.0", 
+                         "Obsolete - included for backwards compatibility" );
+    matrix.header.update("CHANTYPE", "PI", "Required keyword, X-ray relic" );
+    matrix.header.update("TELESCOP", "HESS", "Mission name" );
+    matrix.header.update("INSTRUME", "HESSI", "Instrument name" );
     
 
-    pass
+    hdulist = pyfits.HDUList( hdus=[pyfits.PrimaryHDU(),ebounds,matrix] )
+    hdulist.writeto( outputFileName, clobber=True )
+    
 
 
 if __name__ == '__main__':
     parser = OptionParser()
+    parser.add_option( "-p","--plot", dest="plot", action="store_true",
+                       default=False, help="generate plots")    
     (opts,args) = parser.parse_args()
 
     Ntrue_tot = None
@@ -131,6 +161,8 @@ if __name__ == '__main__':
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[100,100],
                                     axisNames=["$\log_{10}(E_{true})$", 
                                                "$\log_{10}(E_{reco})$"])
+
+    energyResponseHist.name="Photon Redistrubition Matrix"
 
     energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
                                       axisNames=["$\log_{10}(E_{true})$", 
@@ -208,62 +240,65 @@ if __name__ == '__main__':
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
     np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
+    np.apply_along_axis( normalizeToProb, arr=energyResponseHist.hist, axis=1)
+
+    writeRMF( energyResponseHist )
 
     # TODO: calculate statistical errors
 
 
-    pylab.figure( figsize = (15.0,11.0), dpi=80 )
-    pylab.subplot(2,1,1)
+    if (opts.plot):
+        pylab.figure( figsize = (15.0,11.0), dpi=80 )
+        pylab.subplot(2,1,1)
 
-    pylab.semilogy()
-    pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
-          label="Reco", color="red" )
-    pylab.plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
-          label="True", color="blue" )
-    pylab.legend(loc="lower right")
-    pylab.title("Effective Area")
-    pylab.xlabel("$Log_{10}(E/\mathrm{TeV})$")
-    pylab.ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
-    pylab.grid()
+        pylab.semilogy()
+        pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
+              label="Reco", color="red" )
+        pylab.plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
+              label="True", color="blue" )
+        pylab.legend(loc="lower right")
+        pylab.title("Effective Area")
+        pylab.xlabel("$Log_{10}(E/\mathrm{TeV})$")
+        pylab.ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
+        pylab.grid()
 
+        # TODO: include background here, and 5 sigma requirement:
+        # obstimeHrs = 50.0
+        # obstime = obstimeHrs*60.0*60.0
+        # nevents= 10.0
+        # M2_CM2 = 100*2
+        # sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
+        # sensitivity[np.isinf(sensitivity)] = 0
+        # pylab.subplot(2,2,2)
+        # pylab.semilogy()
+        # pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
+        # pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
+        # pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
+        # pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
+        # pylab.grid()
 
-    # TODO: include background here, and 5 sigma requirement:
-    # obstimeHrs = 50.0
-    # obstime = obstimeHrs*60.0*60.0
-    # nevents= 10.0
-    # M2_CM2 = 100*2
-    # sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
-    # sensitivity[np.isinf(sensitivity)] = 0
-    # pylab.subplot(2,2,2)
-    # pylab.semilogy()
-    # pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
-    # pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-    # pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
-    # pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
-    # pylab.grid()
+        pylab.subplot(2,2,3)
+        energyResponseHist.draw2D()
+        l = energyResponseHist.binLowerEdges[0]
 
-    pylab.subplot(2,2,3)
-    energyResponseHist.draw2D()
-    l = energyResponseHist.binLowerEdges[0]
-
-    pylab.plot( l,l, color="white") 
-    pylab.colorbar()
-    pylab.title("")
-    
-
-    # make this histogram normalized to have an integral of 1.0 along
-    # the Y axis (so it is now a probability of reconstructing Ereco
-    # for a given Etrue)
-    pylab.subplot(2,2,4)
-    energyResolutionHist.draw2D( vmax=0.25 )
-    pylab.colorbar()
-    pylab.title("Energy Response")
-    l = energyResolutionHist.binLowerEdges[0]
-    pylab.plot( l,np.zeros_like(l), color="black")
-    pylab.grid(color='w')
-    pylab.savefig("response.pdf", papertype="a4")
+        pylab.plot( l,l, color="white") 
+        pylab.colorbar()
+        pylab.title("")
 
 
-    writeRMF( energyResponseHist )
+        # make this histogram normalized to have an integral of 1.0 along
+        # the Y axis (so it is now a probability of reconstructing Ereco
+        # for a given Etrue)
+        pylab.subplot(2,2,4)
+        energyResolutionHist.draw2D( vmax=0.25 )
+        pylab.colorbar()
+        pylab.title("Energy Response")
+        l = energyResolutionHist.binLowerEdges[0]
+        pylab.plot( l,np.zeros_like(l), color="black")
+        pylab.grid(color='w')
+        pylab.savefig("response.pdf", papertype="a4")
+
+
+
 
  
