@@ -43,15 +43,16 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
 
     coldefs = pyfits.ColDefs( [colE_lo,colE_hi,colSpecResp])
     hdu = pyfits.new_table( coldefs )
-    hdu.name="EFFAREA"
     # put in required headers defined by OGIP:
 
     hdu.header.update("HDUCLASS", "OGIP", "Organization of definition" );
     hdu.header.update("HDUDOC", "CAL/GEN/92-019", "Document describing format" );
     hdu.header.update("HDUCLAS1", "RESPONSE" );
-    hdu.header.update("HDUCLAS2", "EFFAREA" );
+    hdu.header.update("HDUCLAS2", "SPECRESP" );
     hdu.header.update("HDUVERS", "1.0.0" );
-    hdu.name = "EFF_AREA"
+    hdu.header.update("TELESCOP", "HESS", "Mission name" );
+    hdu.header.update("INSTRUME", "HESS1", "Instrument name" );
+    hdu.name = "SPECRESP"
     hdu.writeto( outputFileName, clobber=True )
     print "DEBUG:",hdu.header
 
@@ -99,7 +100,7 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
                           "Obsolete - included for backwards compatibility" );
     ebounds.header.update("CHANTYPE", "PI", "Required keyword, X-ray relic" );
     ebounds.header.update("TELESCOP", "HESS", "Mission name" );
-    ebounds.header.update("INSTRUME", "HESSI", "Instrument name" );
+    ebounds.header.update("INSTRUME", "HESS1", "Instrument name" );
     
 
     

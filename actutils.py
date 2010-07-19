@@ -375,9 +375,14 @@ def makeRadialFOVMask(imagehdu,radius,centerWorld=None):
     mask = np.zeros_like( dists )
     mask[dists<radius] = 1.0
     return mask
-        
+
+
+
 
 def displayFITS(header, data):
+    """
+    Display a FITS image using Kapteyn
+    """
     import pylab
 
     f = maputils.FITSimage( externalheader=header, externaldata=data)
@@ -396,6 +401,9 @@ def displayFITS(header, data):
     if header.has_key("EXTNAME"):
         plt.title( header["EXTNAME"] )
     plt.show()
+
+def displayFITSHDU( hdu ):        
+    displayFITS(hdu.header, hdu.data)
 
 def getTelTypeMap( telarray_hdu ):
     """
