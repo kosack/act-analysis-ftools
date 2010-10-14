@@ -127,7 +127,8 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
                                 array=responseHist.hist)
 
 
-    matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,col_fchan,col_matrix ] )
+    matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,col_fchan,
+                                col_nchan,col_matrix ] )
     matrix.name="MATRIX"
     matrix.header.update("HDUCLASS", "OGIP", "Organization of definition" );
     matrix.header.update("HDUCLAS1", "RESPONSE", 
