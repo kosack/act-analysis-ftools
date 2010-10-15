@@ -29,7 +29,7 @@ class Histogram(object):
         
         self.hist = np.zeros(bins)
         self._binLowerEdges= None  #TODO: should be a property, get only
-        self._bins = bins
+        self._bins = np.array(bins)
         self._range=range
         self.valueScale = None
         self.valueZero = None
@@ -85,7 +85,7 @@ class Histogram(object):
         - `datapoints`: array of points (see numpy.histogramdd() documentation)
         """
 
-        hist, binLowerEdges = np.histogramdd( np.array(datapoints), 
+        hist, binLowerEdges = np.histogramdd( datapoints, 
                                               bins=self._bins, 
                                               range=self._range, **kwargs)
         
