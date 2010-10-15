@@ -166,12 +166,12 @@ if __name__ == '__main__':
 
     energyResponseHist.name="Photon Redistrubition Matrix"
 
-    energyResolutionHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
+    energyBiasHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
                                       axisNames=["$\log_{10}(E_{true})$", 
                                                  "$\log_{10}(E_{reco}/E_{true})$"])
     count = 0
 
-    for eventlist_filename in args:
+    for ii,eventlist_filename in enumerate(args):
 
         count += 1
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         nbins = len(Nthrown)
         histrange = (logEmin[0],logEmax[-1])
 
-        print eventlist_filename,": Athrown=",Athrown
+        print "[{0:3d}/{1:3d}] ".format(ii,len(args)), eventlist_filename,": Athrown=",Athrown,"m^2"
         
         # Effective area is Athrown*(Nreco/Nthrown)
         
@@ -224,9 +224,10 @@ if __name__ == '__main__':
         
         # fill 2D histograms
 
-        energyResponseHist.fill( zip(np.log10(Etrue),np.log10(Ereco)) )
-        energyResolutionHist.fill( zip(np.log10(Etrue), 
-                                       np.log10(Ereco)-np.log10(Etrue)))
+        energyResponseHist.fill( np.array(zip(np.log10(Etrue),
+                                              np.log10(Ereco))) )
+        energyBiasHist.fill( np.array(zip(np.log10(Etrue), 
+                                       np.log10(Ereco)-np.log10(Etrue))))
         evfile.close()
 
 
@@ -241,7 +242,7 @@ if __name__ == '__main__':
 
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
-    np.apply_along_axis( normalizeToProb, arr=energyResolutionHist.hist, axis=1)
+    np.apply_along_axis( normalizeToProb, arr=energyBiasHist.hist, axis=1)
     np.apply_along_axis( normalizeToProb, arr=energyResponseHist.hist, axis=1)
 
     writeRMF( energyResponseHist )
@@ -285,17 +286,17 @@ if __name__ == '__main__':
 
         pylab.plot( l,l, color="white") 
         pylab.colorbar()
-        pylab.title("")
+        pylab.title("Energy Response")
 
 
         # make this histogram normalized to have an integral of 1.0 along
         # the Y axis (so it is now a probability of reconstructing Ereco
         # for a given Etrue)
         pylab.subplot(2,2,4)
-        energyResolutionHist.draw2D( vmax=0.25 )
+        energyBiasHist.draw2D( vmax=0.25 )
         pylab.colorbar()
-        pylab.title("Energy Response")
-        l = energyResolutionHist.binLowerEdges[0]
+        pylab.title("Energy Bias")
+        l = energyBiasHist.binLowerEdges[0]
         pylab.plot( l,np.zeros_like(l), color="black")
         pylab.grid(color='w')
         pylab.savefig("response.pdf", papertype="a4")
