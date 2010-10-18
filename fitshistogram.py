@@ -224,6 +224,8 @@ class Histogram(object):
           value
 
         """
+        if (self._binLowerEdges == None):
+            raise ValueError("Histogram is not filled")
 
         if np.isnan(coords).any():
             raise ValueError("Bad coordinate value")
