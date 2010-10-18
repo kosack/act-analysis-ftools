@@ -50,6 +50,7 @@ CENTERY ?= 22.014444	      # center of output map in Dec/GalL
 EXCLUSIONFILE ?= excluded.reg # exclusion region file in ascii region format
 ONRADIUS ?= 0.1               # on-region theta^2
 SMOOTHRAD ?= 0.1              # smoothing radius in degrees (for gauss smoothing)
+SYSTEM ?= fk5                 # coordsys of maps and positions (fk5 or galactic)
 PROJECTION ?= CAR             # WCS projection type for the map 
 MAXEVENTRADIUS ?= 3.0         # maximum event radius in degrees (psi cut)
 
@@ -267,7 +268,7 @@ flatmap.fits: flatlist.fits
 %_gauss.fits: %.fits 
 	@echo "GAUSS SMOOTH: $* :  $(GAUSSSIG) pix"
 	@fgauss $< $@ $(GAUSSSIG) ratio=1.0 theta=0.0 nsigma=4.0 \
-		boundary=nearest $(REDIRECT)
+		boundary=nearest clobber=yes $(REDIRECT)
 
 
 %_excess_acorr.fits: %_excess.fits accmap_sum.fits
