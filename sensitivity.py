@@ -27,8 +27,9 @@ def sourceSpectrum(E):
 
 def backgroundSpectrum(E):
 
-    # TODO: how to access global vars in python?
-    
+    global N0_background
+    global E0_cosmicray
+    global Gamma_cosmicray
 
     n0 = N0_background.inUnitsOf("1/cm**2/s/TeV").value
     e0 = E0_cosmicray.inUnitsOf("TeV").value
