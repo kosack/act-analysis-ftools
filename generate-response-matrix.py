@@ -52,6 +52,7 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     hdu.header.update("HDUVERS", "1.0.0" );
     hdu.header.update("TELESCOP", "HESS", "Mission name" );
     hdu.header.update("INSTRUME", "HESS1", "Instrument name" );
+    hdu.header.update("FILTER", "", "relic from X-ray analysis (required)" );
     hdu.name = "SPECRESP"
     hdu.writeto( outputFileName, clobber=True )
     print "DEBUG:",hdu.header
@@ -101,25 +102,26 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
     ebounds.header.update("CHANTYPE", "PI", "Required keyword, X-ray relic" );
     ebounds.header.update("TELESCOP", "HESS", "Mission name" );
     ebounds.header.update("INSTRUME", "HESS1", "Instrument name" );
-    
+    ebounds.header.update("DETCHANS", nchan )
 
-    
-    # now create the RMF table. FOr now there is only a fixed
+    # now create the RMF matrix table. For now there is only a fixed
     # zenith/azimuth, etc, so we can just just a single group of
     # channels (for the real data, this will be more complicated)
 
-    col_elo = pyfits.Column( name="E_LO", format='E', unit='TeV',
-                              array=Etrue_bins[0:-1] )
-    col_ehi = pyfits.Column( name="E_HI", format='E', unit='TeV',
-                              array=Etrue_bins[1:] )
+    # see sec 3.2.1 of: http://heasarc.gsfc.nasa.gov/docs/heasarc/caldb/docs/memos/cal_gen_92_002/cal_gen_92_002.html 
 
+    col_elo = pyfits.Column( name="ENERG_LO", format='E', unit='TeV',
+                              array=Etrue_bins[0:-1] )
+    col_ehi = pyfits.Column( name="ENERG_HI", format='E', unit='TeV',
+                              array=Etrue_bins[1:] )
     col_ngrp = pyfits.Column( name="N_GRP", format='I', unit='TeV',
                               array=np.ones(nebin) )
 
-    col_fchan = pyfits.Column( name="F_CHAN", format='I', unit='TeV',
+    # TODO: need to set TLMIN/TLMAX values for these.... how do we do
+    # it with pyfits?
+    col_fchan = pyfits.Column( name="F_CHAN", format='1I', unit='TeV',
                               array=np.ones(nebin) )
-
-    col_nchan = pyfits.Column( name="N_CHAN", format='I', unit='TeV',
+    col_nchan = pyfits.Column( name="N_CHAN", format='1I', unit='TeV',
                               array=np.ones(nebin) )
 
     
@@ -127,8 +129,17 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
                                 array=responseHist.hist)
 
 
-    matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,col_fchan,
-                                col_nchan,col_matrix ] )
+    matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,
+                                col_fchan, col_nchan,col_matrix ] )
+
+    # a hack to add TLMIN/MAX keywords to the F_CHAN and N_CHAN
+    # columns (pyfits doesn't seem to support these)
+    matrix.header.update("TLMIN4", 1,"Minimum channel number in group")
+    matrix.header.update("TLMAX4", nchan, "Maximum channel number in group")
+    matrix.header.update("TLMIN5", 1,"Minimum channel number in group")
+    matrix.header.update("TLMAX5", nchan, "Maximum channel number in group")
+
+    # set other header keywords
     matrix.name="MATRIX"
     matrix.header.update("HDUCLASS", "OGIP", "Organization of definition" );
     matrix.header.update("HDUCLAS1", "RESPONSE", 
@@ -198,7 +209,8 @@ if __name__ == '__main__':
         nbins = len(Nthrown)
         histrange = (logEmin[0],logEmax[-1])
 
-        print "[{0:3d}/{1:3d}] ".format(ii,len(args)), eventlist_filename,": Athrown=",Athrown,"m^2"
+        print "[{0:3d}/{1:3d}] ".format(ii,len(args)), \
+            eventlist_filename, ": Athrown=",Athrown,"m^2"
         
         # Effective area is Athrown*(Nreco/Nthrown)
         
