@@ -36,7 +36,7 @@ from matplotlib import pyplot as plt
 # -----------
 # mgrid works the opposite of meshgrid()! 
 
-def makeRadialProfile(events,bins=14,range=[0,10]):
+def makeRadialProfile(events,bins=14,range=[0,10], verbose=False):
     """ 
     Generates an radial profile from the events given in Detector
     coordinates (which are assumed to have (0,0) as the origin)
@@ -53,7 +53,7 @@ def makeRadialProfile(events,bins=14,range=[0,10]):
     # if DETX, and DETY exist
 
     runhdr = events.header
-    obspos = np.array([runhdr.get("RA_PNT"), runhdr.get("DEC_PNT")])
+    obspos = np.array([runhdr.get("RA_PNT",0.0), runhdr.get("DEC_PNT",0.0)])
     
     X = events.data.field("DETX")
     Y = events.data.field("DETY")
@@ -66,12 +66,13 @@ def makeRadialProfile(events,bins=14,range=[0,10]):
     areaperbin = math.pi*(ed[1]) # ed[1]=r^2 (each bin has equal 2D area)
     th2hist /= areaperbin      # now in units of counts/deg^2 (density)
 
-    print "edges in t^2: ", ed
-    print "edges in   t: ", np.sqrt(ed)
-    print "total events in list: ",len(X)
-    print "total events in hist: ",nevents
-    print " area per radial bin: ", areaperbin,"deg^2"
-    print "SC HIST: ",th2hist
+    if verbose:
+        print "edges in t^2: ", ed
+        print "edges in   t: ", np.sqrt(ed)
+        print "total events in list: ",len(X)
+        print "total events in hist: ",nevents
+        print " area per radial bin: ", areaperbin,"deg^2"
+        print "SC HIST: ",th2hist
 
     return th2hist,ed
 
