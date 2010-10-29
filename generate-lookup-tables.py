@@ -51,6 +51,7 @@ def generateTelLookupTables(events,varName="HIL_TEL_WIDTH",
     telImpacts,telSizes,telid,telMask=actutils.loadLookupTableColumns( events, telarray )
 
     print "-------------------------------------"
+    print "generate-lookup-tables: "
     print "DIRECTORY:",os.path.dirname(infile)
     print "EVENTLIST:",os.path.basename(infile)
 
