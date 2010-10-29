@@ -10,6 +10,8 @@ import pylab
 # generates response functions from simulation data (e.g. effective
 # area and Energy-resolution)
 
+# TODO: PSF as a function of energy (2-d histogram of theta^2 vs energy)
+
 # currently this is very naive and assumes the thrown energy histogram
 # is in exactly the same binning for all event lists, and that the
 # external parameters (zenith angle, azimuth, offset) of the
@@ -171,6 +173,8 @@ if __name__ == '__main__':
     NtrueAthrown_tot = None
     NrecoAthrown_tot = None
     Nthrown_tot = None
+    psf = None
+
     energyResponseHist = Histogram( range=[[-1,2],[-1,2]], bins=[100,100],
                                     axisNames=["$\log_{10}(E_{true})$", 
                                                "$\log_{10}(E_{reco})$"])
@@ -234,6 +238,13 @@ if __name__ == '__main__':
             Nreco_tot += Nreco
             Ntrue_tot += Ntrue
         
+        # PSF histogram:
+        tmppsf,psfed = actutils.makeRadialProfile(events, bins=50)
+        if (psf == None):
+            psf = tmppsf
+        else:
+            psf += tmppsf
+
         # fill 2D histograms
 
         energyResponseHist.fill( np.array(zip(np.log10(Etrue),
@@ -241,6 +252,8 @@ if __name__ == '__main__':
         energyBiasHist.fill( np.array(zip(np.log10(Etrue), 
                                        np.log10(Ereco)-np.log10(Etrue))))
         evfile.close()
+        
+    
 
 
     print "Summed",count,"simulation runs"
@@ -251,6 +264,8 @@ if __name__ == '__main__':
               outputFileName="spec_arf_reco.fits" )
     writeARF( Emin, Emax, Aeff_true*(100**2), 
               outputFileName="spec_arf_true.fits" )
+
+    psf /= float(count)
 
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
