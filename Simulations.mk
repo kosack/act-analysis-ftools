@@ -25,5 +25,5 @@ RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 
 response.pdf spec_arf_true.fits spec_arf_reco.fits: $(RUNS_SIMSELECTED)
 	@echo "EFFECTIVE AREA: $@"
-	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py \
+	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py --plot \
 		$(RUNS_SIMSELECTED) #$(REDIRECT)
