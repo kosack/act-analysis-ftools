@@ -5,6 +5,7 @@ import actutils
 from fitshistogram import Histogram
 import math
 import pylab 
+from scipy import optimize
 
 
 # generates response functions from simulation data (e.g. effective
@@ -161,6 +162,33 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
     hdulist.writeto( outputFileName, clobber=True )
     
 
+def drawPSF(thetasqr,psf):
+    """
+    display and fit the 1D PSF
+    Arguments:
+    - `thetasqr`: theta^2 bins
+    - `psf`: psf curve
+    """
+
+    gauss = lambda norm,sig,x: norm*(1/2.0*sig**2)*np.exp(-x**2/(2.0*sig**2))
+    fitfunc = lambda p,x: gauss(p[0],p[1],x) + gauss(p[2],p[3],x)
+    errfunc = lambda p, x, y: fitfunc(p, x) - y # Distance to the target function
+
+    p0 = [1.0, 0.1, 0.5, 0.1]
+    p1,success = optimize.leastsq( errfunc,p0[:], args=(np.sqrt(thetasqr), psf))
+    print "FIT RESULTS: ", success,p1
+
+    pylab.semilogy()
+    pylab.plot( thetasqr, psf, drawstyle="steps-mid" )
+    if (success==0):
+        pylab.plot( thetasqr, fitfunc(p1,np.sqrt(thetasqr)) )
+    pylab.title("Energy-integrated PSF")
+    pylab.xlabel("$\Theta^2 \mathrm{(deg^2)}$")
+    pylab.ylabel("Counts")
+    pylab.grid()
+
+
+
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -274,6 +302,10 @@ if __name__ == '__main__':
               outputFileName="spec_arf_true.fits" )
 
     psf /= float(count)
+    psf /= psf.max()
+    thetasqr = psfed[0:-1] + psfed[1:]
+    
+
 
     # Normalize the phonton distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
@@ -287,7 +319,7 @@ if __name__ == '__main__':
 
     if (opts.plot):
         pylab.figure( figsize = (15.0,11.0), dpi=80 )
-        pylab.subplot(2,1,1)
+        pylab.subplot(2,2,1)
 
         pylab.semilogy()
         pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
@@ -300,20 +332,8 @@ if __name__ == '__main__':
         pylab.ylabel("$A_{\mathrm{eff}} (\mathrm{m}^2)$")
         pylab.grid()
 
-        # TODO: include background here, and 5 sigma requirement:
-        # obstimeHrs = 50.0
-        # obstime = obstimeHrs*60.0*60.0
-        # nevents= 10.0
-        # M2_CM2 = 100*2
-        # sensitivity = nevents/(Aeff_reco*M2_CM2*obstime)
-        # sensitivity[np.isinf(sensitivity)] = 0
-        # pylab.subplot(2,2,2)
-        # pylab.semilogy()
-        # pylab.plot( bins[0:-1], sensitivity, drawstyle="steps-post" )
-        # pylab.title("Sensitivity (%.1f hours, %d events)"%(obstimeHrs, nevents))
-        # pylab.xlabel("$\log_{10}(E/\mathrm{TeV})$")
-        # pylab.ylabel("$(dN/dE)_{min} (\mathrm{cm^{-2} s^{-1} TeV^{-1}})$")
-        # pylab.grid()
+        pylab.subplot(2,2,2)
+        drawPSF(thetasqr, psf)
 
         pylab.subplot(2,2,3)
         energyResponseHist.draw2D()
