@@ -239,7 +239,15 @@ if __name__ == '__main__':
             Ntrue_tot += Ntrue
         
         # PSF histogram:
-        tmppsf,psfed = actutils.makeRadialProfile(events, bins=50)
+            
+        runhdr = events.header
+        obspos = np.array([runhdr.get("RA_PNT",0.0), runhdr.get("DEC_PNT",0.0)])
+        objpos = np.array([runhdr.get("RA_OBJ",0.0), runhdr.get("DEC_OBJ",0.0)])
+        offX = actutils.angSepDeg( obspos[0], obspos[1], objpos[0], obspos[1] )
+        offY = actutils.angSepDeg( obspos[0], obspos[1], obspos[0], objpos[1] )
+        tmppsf,psfed = actutils.makeRadialProfile(events, bins=60, offset=[offX,offY],
+                                                  range=[0,0.5], squaredBins=True)
+
         if (psf == None):
             psf = tmppsf
         else:

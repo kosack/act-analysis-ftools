@@ -36,7 +36,9 @@ from matplotlib import pyplot as plt
 # -----------
 # mgrid works the opposite of meshgrid()! 
 
-def makeRadialProfile(events,bins=14,range=[0,10], verbose=False):
+def makeRadialProfile(events,bins=14,range=[0,10], 
+                      verbose=False, offset=[0,0],
+                      squaredBins=False):
     """ 
     Generates an radial profile from the events given in Detector
     coordinates (which are assumed to have (0,0) as the origin)
@@ -48,16 +50,12 @@ def makeRadialProfile(events,bins=14,range=[0,10], verbose=False):
     # build 1D histogram in detector coordinates (pointing dir is 0,0,
     # and distances are in degrees from center) 
 
-    # Note: we could also use the obspos + RA/DEC coords and calculate
-    # the angular distance using WCS information, but this is easier
-    # if DETX, and DETY exist
-
-    runhdr = events.header
-    obspos = np.array([runhdr.get("RA_PNT",0.0), runhdr.get("DEC_PNT",0.0)])
-    
-    X = events.data.field("DETX")
-    Y = events.data.field("DETY")
-    D = np.sqrt(X**2 + Y**2)
+    X = events.data.field("DETX") + offset[0]
+    Y = events.data.field("DETY") + offset[1]
+    if (squaredBins):
+        D = X**2 + Y**2
+    else:
+        D = np.sqrt(X**2 + Y**2)
 
     th2hist,ed = np.histogram( D*D,bins=bins, range=range,normed=False, new=True)
     th2hist = th2hist.astype(np.float64)
