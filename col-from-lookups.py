@@ -414,6 +414,13 @@ def processRun(ineventlistfile, telLookup):
 
     outfilename = makeOutFileName( ineventlistfile, tag="_reco" )
 
+    # copy headers
+    oldhdr =  events.header.copy()
+    for key in oldhdr.keys():
+        if not outputTable.header.has_key( key ):
+            outputTable.header.update( key, oldhdr.get(key) ) 
+    
+
     del evfile["EVENTS"] # remove the old events table
     evfile.insert(1,outputTable)
     print "Writing: ", outfilename
