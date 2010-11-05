@@ -234,6 +234,9 @@ if __name__ == '__main__':
         Nthrown = mcenergy.data.field("N")
         Nthrown_err = mcenergy.data.field("N_ERR")
 
+        detx = events.data.field("DETX")
+        dety = events.data.field("DETY")
+
         rmin = mcinfo.data.field("CORE_MIN")[0]
         rmax = mcinfo.data.field("CORE_MAX")[0]
         Athrown = math.pi * (rmax-rmin)**2
@@ -275,7 +278,10 @@ if __name__ == '__main__':
         offY = actutils.angSepDeg( obspos[0], obspos[1], obspos[0], objpos[1] )
         tmppsf,psfed = actutils.makeRadialProfile(events, bins=60, offset=[offX,offY],
                                                   range=[0,0.5], squaredBins=True)
-
+        
+        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], bins=[50,50,10],
+                             axisNames=["X","Y","logE"])
+        
         if (psf == None):
             psf = tmppsf
         else:
@@ -287,6 +293,7 @@ if __name__ == '__main__':
                                               np.log10(Ereco))) )
         energyBiasHist.fill( np.array(zip(np.log10(Etrue), 
                                        np.log10(Ereco)-np.log10(Etrue))))
+        psfCube.fill( np.array(zip(detx+offX,dety+offY,np.log10(Ereco))) )
         evfile.close()
         
     
@@ -301,10 +308,15 @@ if __name__ == '__main__':
     writeARF( Emin, Emax, Aeff_true*(100**2), 
               outputFileName="spec_arf_true.fits" )
 
+
+    # write out the PSF datacube
+
     psf /= float(count)
     psf /= psf.max()
     thetasqr = psfed[0:-1] + psfed[1:]
-    
+    psfHDU = psfCube.asFITS()
+    psfCube.asFITS().writeto("psf_cube.fits")
+
 
 
     # Normalize the phonton distribution matrix (the integral along
