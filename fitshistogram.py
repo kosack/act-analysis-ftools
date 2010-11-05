@@ -99,6 +99,13 @@ class Histogram(object):
         self.hist += hist
 
         
+    def binCenters(self, index):
+        """ 
+        returns array of bin centers for the given index
+        """
+        return 0.5*(self._binLowerEdges[index][1:] + self._binLowerEdges[index][0:-1])
+
+            
 
 
     def asFITS(self):
