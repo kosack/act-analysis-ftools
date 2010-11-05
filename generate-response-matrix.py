@@ -324,9 +324,8 @@ if __name__ == '__main__':
 
         pylab.subplot(2,2,2)
 #        pylab.semilogy()
-        psfbincenters = 0.5*(psfHist.binLowerEdges[0][1:] + psfHist.binLowerEdges[0][0:-1])
         for ii in range(psfHist.hist.shape[1]):
-            pylab.plot(psfbincenters,psfHist.hist[:,ii], 
+            pylab.plot(psfHist.binCenters(),psfHist.hist[:,ii], 
                        label="E={0:.2f}-{1:.2f}".format(10**psfHist.binLowerEdges[1][ii],
                                                         10**psfHist.binLowerEdges[1][ii+1]))
         pylab.title("PSF")
