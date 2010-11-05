@@ -27,6 +27,16 @@ def normalizeToProb(x):
     x[x>0] /= np.sum(x)
     return x
 
+def normalizeToMax(x):
+    """
+    Makes the maximum value equal to 1.0
+    Arguments:
+    - `x`: array-like
+    """
+    x[x>0] /= x.max()
+    return x
+    
+
 def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     """ 
     Write out effective area curve in ARF format
@@ -162,33 +172,6 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
     hdulist.writeto( outputFileName, clobber=True )
     
 
-def drawPSF(thetasqr,psf):
-    """
-    display and fit the 1D PSF
-    Arguments:
-    - `thetasqr`: theta^2 bins
-    - `psf`: psf curve
-    """
-
-    gauss = lambda norm,sig,x: norm*(1/2.0*sig**2)*np.exp(-x**2/(2.0*sig**2))
-    fitfunc = lambda p,x: gauss(p[0],p[1],x) + gauss(p[2],p[3],x)
-    errfunc = lambda p, x, y: fitfunc(p, x) - y # Distance to the target function
-
-    p0 = [1.0, 0.1, 0.5, 0.1]
-    p1,success = optimize.leastsq( errfunc,p0[:], args=(np.sqrt(thetasqr), psf))
-    print "FIT RESULTS: ", success,p1
-
-    pylab.semilogy()
-    pylab.plot( thetasqr, psf, drawstyle="steps-mid" )
-    if (success==0):
-        pylab.plot( thetasqr, fitfunc(p1,np.sqrt(thetasqr)) )
-    pylab.title("Energy-integrated PSF")
-    pylab.xlabel("$\Theta^2 \mathrm{(deg^2)}$")
-    pylab.ylabel("Counts")
-    pylab.grid()
-
-
-
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -245,7 +228,7 @@ if __name__ == '__main__':
         histrange = (logEmin[0],logEmax[-1])
 
         print "[{0:3d}/{1:3d}] ".format(ii,len(args)), \
-            eventlist_filename, ": Athrown=",Athrown,"m^2"
+            eventlist_filename, ": Athrown={0:.2f} km^2".format(Athrown/1e6)
         
         # Effective area is Athrown*(Nreco/Nthrown)
         
@@ -276,16 +259,11 @@ if __name__ == '__main__':
         objpos = np.array([runhdr.get("RA_OBJ",0.0), runhdr.get("DEC_OBJ",0.0)])
         offX = actutils.angSepDeg( obspos[0], obspos[1], objpos[0], obspos[1] )
         offY = actutils.angSepDeg( obspos[0], obspos[1], obspos[0], objpos[1] )
-        tmppsf,psfed = actutils.makeRadialProfile(events, bins=60, offset=[offX,offY],
-                                                  range=[0,0.5], squaredBins=True)
         
-        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], bins=[50,50,10],
+        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], bins=[50,50,8],
                              axisNames=["X","Y","logE"])
-        
-        if (psf == None):
-            psf = tmppsf
-        else:
-            psf += tmppsf
+        psfHist = Histogram( range=[[0,0.07],[-1,2]], bins=[50,8],
+                           axisNames=["Offset^2","logE"])
 
         # fill 2D histograms
 
@@ -294,6 +272,8 @@ if __name__ == '__main__':
         energyBiasHist.fill( np.array(zip(np.log10(Etrue), 
                                        np.log10(Ereco)-np.log10(Etrue))))
         psfCube.fill( np.array(zip(detx+offX,dety+offY,np.log10(Ereco))) )
+        theta2 = (detx+offX)**2+(dety+offY)**2
+        psfHist.fill( np.array(zip( theta2,np.log10(Ereco))))
         evfile.close()
         
     
@@ -311,11 +291,8 @@ if __name__ == '__main__':
 
     # write out the PSF datacube
 
-    psf /= float(count)
-    psf /= psf.max()
-    thetasqr = psfed[0:-1] + psfed[1:]
     psfHDU = psfCube.asFITS()
-    psfCube.asFITS().writeto("psf_cube.fits")
+    psfCube.asFITS().writeto("psf_cube.fits", clobber=True)
 
 
 
@@ -323,6 +300,7 @@ if __name__ == '__main__':
     # the vertical axis should be 1.0, since it's a probability)
     np.apply_along_axis( normalizeToProb, arr=energyBiasHist.hist, axis=1)
     np.apply_along_axis( normalizeToProb, arr=energyResponseHist.hist, axis=1)
+#    np.apply_along_axis( normalizeToMax, arr=psfHist.hist, axis=0)
 
     writeRMF( energyResponseHist )
 
@@ -345,7 +323,21 @@ if __name__ == '__main__':
         pylab.grid()
 
         pylab.subplot(2,2,2)
-        drawPSF(thetasqr, psf)
+#        pylab.semilogy()
+        psfbincenters = 0.5*(psfHist.binLowerEdges[0][1:] + psfHist.binLowerEdges[0][0:-1])
+        for ii in range(psfHist.hist.shape[1]):
+            pylab.plot(psfbincenters,psfHist.hist[:,ii], 
+                       label="E={0:.2f}-{1:.2f}".format(10**psfHist.binLowerEdges[1][ii],
+                                                        10**psfHist.binLowerEdges[1][ii+1]))
+        pylab.title("PSF")
+        pylab.xlabel("$\Theta^2 \mathrm{(deg^2)}$")
+        pylab.ylabel("Counts")
+        pylab.grid()
+        pylab.legend(loc='upper right')
+        
+
+
+
 
         pylab.subplot(2,2,3)
         energyResponseHist.draw2D()
