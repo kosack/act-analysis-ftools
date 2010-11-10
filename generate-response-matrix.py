@@ -11,12 +11,14 @@ from scipy import optimize
 # generates response functions from simulation data (e.g. effective
 # area and Energy-resolution)
 
-# TODO: PSF as a function of energy (2-d histogram of theta^2 vs energy)
-
 # currently this is very naive and assumes the thrown energy histogram
 # is in exactly the same binning for all event lists, and that the
 # external parameters (zenith angle, azimuth, offset) of the
 # simulations are the same.
+
+# TODO: use interpolation function for the histograms and then
+# integrate the function over the bin width for the new bins (which
+# can then be differently spaced)
 
 def normalizeToProb(x):
     """
@@ -52,7 +54,8 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     colSpecResp = pyfits.Column( name="SPECRESP", format="E", 
                                  unit="cm2",array=effectiveArea )
     
-    # TODO: add all dependent parameters for effective areas (offset angle, azimuth, etc.)
+    # TODO: add all dependent parameters for effective areas (offset
+    # angle, azimuth, etc.)
 
     coldefs = pyfits.ColDefs( [colE_lo,colE_hi,colSpecResp])
     hdu = pyfits.new_table( coldefs )
@@ -68,7 +71,7 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
     hdu.header.update("FILTER", "", "relic from X-ray analysis (required)" );
     hdu.name = "SPECRESP"
     hdu.writeto( outputFileName, clobber=True )
-    print "DEBUG:",hdu.header
+
 
 
 def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
@@ -81,8 +84,6 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
     # function, E_min to E_max
 
     # `energy bin`: bin in true energy, E_LO to E_HI
-
-
 
     Etrue_bins,Ereco_bins = responseHist.binLowerEdges
     Etrue_bins = 10**Etrue_bins
@@ -259,12 +260,15 @@ if __name__ == '__main__':
         objpos = np.array([runhdr.get("RA_OBJ",0.0), runhdr.get("DEC_OBJ",0.0)])
         offX = actutils.angSepDeg( obspos[0], obspos[1], objpos[0], obspos[1] )
         offY = actutils.angSepDeg( obspos[0], obspos[1], obspos[0], objpos[1] )
-        
-        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], bins=[50,50,8],
-                             axisNames=["X","Y","logE"])
-        psfHist = Histogram( range=[[0,0.07],[-1,2]], bins=[50,8],
-                           axisNames=["Offset^2","logE"])
 
+        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], 
+                             bins=[50,50,8],
+                             axisNames=["X","Y","logE"])
+        psfHist = Histogram( range=[[0,0.07],[-1,2]], 
+                             bins=[50,8],
+                             axisNames=["Offset^2","logE"])
+        psfCube.name="PSF2D"
+        psfHist.name="PSF1D"
         # fill 2D histograms
 
         energyResponseHist.fill( np.array(zip(np.log10(Etrue),
@@ -312,6 +316,7 @@ if __name__ == '__main__':
         pylab.subplot(2,2,1)
 
         pylab.semilogy()
+        pylab.ylim( 1.0e-1, 1.0e8 )
         pylab.plot( bins[0:-1], Aeff_reco, drawstyle="steps-post",
               label="Reco", color="red" )
         pylab.plot( bins[0:-1], Aeff_true, drawstyle="steps-post",
@@ -323,9 +328,8 @@ if __name__ == '__main__':
         pylab.grid()
 
         pylab.subplot(2,2,2)
-#        pylab.semilogy()
         for ii in range(psfHist.hist.shape[1]):
-            pylab.plot(psfHist.binCenters(),psfHist.hist[:,ii], 
+            pylab.plot(psfHist.binCenters(0),psfHist.hist[:,ii], 
                        label="E={0:.2f}-{1:.2f}".format(10**psfHist.binLowerEdges[1][ii],
                                                         10**psfHist.binLowerEdges[1][ii+1]))
         pylab.title("PSF")

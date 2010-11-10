@@ -103,7 +103,8 @@ class Histogram(object):
         """ 
         returns array of bin centers for the given index
         """
-        return 0.5*(self._binLowerEdges[index][1:] + self._binLowerEdges[index][0:-1])
+        return 0.5*(self._binLowerEdges[index][1:] + 
+                    self._binLowerEdges[index][0:-1])
 
             
 
@@ -271,3 +272,14 @@ class Histogram(object):
         pyplot.title( self.name )
         pyplot.xlabel( self.axisNames[0] )
         pyplot.ylabel( self.axisNames[1] )
+        
+    def rebin(self, factor=2, axis=0):
+        """
+        combine adjacent bins into a single bin
+        Arguments:
+        - `factor`: number of bins to combine
+        - `axis`: which axis number to rebin
+        """
+        print "NOT IMPLEMENTED"
+        pass
+        

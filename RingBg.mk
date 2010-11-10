@@ -3,7 +3,7 @@
 # each bin)
 #-------------------------------------------------------------------------
 
-RINGAREAFACTOR ?= 7.0
+RINGAREAFACTOR ?= 14.0
 RINGGAP ?= 0.2                # gap between ring and ON radius in degrees
 
 TARGETS += ringbg_excess_gauss.fits 

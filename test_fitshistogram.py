@@ -49,6 +49,7 @@ class TestHisto(unittest.TestCase):
             for xx in np.arange(-2.0,2.0,0.1): 
                 pp = (xx+0.01829384,0.1)
                 coords = np.ones((N,2)) * pp
+                print "DEBUG: coords=",coords," bins=",[nxbins,10]
                 H = fitshistogram.Histogram( bins=[nxbins,10],
                                              range=[[-2.5,2.5],[-1,1]] )
                 H.fill(coords)

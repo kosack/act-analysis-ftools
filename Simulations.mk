@@ -1,6 +1,6 @@
 
 
-CUTS='(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
+MCCUTS?='(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
 # TODO: add spatial cut on events inside ON region (using regfilter and a modified version of the reflected-region generator (to work on alt-az regions)
 SPATIALCUT=''
 
@@ -10,7 +10,7 @@ RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 
 %_event_reco_selected.fits: %_eventlist_reco.fits %_event_verify.txt
 	@echo EVENT SELECTION $*
-	@ftselect $< $@ $(CUTS) clobber=true $(REDIRECT)
+	@ftselect $< $@ $(MCCUTS) clobber=true $(REDIRECT)
 
 # TODO: make event_selected depend on _eventlist (in the work
 # directory). Also make a rule that generates _eventlist.fits.gz from
