@@ -20,6 +20,8 @@ def moments(data):
     the gaussian parameters of a 2D distribution by calculating its
     moments """
     total = data.sum()
+    if (total==0):
+        return 0,0,0,0,0
     X, Y = indices(data.shape)
     x = (X*data).sum()/total
     y = (Y*data).sum()/total
@@ -51,16 +53,23 @@ if __name__ == '__main__':
     sig1 = list()
     sig2 = list()
     residuals = list()
-    showplot = False
-
+    showplot = True
+    allenergies = psfhist.binCenters(2)
+    energies=list()
+    
     for ii in range(N):
 
+        if (psf.data[ii].sum() <= 1e-10): 
+            print "skip"
+            continue
+        
         params = fitgaussian(psf.data[ii])
         fit = gaussian( *tuple(params) )
         model = fit(*indices(psf.data[ii].shape))    
         
         sig1.append( params[3] )
         sig2.append( params[4] )
+        energies.append( allenergies[ii] )
 
         residuals.append( np.sum(psf.data[ii] - model) )
 
@@ -75,18 +84,14 @@ if __name__ == '__main__':
             colorbar()
 
 
-    energies = psfhist.binCenters(2)
+
+    maxsig = np.maximum( sig1,sig2 )
 
     figure()
     title("PSF")
-    scatter( energies, sig1, label="sigmaX" )
-    plot( energies, sig1)
+    scatter( energies, maxsig, color='b', label="sigmamax" )
+    plot( energies, maxsig, color='b' )
     xlabel("Log10(E)")
-    scatter( energies, sig2, color='r', label="sigmaY" )
-    plot( energies, sig2, color='r' )
-    legend()
-    xlabel("Log10(E)")
+    ylabel("Max sigma (bins)")
 
-    figure()
-    scatter( arange(len(residuals)), residuals )
-    xlabel("Log10(E)")
+
