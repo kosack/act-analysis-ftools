@@ -270,20 +270,23 @@ flatmap.fits: flatlist.fits
 	@fgauss $< $@ $(GAUSSSIG) ratio=1.0 theta=0.0 nsigma=4.0 \
 		boundary=nearest clobber=yes $(REDIRECT)
 
-
+# make an acceptance-corrected excess map (divide by normalized exposure map)
 %_excess_acorr.fits: %_excess.fits accmap_sum.fits
 	@echo "ACCEPTANCE CORRECTED EXCESS: $@"
 	@ftimgcalc $@ 'A*max(B)/B' a=$< b=accmap_sum.fits
 
-
+# generate a blank image with a circle of radius ONRADIUS in the
+# middle set to 1.0 (used for tophat correlation)
 tophat.fits: exclmap.fits
 	@$(MAKERING) --output $@ --onradius=$(strip $(ONRADIUS)) \
 		    --make-on $^ $(REDIRECT)	
 
+# mask an image with the exclusion map
 %_exmasked.fits: %.fits exclmap.fits
 	@echo "EXCLUSION MASKING: $<"
 	@ftpixcalc $@ 'A*B' a=$< b=exclmap.fits clobber=yes $(REDIRECT)
 
+# mask an image with the field-of-view for a given run
 %_fovmasked.fits: %.fits %_fovmask.fits
 	@echo "FOV MASKING: $<"	
 	@ftpixcalc $@ 'A*B' a=$< b=$*_fovmask.fits clobber=yes $(REDIRECT)
@@ -311,23 +314,30 @@ fovbg_significance.fits: cmap_sum_tophat.fits accmap_sum_tophat.fits
 
 EPSILON=1e-10
 
-
-# LIMA: Li and Ma significance calculation
+# ----------------------------------------------------------------
+# LIMA: Li and Ma significance formula
+# ----------------------------------------------------------------
+# sub-equations:
 LIMA_P1=(1.0+ALPHA)/ALPHA * ( NON/(NON+NOFF))
 LIMA_P2=(1.0+ALPHA)*(NOFF/(NON+NOFF))
 LIMASQR=2*NON*log( $(LIMA_P1) ) + NOFF*log( $(LIMA_P2) )
 LIMA_a=((NON-ALPHA*NOFF)>$(EPSILON) ? sqrt($(LIMASQR)) : -sqrt($(LIMASQR)))
+# The Li and Ma significance formula:
 LIMA=(ALPHA<0? 0: (ALPHA<$(EPSILON) ? sqrt(NON) : $(LIMA_a)))
+# The Li and Ma Significance formula for excluded significance
+# distributions (the original formula, but with the additional
+# correlated exclusion map included):
 LIMA_EXCL=$(subst NOFF,NOFF*$(EXCLCORR),$(LIMA))
 
+#----------------------------------------------------------------
 # SIGNIF: simplistic significance calculation:
+#----------------------------------------------------------------
 SIGNIF=(NON-NOFF*ALPHA)/sqrt(ALPHA*(NON+NOFF))
 SIGNIF_EXCL=$(subst NOFF,NOFF*$(EXCLCORR),$(SIGNIF))
 
 # TODO: make a rule like:
 #  %_significance.fits: cmap_sum_tophat.fits %_offmap_sum_tophat.fits
 # (will need to rename some things like ring_offmap_sum_tophat.fits
-
 
 
 # ==============================================================
