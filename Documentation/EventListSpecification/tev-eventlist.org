@@ -176,34 +176,34 @@ generated for different analysis techniques.
     (e.g. from simulated data), are described later in the
     [[MonteCarloParameters][Monte Carlo Parameters]] section
 
-   |-------------+---------+----------+----------------------------------------|
-   | field       | type    | standard | comment                                |
-   |-------------+---------+----------+----------------------------------------|
-   | EVENT\_ID   | uint    |          | event number                           |
-   | TIME        | double  | OGIP1    | timestamp of event, elapsed time (1)   |
-   | TLIVE       | double  |          | timestamp of event (livetime so far)   |
-   |-------------+---------+----------+----------------------------------------|
-   | MULTIP      | short   |          | multiplicity of tels used in recon /3/ |
-   | TELMASK     | bitmask |          | bit pattern of triggered tels          |
-   |-------------+---------+----------+----------------------------------------|
-   | RA          | real    | OGIP1    | reconstructed position RA              |
-   | DEC         | real    | OGIP1    | reconstructed position DEC             |
-   | DIR\_ERR    | double  |          | measure of error in position           |
-   | DETX        | double  |          | tangential coord in nominal sys        |
-   | DETY        | double  |          | tangential coord in nominal sys        |
-   | ALT         | double  |          | event altitude /2/                     |
-   | AZ          | double  |          | event azimuth  /2/                     |
-   | ALT\_PNT    | double  |          | pointing altitude, for convenience     |
-   | AZ\_PNT     | double  |          | pointing azimuth, for convenience      |
-   | COREX       | double  |          | position on ground (M)                 |
-   | COREY       | double  |          | position on ground (M)                 |
-   | CORE\_ERR   | double  |          | error on core reconstruction (M)       |
-   | XMAX        | double  |          | position of shower max (M)             |
-   | XMAX\_ERR   | double  |          | error on showermax                     |
-   |-------------+---------+----------+----------------------------------------|
-   | ENERGY      | real    | OGIP1    | shower energy (TeV)                    |
-   | ENERGY\_ERR | double  |          | error on energy                        |
-   |-------------+---------+----------+----------------------------------------|
+   |--------------+---------+----------+----------------------------------------|
+   | field        | type    | standard | comment                                |
+   |--------------+---------+----------+----------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                           |
+   | ~TIME~       | double  | OGIP1    | timestamp of event, elapsed time (1)   |
+   | ~TLIVE~      | double  |          | timestamp of event (livetime so far)   |
+   |--------------+---------+----------+----------------------------------------|
+   | ~MULTIP~     | short   |          | multiplicity of tels used in recon /3/ |
+   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
+   |--------------+---------+----------+----------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA              |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC             |
+   | ~DIR_ERR~    | double  |          | measure of error in position           |
+   | ~DETX~       | double  |          | tangential coord in nominal sys        |
+   | ~DETY~       | double  |          | tangential coord in nominal sys        |
+   | ~ALT~        | double  |          | event altitude /2/                     |
+   | ~AZ~         | double  |          | event azimuth  /2/                     |
+   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience     |
+   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience      |
+   | ~COREX~      | double  |          | position on ground (M)                 |
+   | ~COREY~      | double  |          | position on ground (M)                 |
+   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)       |
+   | ~XMAX~       | double  |          | position of shower max (M)             |
+   | ~XMAX_ERR~   | double  |          | error on showermax                     |
+   |--------------+---------+----------+----------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
+   | ~ENERGY_ERR~ | double  |          | error on energy                        |
+   |--------------+---------+----------+----------------------------------------|
 
     Comments:
     - 2 :: ALT and AZ can be stored here for simplicity, or you can let the
@@ -253,42 +253,42 @@ generated for different analysis techniques.
     conflicting column names.  Alternately, one could stipulate that
     all analyses provide a "HADRONNESS" value in a defined range.
 
-**** HILLAS PARAMETER COLUMNS
+**** Example Hillas parameter columns
     |---------------+--------+----------+--------------------|
     | field         | type   | standard | comment            |
     |---------------+--------+----------+--------------------|
-    | HIL\_MSW      | double |          | mean scaled width  |
-    | HIL\_MSL      | double |          | mean scaled length |
-    | HIL\_MSW\_ERR | double |          | error on MSW       |
-    | HIL\_MSL\_ERR | double |          | error on MSL       |
+    | ~HIL_MSW~     | double |          | mean scaled width  |
+    | ~HIL_MSL~     | double |          | mean scaled length |
+    | ~HIL_MSW_ERR~ | double |          | error on MSW       |
+    | ~HIL_MSL_ERR~ | double |          | error on MSL       |
     |---------------+--------+----------+--------------------|
 	
-**** MODEL PARAMETER COLUMNS
-    |---------------+--------+----------+----------------------------------|
-    | field         | type   | standard | comment                          |
-    |---------------+--------+----------+----------------------------------|
-    | LIKELIHD      | double |          | likelihood for being a gamma-ray |
-    | likelihoodErr | double |          | error on likelihood              |
-    | ...           |        |          |                                  |
-    |---------------+--------+----------+----------------------------------|
+**** example Model parameter columns
+    |----------------+--------+----------+----------------------------------|
+    | field          | type   | standard | comment                          |
+    |----------------+--------+----------+----------------------------------|
+    | ~LIKELIHD~     | double |          | likelihood for being a gamma-ray |
+    | ~LIKELIHD_ERR~ | double |          | error on likelihood              |
+    | ...            |        |          |                                  |
+    |----------------+--------+----------+----------------------------------|
 
 *** MONTE-CARLO SHOWER PARAMETERS
 # <<MonteCarloParameters>>
-   |-------------+--------+----------+-------------------------------------------|
-   | field       | type   | standard | comment                                   |
-   |-------------+--------+----------+-------------------------------------------|
-   | MC\_EVENTID  | uint   |          | event number from simulation              |
-   | MC\_SHOWERID | uint   |          | shower id from simulation                 |
-   | MC\_PRIMID   | uint   |          | type of primary particle                  |
-   | MC\_ENERGY   | double |          | true energy                               |
-   | MC\_ALT      | double |          | true direction                            |
-   | MC\_AZ       | double |          | true direction                            |
-   | MC\_XMAX     | double |          | true showerMax [g/cm^2]                   |
-   | MC\_COREX    | double |          | true core X pos of shower axis            |
-   | MC\_COREY    | double |          | true core Y pos of shower axis            |
-   | MC\_FIRSTINT | double |          | height of first interaction [m]           |
-   | MC\_XSTART   | double |          | atmos. depth of first interaction [g/cm2] |
-   |-------------+--------+----------+-------------------------------------------|
+   |---------------+--------+----------+-------------------------------------------|
+   | field         | type   | standard | comment                                   |
+   |---------------+--------+----------+-------------------------------------------|
+   | ~MC_EVENTID~  | uint   |          | event number from simulation              |
+   | ~MC_SHOWERID~ | uint   |          | shower id from simulation                 |
+   | ~MC_PRIMID~   | uint   |          | type of primary particle                  |
+   | ~MC_ENERGY~   | double |          | true energy                               |
+   | ~MC_ALT~      | double |          | true direction                            |
+   | ~MC_AZ~       | double |          | true direction                            |
+   | ~MC_XMAX~     | double |          | true showerMax [g/cm^2]                   |
+   | ~MC_COREX~    | double |          | true core X pos of shower axis            |
+   | ~MC_COREY~    | double |          | true core Y pos of shower axis            |
+   | ~MC_FIRSTINT~ | double |          | height of first interaction [m]           |
+   | ~MC_XSTART~   | double |          | atmos. depth of first interaction [g/cm2] |
+   |---------------+--------+----------+-------------------------------------------|
 
     Comments:
     1. May also need simulation "combined" timing parameters here or
@@ -299,13 +299,6 @@ generated for different analysis techniques.
     (e.g. average-velocity? Who knows. It may be in the end just a
     "gammaness" parameter of how well the shower matches the timing
     characteristics of a hadon vs gamma)
-   |---------+------+----------+--------------|
-   | field   | type | standard | comment      |
-   |---------+------+----------+--------------|
-   | EVENTID | uint |          | event number |
-   |         |      |          |              |
-
-
     
      
 * Telescope Parameters table
@@ -314,17 +307,17 @@ generated for different analysis techniques.
    different for each telescope in the array, it is necessary to
    define a method for storing these parameters. The Telescope
    Parameters table (extension /TEVENTS/) stores telescope-wise
-   parameters indexed by an event ID number (EVENT\_ID) and a
-   telescope ID number (TEL_ID). The EVENT\_ID should match the value
-   in the /EVENTS/ table, while the TEL_ID is an integer in the range
+   parameters indexed by an event ID number (~EVENT_ID~) and a
+   telescope ID number (~TEL_ID~). The ~EVENT_ID~ should match the value
+   in the /EVENTS/ table, while the ~TEL_ID~ is an integer in the range
    1-N (where N is the number of telescopes participating in the run)
    that cam be mapped to an entry in the /TELARRAY/ extension or to
-   the TELLIST header keyword.
+   the ~TELLIST~ header keyword.
 
-   For a given event in the EVENTS table, there will be a row in
-   TEVENTS for each triggered telescope in that event.  The software
+   For a given event in the /EVENTS/ table, there will be a row in
+   /TEVENTS/ for each triggered telescope in that event.  The software
    writing the table should ensure that the rows are in order, sorted
-   first by EVENT\_ID and then by TEL\_ID, such that a user can expect
+   first by ~EVENT_ID~ and then by ~TEL_ID~, such that a user can expect
    that if the event ID changes between two rows that a new event has
    begun.
 
@@ -332,26 +325,16 @@ generated for different analysis techniques.
    event 2, telescopes 1 and 3 triggered, the table would look like
    this:
 
-   |-----------+---------+-----------------------------|
-   | EVENT\_ID | TEL\_ID | Telescope param columns ... |
-   |-----------+---------+-----------------------------|
-   |         1 |       4 | ...                         |
-   |         1 |       6 | ...                         |
-   |         1 |       8 | ...                         |
-   |         2 |       1 | ...                         |
-   |         2 |       3 | ...                         |
+   |------------+----------+-----------------------------|
+   | ~EVENT_ID~ | ~TEL_ID~ | Telescope param columns ... |
+   |------------+----------+-----------------------------|
+   |          1 |        4 | ...                         |
+   |          1 |        6 | ...                         |
+   |          1 |        8 | ...                         |
+   |          2 |        1 | ...                         |
+   |          2 |        3 | ...                         |
    ...
 
-   *THIS IS OUT OF DATE: UPDATE TO NEW SCHEME WITH SEPARATE TABLE*
-
-   Here, the simplest method is chosen: telescope-wise columns
-   contain an array of length /N/, where /N/ is the number of
-   telescopes participating in the observation.
-
-   The indexing of this array is linked to the list of telescopes in
-   the TELLIST header keyword, or in the TELARRAY binary table (in a
-   separate extension). The order of the telescope-ids listed in these
-   places gives the order of elements in the telescope-wise arrays. 
 
    For example if the array consists of 4 telescopes with IDs
    1,5,15,22 (e.g. a subset of a larger array), all entries in
@@ -424,23 +407,42 @@ generated for different analysis techniques.
    space). It can be used for example for visualization purposes or for
    identifying different array configurations in detail
 
-   |------------+--------+----------+----------------------------------|
-   | field      | type   | standard | comment / unit                   |
-   |------------+--------+----------+----------------------------------|
-   | TELID      | int    |          | telescope number                 |
-   | TELCLASS   | string |          | telescope type (HESS, CTA1,) /1/ |
-   | TELPOSX    | double |          | x pos rel to center of array (M) |
-   | TELPOSY    | double |          | y pos rel to center of array (M) |
-   | TELPOSZ    | double |          | z (height) of telescope (M)      |
-   | TELFOV     | double |          | fov in deg                       |
-   | TELMIRAREA | double |          | mirror area (m^2)                |
-   | TELCAMAREA | double |          | camera area m^2                  |
-   | TELFNUM    | double |          | F-number or focal length         |
-   |------------+--------+----------+----------------------------------|
+   |--------------+--------+----------+----------------------------------|
+   | field        | type   | standard | comment / unit                   |
+   |--------------+--------+----------+----------------------------------|
+   | ~TELID~      | int    |          | telescope number                 |
+   | ~TELCLASS~   | string |          | telescope type (HESS, CTA1,) /1/ |
+   | ~TELPOSX~    | double |          | x pos rel to center of array (M) |
+   | ~TELPOSY~    | double |          | y pos rel to center of array (M) |
+   | ~TELPOSZ~    | double |          | z (height) of telescope (M)      |
+   | ~TELFOV~     | double |          | fov in deg                       |
+   | ~TELMIRAREA~ | double |          | mirror area (m^2)                |
+   | ~TELCAMAREA~ | double |          | camera area m^2                  |
+   | ~TELFNUM~    | double |          | F-number or focal length         |
+   |--------------+--------+----------+----------------------------------|
 
 * MONTE-CARLO INFORMATION TABLES
 ** MCINFO table
+   
 ** MCENERGY table
+   The /MCENERGY/ extension contains a table that describes the thrown
+   energy distribution (the distribution of energies simulated,
+   regardless of what was actually detected) of the simulated events
+   in the /EVENTS/ table. This information is necessary for
+   calculating the effective collection area of the
+   instrument/analysis.  It is defined as a generic histogram as
+   follows:
+   
+   |---------+--------+----------+-------------------------|
+   | field   | type   | standard | comment / unit          |
+   |---------+--------+----------+-------------------------|
+   | ~E_MIN~ | double |          | bin lower edge (TeV)    |
+   | ~E_MAX~ | double |          | bin upper edge (TeV)    |
+   | ~N~     | double |          | number of counts in bin |
+   | ~N_ERR~ | double |          | optional error on bin   |
+   |---------+--------+----------+-------------------------|
+
+
 * Implemetation notes
 ** Storage of pointing information
 *** Run-wise
@@ -470,5 +472,6 @@ generated for different analysis techniques.
    first token of the comment string: e.g.
    
    : LAMBDA =                  5400.0 / [angstrom] this is the wavelength
+   
    
    
