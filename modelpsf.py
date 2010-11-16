@@ -18,7 +18,6 @@ def gaussian(height, center_x, center_y, width_x, width_y):
 def doublegaussian( h1,h2,cx1,cx2,cy1,cy2,wx1,wx2,wy1,wy2 ):
     return lambda x,y: (gaussian(h1,cx1,cy1,wx1,wy1)(x,y) 
                         + gaussian(h2,cx2,cy2,wx2,wy2)(x,y))
-
 def moments(data):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution by calculating its
@@ -51,7 +50,7 @@ def fit_gaussian(data):
     the gaussian parameters of a 2D distribution found by a fit"""
     params = moments(data)
     errorfunction = lambda p: ravel(gaussian(*p)(*indices(data.shape)) -
-                                    data)
+                                 data)
     p, success = optimize.leastsq(errorfunction, params)
     return p
 
@@ -70,7 +69,7 @@ if __name__ == '__main__':
     showplot = True
     allenergies = psfhist.binCenters(2)
     energies=list()
-    
+
     for ii in range(N):
 
         if (psf.data[ii].sum() <= 1e-10): 
@@ -83,6 +82,7 @@ if __name__ == '__main__':
         model = fitfunc(*indices(psf.data[ii].shape))    
         sig1.append( params[3] )
         sig2.append( params[4] )
+
         energies.append( allenergies[ii] )
         residuals.append( np.sum(psf.data[ii] - model) )
 
@@ -97,7 +97,6 @@ if __name__ == '__main__':
             colorbar()
 
 
-
     maxsig = np.maximum( sig1,sig2 )
 
     figure()
@@ -107,4 +106,6 @@ if __name__ == '__main__':
     xlabel("Log10(E)")
     ylabel("Max sigma (bins)")
 
-
+    figure()
+    scatter( arange(len(residuals)), residuals )
+    xlabel("Log10(E)")
