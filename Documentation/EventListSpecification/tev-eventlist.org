@@ -8,6 +8,13 @@
 #+OPTIONS:   H:3 num:t toc:2 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
 #+STARTUP: hidestars
 
+* Changes
+  - 2010-11-16 :: (kosack) telescope-wise parameters are no longer
+                  fixed-length arrays added to the EVENTS table, but
+                  are in their own separate table indexed by
+                  eventid+telid (reduces disk space with only a slight
+                  increase in difficulty of use)
+
 * ABOUT
 ** INTRODUCTION 
 
@@ -119,9 +126,7 @@
    - 1 :: this list corresponds to the order of telescopes in the TELMASK
      column and the TELARRAY table
 
-
 * EVENTS TABLE 
-
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
 table containing information for each triggered shower event. It does
 not contain detailed pixel-information for each telescope, but rather
@@ -134,7 +139,6 @@ that are specific to a particular analysis.  Since there is only one
 set of shower-reconstruction parameters in the table, only one type of
 analysis should be included in each event-list, and separate lists
 generated for different analysis techniques.
-
 ** Additional and optional parameters
  
    Since the requirements for analysis of CTA data are not fully
@@ -158,59 +162,19 @@ generated for different analysis techniques.
    Column names for additional parameters should be prefixed by the
    type of analysis they correspond to (e.g. ~MC\_~ for Monte-carlo
    parameters, ~HIL\_~ for Hillas-style analysis parameters)
-   
 
-** Telescope-wise parameters
-
-   Because some useful parameters, like the impact parameter of the
-   shower, are different for each telescope in the array, it is
-   necessary to define a method for storing these parameters.  Here,
-   the simplest method is chosen: telescope-wise columns contain an
-   array of length /N/, where /N/ is the number of telescopes
-   participating in the observation.
-
-   The indexing of this array is linked to the list of telescopes in
-   the TELLIST header keyword, or in the TELARRAY binary table (in a
-   separate extension). The order of the telescope-ids listed in these
-   places gives the order of elements in the telescope-wise arrays. 
-
-   For example if the array consists of 4 telescopes with IDs
-   1,5,15,22 (e.g. a subset of a larger array), all entries in
-   the ~TEL\_IMPACT~ column of the eventlist would be length 4 arrays,
-   where the first element corresponds to telescope 1, the second to
-   5, and so on.   If a telescope participating in the observation did
-   not trigger for a given event, the value in it's array element is
-   set to a nominal value (typically 0).  Note that when the event-list is
-   compressed (via e.g. gzip), most of the space lost using
-   fixed-length arrays is regained.
-
-   The information about which telescopes triggered is stored in the
-   TELMASK column of the eventlist, which is not an array, but a
-   bitmask of length /N/, with the same telescope ordering. Using this
-   bitmask, it is trivial to extract the values for triggered
-   telescopes from the telescope-wise columns. 
-
-   For example, using a vector-based language like Python (or e.g. IDL), the
-   following can be used to extract the average impact parameter for
-   telescope 15:
-   
-   #+BEGIN_SRC python
-     eventlist = pyfits.open("evfile.fits")['EVENTS']
-     impacts = eventlist.data.field("TEL_IMPACT")
-     mask = eventlist.data.field("TELMASK")
-     
-     telindex = 2 # corresponding to telid 15 in this example
-     telimpact = impacts[telindex] # just the values for tel 15
-     telmask = mask[telindex]      # which of these are triggers for tel 15
-     avg = numpy.average( telimpact[telmask] )
-   #+END_SRC
-
-** EVENTS table details:
+** Contents of the EVENTS table:
 *** BASE SHOWER PARAMETERS
     
     The base parameters should always be in every event-list file,
     regardless of what reconstruction technique produced the
-    list. They contain temporal, spatial, energetic, and trigger information
+    list. They contain temporal, spatial, energetic, and trigger
+    information. These base shower parameters are
+    /reconstructed/ information, and therefore each may correspond with
+    an instrument response matrix describing their probability
+    distributions. The /true/ values of the parameters, if known
+    (e.g. from simulated data), are described later in the
+    [[MonteCarloParameters][Monte Carlo Parameters]] section
 
    |-------------+---------+----------+----------------------------------------|
    | field       | type    | standard | comment                                |
@@ -260,7 +224,7 @@ generated for different analysis techniques.
        something...
     - 6 :: need the RADECSYS and EQUINOX keywords in the header of this
        table
-       
+	   
 *** GAMMA-HADRON SEPARATION PARAMETERS
 
     Since VHE gamma-ray data are dominated by backround events caused
@@ -308,7 +272,119 @@ generated for different analysis techniques.
     | ...           |        |          |                                  |
     |---------------+--------+----------+----------------------------------|
 
-**** Telescope-wise parameters
+*** MONTE-CARLO SHOWER PARAMETERS
+# <<MonteCarloParameters>>
+   |-------------+--------+----------+-------------------------------------------|
+   | field       | type   | standard | comment                                   |
+   |-------------+--------+----------+-------------------------------------------|
+   | MC\_EVENTID  | uint   |          | event number from simulation              |
+   | MC\_SHOWERID | uint   |          | shower id from simulation                 |
+   | MC\_PRIMID   | uint   |          | type of primary particle                  |
+   | MC\_ENERGY   | double |          | true energy                               |
+   | MC\_ALT      | double |          | true direction                            |
+   | MC\_AZ       | double |          | true direction                            |
+   | MC\_XMAX     | double |          | true showerMax [g/cm^2]                   |
+   | MC\_COREX    | double |          | true core X pos of shower axis            |
+   | MC\_COREY    | double |          | true core Y pos of shower axis            |
+   | MC\_FIRSTINT | double |          | height of first interaction [m]           |
+   | MC\_XSTART   | double |          | atmos. depth of first interaction [g/cm2] |
+   |-------------+--------+----------+-------------------------------------------|
+
+    Comments:
+    1. May also need simulation "combined" timing parameters here or
+       in a separate table.
+       
+*** SHOWER TIMING PARAMETERS (TBD)
+    Timing parameters that are not telescope-specific
+    (e.g. average-velocity? Who knows. It may be in the end just a
+    "gammaness" parameter of how well the shower matches the timing
+    characteristics of a hadon vs gamma)
+   |---------+------+----------+--------------|
+   | field   | type | standard | comment      |
+   |---------+------+----------+--------------|
+   | EVENTID | uint |          | event number |
+   |         |      |          |              |
+
+
+    
+     
+* Telescope Parameters table
+   Because some useful parameters, like the impact parameter of the
+   shower or various low-level shower reconstruction parameters, are
+   different for each telescope in the array, it is necessary to
+   define a method for storing these parameters. The Telescope
+   Parameters table (extension /TEVENTS/) stores telescope-wise
+   parameters indexed by an event ID number (EVENT\_ID) and a
+   telescope ID number (TEL_ID). The EVENT\_ID should match the value
+   in the /EVENTS/ table, while the TEL_ID is an integer in the range
+   1-N (where N is the number of telescopes participating in the run)
+   that cam be mapped to an entry in the /TELARRAY/ extension or to
+   the TELLIST header keyword.
+
+   For a given event in the EVENTS table, there will be a row in
+   TEVENTS for each triggered telescope in that event.  The software
+   writing the table should ensure that the rows are in order, sorted
+   first by EVENT\_ID and then by TEL\_ID, such that a user can expect
+   that if the event ID changes between two rows that a new event has
+   begun.
+
+   For example, if for event 1, telescopes 4,6,8 triggered, and for
+   event 2, telescopes 1 and 3 triggered, the table would look like
+   this:
+
+   |-----------+---------+-----------------------------|
+   | EVENT\_ID | TEL\_ID | Telescope param columns ... |
+   |-----------+---------+-----------------------------|
+   |         1 |       4 | ...                         |
+   |         1 |       6 | ...                         |
+   |         1 |       8 | ...                         |
+   |         2 |       1 | ...                         |
+   |         2 |       3 | ...                         |
+   ...
+
+   *THIS IS OUT OF DATE: UPDATE TO NEW SCHEME WITH SEPARATE TABLE*
+
+   Here, the simplest method is chosen: telescope-wise columns
+   contain an array of length /N/, where /N/ is the number of
+   telescopes participating in the observation.
+
+   The indexing of this array is linked to the list of telescopes in
+   the TELLIST header keyword, or in the TELARRAY binary table (in a
+   separate extension). The order of the telescope-ids listed in these
+   places gives the order of elements in the telescope-wise arrays. 
+
+   For example if the array consists of 4 telescopes with IDs
+   1,5,15,22 (e.g. a subset of a larger array), all entries in
+   the ~TEL\_IMPACT~ column of the eventlist would be length 4 arrays,
+   where the first element corresponds to telescope 1, the second to
+   5, and so on.   If a telescope participating in the observation did
+   not trigger for a given event, the value in it's array element is
+   set to a nominal value (typically 0).  Note that when the event-list is
+   compressed (via e.g. gzip), most of the space lost using
+   fixed-length arrays is regained.
+
+   The information about which telescopes triggered is stored in the
+   TELMASK column of the eventlist, which is not an array, but a
+   bitmask of length /N/, with the same telescope ordering. Using this
+   bitmask, it is trivial to extract the values for triggered
+   telescopes from the telescope-wise columns. 
+
+   For example, using a vector-based language like Python (or e.g. IDL), the
+   following can be used to extract the average impact parameter for
+   telescope 15:
+   
+   #+BEGIN_SRC python
+     eventlist = pyfits.open("evfile.fits")['EVENTS']
+     impacts = eventlist.data.field("TEL_IMPACT")
+     mask = eventlist.data.field("TELMASK")
+     
+     telindex = 2 # corresponding to telid 15 in this example
+     telimpact = impacts[telindex] # just the values for tel 15
+     telmask = mask[telindex]      # which of these are triggers for tel 15
+     avg = numpy.average( telimpact[telmask] )
+   #+END_SRC
+
+** Telescope-wise parameters
 
      As mentioned earlier, some parameters are specific to each
      telescope. For generating response matrices, for example, one
@@ -337,40 +413,8 @@ generated for different analysis techniques.
 |-------------+-----------+----------+------------------------------------------|
 | TEL\_IMPACT | double[N] |          | impact parameter of shower with each tel |
 |-------------+-----------+----------+------------------------------------------|
-
-
-*** MONTE-CARLO SHOWER PARAMETERS
-   |-------------+--------+----------+-------------------------------------------|
-   | field       | type   | standard | comment                                   |
-   |-------------+--------+----------+-------------------------------------------|
-   | MC\_EVENTID  | uint   |          | event number from simulation              |
-   | MC\_SHOWERID | uint   |          | shower id from simulation                 |
-   | MC\_PRIMID   | uint   |          | type of primary particle                  |
-   | MC\_ENERGY   | double |          | true energy                               |
-   | MC\_ALT      | double |          | true direction                            |
-   | MC\_AZ       | double |          | true direction                            |
-   | MC\_XMAX     | double |          | true showerMax [g/cm^2]                   |
-   | MC\_COREX    | double |          | true core X pos of shower axis            |
-   | MC\_COREY    | double |          | true core Y pos of shower axis            |
-   | MC\_FIRSTINT | double |          | height of first interaction [m]           |
-   | MC\_XSTART   | double |          | atmos. depth of first interaction [g/cm2] |
-   |-------------+--------+----------+-------------------------------------------|
-
-    Comments:
-    1. May also need simulation "combined" timing parameters here or
-       in a separate table.
-
-*** SHOWER TIMING PARAMETERS (TBD)
-    Timing parameters that are not telescope-specific
-    (e.g. average-velocity? Who knows. It may be in the end just a
-    "gammaness" parameter of how well the shower matches the timing
-    characteristics of a hadon vs gamma)
-   |---------+------+----------+--------------|
-   | field   | type | standard | comment      |
-   |---------+------+----------+--------------|
-   | EVENTID | uint |          | event number |
-   |         |      |          |              |
-    
+  
+ 
 * ARRAY CONFIGURATION INFORMATION
 
 ** TELESCOPE TABLE (one entry per telescope)
