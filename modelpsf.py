@@ -15,9 +15,6 @@ def gaussian(height, center_x, center_y, width_x, width_y):
     return lambda x,y: height*exp(
                 -(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)
 
-def doublegaussian( h1,h2,cx1,cx2,cy1,cy2,wx1,wx2,wy1,wy2 ):
-    return lambda x,y: (gaussian(h1,cx1,cy1,wx1,wy1)(x,y) 
-                        + gaussian(h2,cx2,cy2,wx2,wy2)(x,y))
 def moments(data):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution by calculating its
@@ -35,24 +32,14 @@ def moments(data):
     height = data.max()
     return height, x, y, width_x, width_y
 
-def fit_double_gaussian(data):
-    """Returns (height, x, y, width_x, width_y)
-    the gaussian parameters of a 2D distribution found by a fit"""
-    moms = moments(data)
-    params = ravel(zip(moms,moms))
-    errorfunction = lambda p: ravel(doublegaussian(*p)(*indices(data.shape)) -
-                                    data)
-    p, success = optimize.leastsq(errorfunction, params)
-    return p
-
 def fit_gaussian(data):
     """Returns (height, x, y, width_x, width_y)
     the gaussian parameters of a 2D distribution found by a fit"""
     params = moments(data)
     errorfunction = lambda p: ravel(gaussian(*p)(*indices(data.shape)) -
                                  data)
-    p, success = optimize.leastsq(errorfunction, params)
-    return p
+    p, covar, info,msg,stat = optimize.leastsq(errorfunction, params, full_output=1)
+    return p,sqrt(diag(covar))
 
 
 if __name__ == '__main__':
@@ -63,26 +50,26 @@ if __name__ == '__main__':
     psfhist = Histogram( initFromFITS=psf )
 
     N = psf.data.shape[0]
-    sig1 = list()
-    sig2 = list()
+    width = list()
+    widthErr = list()
     residuals = list()
-    showplot = True
+    showplot = False
     allenergies = psfhist.binCenters(2)
+    dE = (allenergies[1]-allenergies[0])/2.0
     energies=list()
 
     for ii in range(N):
 
-        if (psf.data[ii].sum() <= 1e-10): 
+        if (psf.data[ii].sum() <= 20):  # require at least 20 counts
             print "skip"
             continue
         
-        params = fit_gaussian(psf.data[ii])
+        params,errors = fit_gaussian(psf.data[ii])
         print ii,":",params
         fitfunc = gaussian( *tuple(params) )
         model = fitfunc(*indices(psf.data[ii].shape))    
-        sig1.append( params[3] )
-        sig2.append( params[4] )
-
+        width.append( maximum(params[3],params[4]) )
+        widthErr.append( maximum( errors[3],errors[4] ))
         energies.append( allenergies[ii] )
         residuals.append( np.sum(psf.data[ii] - model) )
 
@@ -97,15 +84,17 @@ if __name__ == '__main__':
             colorbar()
 
 
-    maxsig = np.maximum( sig1,sig2 )
 
     figure()
     title("PSF")
-    scatter( energies, maxsig, color='b', label="sigmamax" )
-    plot( energies, maxsig, color='b' )
+    errorbar( energies, width, yerr=widthErr, xerr=dE,fmt=None )
+    ylim(0,5)
     xlabel("Log10(E)")
     ylabel("Max sigma (bins)")
+    savefig("modelpsf.pdf")
 
     figure()
     scatter( arange(len(residuals)), residuals )
     xlabel("Log10(E)")
+
+    show()
