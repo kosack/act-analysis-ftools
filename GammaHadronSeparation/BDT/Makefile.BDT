@@ -1,0 +1,65 @@
+SIMDIR=$(HOME)/Data/FITS/HESS/Simulations/Phase1b
+N_TRAINING_ROUNDS=30
+
+TRAIN_GAMMA_EVENTLISTS=$(wordlist 1,3, $(wildcard $(SIMDIR)/Gamma/0.7deg/*.fits.gz))
+TEST_GAMMA_EVENTLISTS=$(wordlist 6,9,$(wildcard $(SIMDIR)/Gamma/0.7deg/*.fits.gz))
+
+TRAIN_PROTON_EVENTLISTS=$(wordlist 1,10, $(wildcard $(SIMDIR)/Proton/*.fits.gz)) 
+TEST_PROTON_EVENTLISTS=$(wordlist 41,50, $(wildcard $(SIMDIR)/Proton/*.fits.gz)) 
+
+JBOOST=java jboost.controller.Controller
+
+all: gammahadron.info
+
+gammas.dat gammas.spec: $(TRAIN_GAMMA_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output gammas $(TRAIN_GAMMA_EVENTLISTS) --label "gamma"
+
+protons.dat: $(TRAIN_PROTON_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output protons $(TRAIN_PROTON_EVENTLISTS) --label "hadron"
+
+tgammas.dat: $(TEST_GAMMA_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output tgammas $(TEST_GAMMA_EVENTLISTS) --label "gamma"
+
+tprotons.dat: $(TEST_PROTON_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output tprotons $(TEST_PROTON_EVENTLISTS) --label "hadron"
+
+gammahadron.test: tgammas.dat tprotons.dat gammas.spec
+	cat  tgammas.dat tprotons.dat > $@
+	cp gammas.spec gammahadron.spec
+
+gammahadron.train: gammas.dat protons.dat
+	cat $^ > $@
+
+gammahadron.info separate.c: gammahadron.train gammahadron.test 
+	$(JBOOST) -S gammahadron -p 2 \
+		 -c separate.c -numRounds $(N_TRAINING_ROUNDS)
+
+gammahadron.0.ps: gammahadron.info
+	$(JBOOSTDIR)/scripts/atree2dot2ps.pl \
+		-i gammahadron.info -s gammahadron.spec \
+		-t gammahadron.output.tree
+
+classify.c: separate.c classify_base.c
+	echo "#define strlcpy strncpy" > $@
+	echo "#include <string.h>" >> $@
+	cat separate.c classify_base.c >> $@
+
+classify: classify.c
+
+classify_gammas.dat: classify tgammas.dat gammahadron.info
+	classify tgammas.dat > $@
+
+classify_protons.dat: classify tprotons.dat gammahadron.info
+	classify tprotons.dat > $@
+
+separation.pdf: classify_gammas.dat classify_protons.dat showseparation.py
+	python showseparation.py
+
+
+clean: 
+	$(RM) *.train *.test *.tree *.spec *.info *.dat separate.c gammahadron.log classify
+

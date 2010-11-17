@@ -1,0 +1,22 @@
+================================================================
+BDT (Boosted Decision Tree) training for gamma-hadron separation
+================================================================
+Author: K. Kosack <karl.kosack@cea.fr>
+
+To use this, just copy Makefile.BDT to your working directory (As
+Makefile), and copy or link showseparation.py and classify_base.c there also.
+
+Then, edit the Makefile to specify the event-lists to use for testing
+and training, and finally run:
+
+      make sepration.pdf
+
+which will run all steps necessary to train the BDT, and produce a
+plot of the gamma-hadron separation power.
+
+
+
+NOTE: this assumes you have JBoost installed somewhere and have your
+jave CLASSPATH variable set to include it.
+
+
