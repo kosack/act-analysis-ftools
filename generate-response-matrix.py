@@ -196,6 +196,22 @@ if __name__ == '__main__':
     energyBiasHist = Histogram( range=[[-1,2],[-1,1]], bins=[50,50],
                                       axisNames=["$\log_{10}(E_{true})$", 
                                                  "$\log_{10}(E_{reco}/E_{true})$"])
+
+    PSF_MAX_OFFS2 = 0.12
+    PSF_ENERGY_RANGE = [-1,2] # in log10(TeV)
+    maxpsfoffset = math.sqrt(PSF_MAX_OFFS2)
+    
+    psfCube = Histogram( range=[[-maxpsfoffset,maxpsfoffset],
+                                [-maxpsfoffset,maxpsfoffset],
+                                PSF_ENERGY_RANGE], 
+                         bins=[50,50,8],
+                         axisNames=["X","Y","logE"])
+    psfHist = Histogram( range=[[0,PSF_MAX_OFFS2],PSF_ENERGY_RANGE], 
+                         bins=[50,8],
+                         axisNames=["Offset^2","logE"])
+    psfCube.name="PSF2D"
+    psfHist.name="PSF1D"
+
     count = 0
 
     for ii,eventlist_filename in enumerate(args):
@@ -261,14 +277,7 @@ if __name__ == '__main__':
         offX = actutils.angSepDeg( obspos[0], obspos[1], objpos[0], obspos[1] )
         offY = actutils.angSepDeg( obspos[0], obspos[1], obspos[0], objpos[1] )
 
-        psfCube = Histogram( range=[[-0.5,0.5],[-0.5,0.5],[-1,2]], 
-                             bins=[50,50,8],
-                             axisNames=["X","Y","logE"])
-        psfHist = Histogram( range=[[0,0.07],[-1,2]], 
-                             bins=[50,8],
-                             axisNames=["Offset^2","logE"])
-        psfCube.name="PSF2D"
-        psfHist.name="PSF1D"
+
         # fill 2D histograms
 
         energyResponseHist.fill( np.array(zip(np.log10(Etrue),
@@ -297,7 +306,8 @@ if __name__ == '__main__':
 
     psfHDU = psfCube.asFITS()
     psfCube.asFITS().writeto("psf_cube.fits", clobber=True)
-
+    psf1DHDU = psfHist.asFITS()
+    psf1DHDU.writeto("psf_1d.fits", clobber=True)
 
 
     # Normalize the phonton distribution matrix (the integral along
