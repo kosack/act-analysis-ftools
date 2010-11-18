@@ -57,11 +57,14 @@ if __name__ == '__main__':
                        help="base output filename")    
     parser.add_option( "-l","--label", dest="label",  default="gamma", 
                        help="whether this is gamma or hadron")    
+    parser.add_option( "-f", "--fields", dest="fields", 
+                       default="HIL_MSW,HIL_MSL,XMAX,XMAX_ERR", 
+                       help="comma-separated list of columns to use for training");
     (opts,args) = parser.parse_args()
     if len(args)==0:
         parser.error("specify eventlist filename(s)")
 
-    trainingColumns = ["HIL_MSW","HIL_MSL","XMAX","XMAX_ERR"]
+    trainingColumns = opts.fields.split(",")
     trainfile = opts.output+".dat"
     print "Output to:",trainfile
 
@@ -74,7 +77,8 @@ if __name__ == '__main__':
             evfile = pyfits.open(eventlist_filename)
             events = evfile["EVENTS"]
 
-            print "[{0:3d}/{1:3d}] {2:5d}".format(ii,len(args),len(events.data)), eventlist_filename
+            print "[{0:3d}/{1:3d}] {2:5d}".format(ii,len(args),
+                                                  len(events.data)), eventlist_filename
 
 
 
@@ -83,6 +87,9 @@ if __name__ == '__main__':
                                   outputfile=opts.output+".spec")
                 first=False
 
-            dumpEvents( events, cols=trainingColumns, outputstream=out,                                  label=opts.label)
+            dumpEvents( events, cols=trainingColumns, outputstream=out, label=opts.label)
 
+
+            
+            
 
