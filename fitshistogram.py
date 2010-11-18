@@ -36,6 +36,7 @@ class Histogram(object):
         self.name = name
         self._ctypes = None
         self.axisNames = axisNames
+        self._numsamples =0
 
         if (initFromFITS):
             self.loadFromFITS(initFromFITS)
@@ -75,6 +76,15 @@ class Histogram(object):
     def ndims(self):
         return len(self._bins)
 
+    def outliers(self):
+        """
+        returns the number of outlier points (the number of input
+        datapoints - the sum of the histogram). This assumes the data
+        of the histogram is unmodified (and is "counts")
+        """
+        return self._numsamples - self.hist.sum()
+
+
     def fill(self, datapoints, **kwargs):
         """
         generate a histogram from data points.  Since the results of
@@ -97,6 +107,7 @@ class Histogram(object):
 #            raise exceptions.ArithmaticError("Bad Geometry!")
             
         self.hist += hist
+        self._numsamples += len(datapoints)
 
         
     def binCenters(self, index):
@@ -162,7 +173,9 @@ class Histogram(object):
         if (self.valueZero):
             ohdu.header.update( "BZERO", float(self.valueZero) )
 
-   
+        ohdu.header.update("NSAMP", self._numsamples,
+                           "Number of samples originally filled" )
+
         return ohdu
 
 
@@ -215,7 +228,8 @@ class Histogram(object):
         if(hdu.header.get("BSCALE")):
             self.valueZero = hdu.header["BZERO"]
     
-
+        if(hdu.header.get("NSAMP")):
+            self._numsamples += int(hdu.header["NSAMP"])
 
 
     def getValue(self, coords, outlierValue=None):
