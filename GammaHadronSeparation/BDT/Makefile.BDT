@@ -1,16 +1,27 @@
+#
+# This Makefile uses JBoost to create a Boosted Decision Tree to
+# separate gammas from hadrons.
+#
+# Author: K. Kosack <karl.kosack@cea.fr>
+
 SIMDIR=$(HOME)/Data/FITS/HESS/Simulations/Phase1b
 N_TRAINING_ROUNDS=30
 
 TRAIN_GAMMA_EVENTLISTS=$(wordlist 1,3, $(wildcard $(SIMDIR)/Gamma/0.7deg/*.fits.gz))
 TEST_GAMMA_EVENTLISTS=$(wordlist 6,9,$(wildcard $(SIMDIR)/Gamma/0.7deg/*.fits.gz))
+BIGTEST_GAMMA_EVENTLISTS=$(wordlist 10,50,$(wildcard $(SIMDIR)/Gamma/0.7deg/*.fits.gz))
 
 TRAIN_PROTON_EVENTLISTS=$(wordlist 1,10, $(wildcard $(SIMDIR)/Proton/*.fits.gz)) 
 TEST_PROTON_EVENTLISTS=$(wordlist 41,50, $(wildcard $(SIMDIR)/Proton/*.fits.gz)) 
+BIGTEST_PROTON_EVENTLISTS=$(wordlist 51,200, $(wildcard $(SIMDIR)/Proton/*.fits.gz)) 
 
 JBOOST=java jboost.controller.Controller
 
-all: gammahadron.info
+all: separation.pdf
 
+# ======================================================================
+# Generate training+test, and classification test data sets
+# ======================================================================
 gammas.dat gammas.spec: $(TRAIN_GAMMA_EVENTLISTS)
 	python $(TOOLSDIR)/eventlist-to-jboost.py \
 		--output gammas $(TRAIN_GAMMA_EVENTLISTS) --label "gamma"
@@ -27,6 +38,15 @@ tprotons.dat: $(TEST_PROTON_EVENTLISTS)
 	python $(TOOLSDIR)/eventlist-to-jboost.py \
 		--output tprotons $(TEST_PROTON_EVENTLISTS) --label "hadron"
 
+btgammas.dat: $(BIGTEST_GAMMA_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output btgammas $(BIGTEST_GAMMA_EVENTLISTS) --label "gamma"
+
+btprotons.dat: $(BIGTEST_PROTON_EVENTLISTS)
+	python $(TOOLSDIR)/eventlist-to-jboost.py \
+		--output btprotons $(BIGTEST_PROTON_EVENTLISTS) --label "hadron"
+
+
 gammahadron.test: tgammas.dat tprotons.dat gammas.spec
 	cat  tgammas.dat tprotons.dat > $@
 	cp gammas.spec gammahadron.spec
@@ -34,15 +54,20 @@ gammahadron.test: tgammas.dat tprotons.dat gammas.spec
 gammahadron.train: gammas.dat protons.dat
 	cat $^ > $@
 
+# ======================================================================
+# Train the BDT:
+# ======================================================================
 gammahadron.info separate.c: gammahadron.train gammahadron.test 
 	$(JBOOST) -S gammahadron -p 2 \
-		 -c separate.c -numRounds $(N_TRAINING_ROUNDS)
+		 -c separate.c -P separate.py -numRounds $(N_TRAINING_ROUNDS)
 
 gammahadron.0.ps: gammahadron.info
 	$(JBOOSTDIR)/scripts/atree2dot2ps.pl \
 		-i gammahadron.info -s gammahadron.spec \
 		-t gammahadron.output.tree
-
+# ======================================================================
+# Generate the classification code
+# ======================================================================
 classify.c: separate.c classify_base.c
 	echo "#define strlcpy strncpy" > $@
 	echo "#include <string.h>" >> $@
@@ -50,11 +75,14 @@ classify.c: separate.c classify_base.c
 
 classify: classify.c
 
-classify_gammas.dat: classify tgammas.dat gammahadron.info
-	classify tgammas.dat > $@
+# ======================================================================
+# Classify some test data and make some plots of the results
+# ======================================================================
+classify_gammas.dat: classify btgammas.dat gammahadron.info
+	classify btgammas.dat > $@
 
-classify_protons.dat: classify tprotons.dat gammahadron.info
-	classify tprotons.dat > $@
+classify_protons.dat: classify btprotons.dat gammahadron.info
+	classify btprotons.dat > $@
 
 separation.pdf: classify_gammas.dat classify_protons.dat showseparation.py
 	python showseparation.py
