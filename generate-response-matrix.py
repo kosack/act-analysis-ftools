@@ -204,10 +204,10 @@ if __name__ == '__main__':
     psfCube = Histogram( range=[[-maxpsfoffset,maxpsfoffset],
                                 [-maxpsfoffset,maxpsfoffset],
                                 PSF_ENERGY_RANGE], 
-                         bins=[50,50,8],
+                         bins=[80,80,10],
                          axisNames=["X","Y","logE"])
     psfHist = Histogram( range=[[0,PSF_MAX_OFFS2],PSF_ENERGY_RANGE], 
-                         bins=[50,8],
+                         bins=[50,10],
                          axisNames=["Offset^2","logE"])
     psfCube.name="PSF2D"
     psfHist.name="PSF1D"
@@ -338,6 +338,7 @@ if __name__ == '__main__':
         pylab.grid()
 
         pylab.subplot(2,2,2)
+        pylab.semilogy()
         for ii in range(psfHist.hist.shape[1]):
             pylab.plot(psfHist.binCenters(0),psfHist.hist[:,ii], 
                        label="E={0:.2f}-{1:.2f}".format(10**psfHist.binLowerEdges[1][ii],
