@@ -1,10 +1,10 @@
 import pyfits
 import numpy as np
 import math
-#from scipy import signal,ndimage
 
 from matplotlib import pyplot
 from kapteyn import wcs,maputils
+from scipy import ndimage
 
 
 class Histogram(object):
@@ -62,6 +62,10 @@ class Histogram(object):
 
     @property
     def binLowerEdges(self):
+        if (self._binLowerEdges == None):
+            self._binLowerEdges = [np.linspace(self._range[ii][0],self._range[ii][-1],
+                                               self._bins[ii]) 
+                                   for ii in xrange(self.ndims)]
         return self._binLowerEdges
 
     @property
@@ -99,10 +103,6 @@ class Histogram(object):
                                               bins=self._bins, 
                                               range=self._range, **kwargs)
         
-        
-        if (self._binLowerEdges == None):
-            self._binLowerEdges = binLowerEdges
-
 #        if ((binLowerEdges==self._binLowerEdges).all() == False):
 #            raise exceptions.ArithmaticError("Bad Geometry!")
             
@@ -287,13 +287,28 @@ class Histogram(object):
         pyplot.xlabel( self.axisNames[0] )
         pyplot.ylabel( self.axisNames[1] )
         
-    def rebin(self, factor=2, axis=0):
+        
+    def interpolate(self, bins):
         """
-        combine adjacent bins into a single bin
+        Change the shape of the histogram using an n-dimensional
+        interpolation function.
+
         Arguments:
-        - `factor`: number of bins to combine
-        - `axis`: which axis number to rebin
+
+        - `bins`: a tuple of the new number of bins to interpolate
+          this histogram over (e.g. if the original histogram was
+          (100,100), setting bins to (200,200) would provide double
+          the resolution, with the interviening bins interpolated.
         """
-        print "NOT IMPLEMENTED"
-        pass
+        
+        oldbins = self.bins
+        iold = np.indices( oldbins )
+        inew = np.indices( bins )
+
+        coords = np.array([inew[X]* float(oldbins[X]/float(bins[X])) 
+                           for X in xrange(len(bins))])
+
+        self._bins = bins
+        self.hist = ndimage.map_coordinates( self.hist, coords )
+        self._binLowerEdges = None # need to be recalculated
         
