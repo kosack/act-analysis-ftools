@@ -1,5 +1,6 @@
+all: response.pdf
 
-
+LOOKUPDIR?=$(HOME)/Analysis/FITSEventLists/Lookups
 MCCUTS?='(HIL_MSW>-2.0&&HIL_MSW<0.7)&&(HIL_MSL>-2.0&&HIL_MSL<2.0) && MULTIP>=2'
 # TODO: add spatial cut on events inside ON region (using regfilter and a modified version of the reflected-region generator (to work on alt-az regions)
 SPATIALCUT=''
@@ -21,9 +22,11 @@ RUNS_RAW=$(addsuffix _raweventlist.fits,$(BASERUNS))
 
 %_eventlist_reco.fits: $(SOURCEDIR)/%_eventlist.fits.gz
 	@echo "ENERGY RECONSTRUCTION $*"
-	@$(PYTHON) $(TOOLSDIR)/col-from-lookups.py --type energy $< $(REDIRECT)
+	@$(PYTHON) $(TOOLSDIR)/col-from-lookups.py --lookupdir $(LOOKUPDIR) \
+		--type energy $< $(REDIRECT)
 
-response.pdf spec_arf_true.fits spec_arf_reco.fits: $(RUNS_SIMSELECTED)
+response.pdf spec_arf_true.fits spec_arf_reco.fits psf_cube.fits: $(RUNS_SIMSELECTED)
 	@echo "EFFECTIVE AREA: $@"
 	@$(PYTHON) $(TOOLSDIR)/generate-response-matrix.py --plot \
 		$(RUNS_SIMSELECTED) #$(REDIRECT)
+
