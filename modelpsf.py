@@ -7,6 +7,10 @@ import pyfits
 from scipy import optimize
 from pylab import *
 from fitshistogram import Histogram
+from optparse import OptionParser
+from scipy import ndimage
+
+
 
 def gaussian(height, center_x, center_y, width_x, width_y):
     """Returns a gaussian function with the given parameters"""
@@ -43,8 +47,15 @@ def fit_gaussian(data):
 
 
 if __name__ == '__main__':
+
+    parser = OptionParser()
+    parser.add_option("-i","--psfcube", dest="psfcube", default="psf_cube.fits",
+                      help="input PSF datacube")
+    parser.add_option( "-p","--plot", dest="plot", action="store_true",
+                       default=False, help="generate extra plots")    
+    (opts,args) = parser.parse_args()
     
-    psfcube = sys.argv[1]    
+    psfcube = opts.psfcube
     psf = pyfits.open( psfcube )[1]
 
     psfhist = Histogram( initFromFITS=psf )
@@ -53,10 +64,10 @@ if __name__ == '__main__':
     width = list()
     widthErr = list()
     residuals = list()
-    showplot = False
     allenergies = psfhist.binCenters(2)
     dE = (allenergies[1]-allenergies[0])/2.0
     energies=list()
+    pos = list()
 
     for ii in range(N):
 
@@ -72,8 +83,9 @@ if __name__ == '__main__':
         widthErr.append( maximum( errors[3],errors[4] ))
         energies.append( allenergies[ii] )
         residuals.append( np.sum(psf.data[ii] - model) )
+        pos.append( [params[1],params[2] ] )
 
-        if showplot:
+        if opts.plot:
             subplot(N,3,ii*3+1)
             pcolor( psf.data[ii] )
             contour(model, cmap=cm.copper)
@@ -98,3 +110,8 @@ if __name__ == '__main__':
     xlabel("Log10(E)")
 
     show()
+
+
+
+    
+

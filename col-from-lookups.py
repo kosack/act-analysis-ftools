@@ -299,7 +299,7 @@ def makeOutFileName(infilename, tag=""):
     return name+tag+ext
 
 
-def processRun(ineventlistfile, telLookup):
+def processRun(ineventlistfile, telLookup, lookupdir):
     """
     Add column to a single run
     """
@@ -340,7 +340,8 @@ def processRun(ineventlistfile, telLookup):
         ttype = tel2type[tel]
         if not telLookup.has_key(tel):
             telLookup[tel] = TelLookupTable(lookupName,tel,telType=ttype, 
-                                            valueScale=valueScale,byTelType=False)
+                                            valueScale=valueScale,byTelType=False,
+                                            lookupDir=lookupdir)
 
 
 #    telLookup[1].display("mean")
@@ -438,6 +439,9 @@ if __name__ == '__main__':
     parser.add_option("-t","--type", dest="paramType", type="choice", 
                       choices=["energy", "msw", "msl"],
                       help="column to generate (energy, msw, msl")
+    parser.add_option("-l","--lookupdir", dest="lookupdir", 
+                      default=os.environ["HOME"]+"/Analysis/FITSEventLists/Lookups",
+                      help="Directory where the lookup tables are to be found")
     (opts,args) = parser.parse_args()
 
     debug=0
@@ -446,5 +450,7 @@ if __name__ == '__main__':
     # open the input eventlist
     telLookup = dict()
 
+    print "LookupDir:",opts.lookupdir
+
     for ineventlistfile in args:
-        processRun( ineventlistfile, telLookup=telLookup )
+        processRun( ineventlistfile, telLookup=telLookup, lookupdir=opts.lookupdir )

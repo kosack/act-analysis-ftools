@@ -205,7 +205,7 @@ if __name__ == '__main__':
                                 [-maxpsfoffset,maxpsfoffset],
                                 PSF_ENERGY_RANGE], 
                          bins=[80,80,10],
-                         axisNames=["X","Y","logE"])
+                         axisNames=["DETX","DETY","logE"])
     psfHist = Histogram( range=[[0,PSF_MAX_OFFS2],PSF_ENERGY_RANGE], 
                          bins=[50,10],
                          axisNames=["Offset^2","logE"])
@@ -301,20 +301,33 @@ if __name__ == '__main__':
     writeARF( Emin, Emax, Aeff_true*(100**2), 
               outputFileName="spec_arf_true.fits" )
 
+    # Normalize the PSFs to have the sum of 1.0 for each energy bin (axis=2)
+#    psfCube.hist = np.apply_along_axis( normalizeToProb, axis=2, arr=psfCube.hist )
+#    psfHist.hist = np.apply_along_axis( normalizeToProb, axis=1, arr=psfHist.hist )
 
     # write out the PSF datacube
 
     psfHDU = psfCube.asFITS()
-    psfCube.asFITS().writeto("psf_cube.fits", clobber=True)
+    actutils.addInstrumentHeadersToHDU( psfHDU, telescope="HESSI", instrument="HESSI",
+                                        filter="STD",
+                                        hduclass=["OGIP","IMAGE","PSF","PREDICTED","NET"],
+                                        hdudoc="CAL/GEN/92-020")
+    psfHDU.header.update("ENERG_LO", 10**PSF_ENERGY_RANGE[0], "Minimum energy in cube (TeV)")
+    psfHDU.header.update("ENERG_HI", 10**PSF_ENERGY_RANGE[1], "Maximum energy in cube (TeV)")
+    #psfHDU.header.update("SUMRCTS", 1.0, "normalization of PSF")                            
+    psfHDU.header.update("CBD10001", "THETA({0:.2f})deg".format(math.sqrt(offY**2+offX**2)),
+                         "distance from optical axis")                            
+    psfHDU.writeto("psf_cube.fits", clobber=True)
+
+
     psf1DHDU = psfHist.asFITS()
     psf1DHDU.writeto("psf_1d.fits", clobber=True)
 
 
-    # Normalize the phonton distribution matrix (the integral along
+    # Normalize the photon distribution matrix (the integral along
     # the vertical axis should be 1.0, since it's a probability)
     np.apply_along_axis( normalizeToProb, arr=energyBiasHist.hist, axis=1)
     np.apply_along_axis( normalizeToProb, arr=energyResponseHist.hist, axis=1)
-#    np.apply_along_axis( normalizeToMax, arr=psfHist.hist, axis=0)
 
     writeRMF( energyResponseHist )
 

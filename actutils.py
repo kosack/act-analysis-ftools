@@ -462,3 +462,38 @@ def loadLookupTableColumns( events, telarray ):
     telMask *= valueMask  # mask off bad values
 
     return (telImpacts, np.log10(telSizes), telid,telMask )
+
+
+def addInstrumentHeadersToHDU(hdu, telescope="CTA",instrument="", hduclass=[],
+                              hdudoc=None, filter="", eunit="TeV"):
+    """
+    Adds the necessary keywords to describe the instruement to the HDU. 
+    Arguments:
+    - `hdu`:
+    - `telescope`: name of telescope
+    - `instrument`: name of instrument
+    - `filter`: name of filter if any
+    - `hduclass`: array of values for HDUCLASS and HDUCLAS1[2,3,4] headers
+    - `hdudoc`: name of document describing HDU
+    """
+    
+    hdu.header.update("TELESCOP",telescope,comment="Name of observatory")
+    hdu.header.update("INSTRUME",instrument,comment="Instrument used")
+    hdu.header.update("FILTER",filter,comment="Filter")
+    
+
+    if (len(hduclass)>0):
+        hdu.header.update("HDUCLASS", hduclass.pop(0))
+        for ii,val in enumerate(hduclass[1:]):
+            hdu.header.update( "HDUCLAS{0:1d}".format(ii+1),val ) 
+    
+    if hdudoc:
+        hdu.header.update("HDUDOC",hdudoc,comment="Document containing extension definition")
+
+        
+    if eunit:
+        hdu.header.update("EUNIT", eunit,comment="Energy unit")
+        
+
+        
+    

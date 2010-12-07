@@ -278,7 +278,7 @@ class Histogram(object):
         draw the histogram using pcolormesh() (only works for 2D histograms currently)
         """
         if self.hist.ndim != 2:
-            raise ValueError("Bad Dimensions")
+            raise ValueError("Too many Dimensions")
 
         pyplot.pcolormesh( self._binLowerEdges[0], 
                            self._binLowerEdges[1], 
@@ -305,10 +305,14 @@ class Histogram(object):
         iold = np.indices( oldbins )
         inew = np.indices( bins )
 
-        coords = np.array([inew[X]* float(oldbins[X]/float(bins[X])) 
+        coords = np.array([inew[X]* (oldbins[X])/float(bins[X]) 
                            for X in xrange(len(bins))])
 
         self._bins = bins
         self.hist = ndimage.map_coordinates( self.hist, coords )
         self._binLowerEdges = None # need to be recalculated
+        
+#        raise "error"
+
+
         
