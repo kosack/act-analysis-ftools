@@ -62,9 +62,15 @@ class Histogram(object):
 
     @property
     def binLowerEdges(self):
+        """
+        lower edges of bins. The length of the array will be nbins+1,
+        since the final edge of the last bin is included for ease of
+        use in vector operations
+        """
         if (self._binLowerEdges == None):
-            self._binLowerEdges = [np.linspace(self._range[ii][0],self._range[ii][-1],
-                                               self._bins[ii]) 
+            self._binLowerEdges = [np.linspace(self._range[ii][0],
+                                               self._range[ii][-1],
+                                               self._bins[ii]+1) 
                                    for ii in xrange(self.ndims)]
         return self._binLowerEdges
 
@@ -103,9 +109,6 @@ class Histogram(object):
                                               bins=self._bins, 
                                               range=self._range, **kwargs)
         
-#        if ((binLowerEdges==self._binLowerEdges).all() == False):
-#            raise exceptions.ArithmaticError("Bad Geometry!")
-            
         self.hist += hist
         self._numsamples += len(datapoints)
 
@@ -114,8 +117,8 @@ class Histogram(object):
         """ 
         returns array of bin centers for the given index
         """
-        return 0.5*(self._binLowerEdges[index][1:] + 
-                    self._binLowerEdges[index][0:-1])
+        return 0.5*(self.binLowerEdges[index][1:] + 
+                    self.binLowerEdges[index][0:-1])
 
             
 
