@@ -1,4 +1,4 @@
-#+Title:     FITS EventList format for ACTs
+s#+Title:     FITS EventList format for ACTs
 #+DATE:      2010-08-17
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
@@ -98,7 +98,7 @@
    | TIMEDEL   | double | HEASARC  | time resolution (e.g. 1.0)           |
    |-----------+--------+----------+--------------------------------------|
    | OBJECT    | string | HEASARC  | observed object (if applicable)      |
-   | RA\_OBJ   | double | HFWG.R3  | target position /1/                  |
+   | RA\_OBJ   | double | HFWG.R3  | target position 
    | RA\_OBJ   | double | HFWG.R3  |                                      |
    | RA\_PNT   | double | HFWG.R3  | observation position                 |
    | DEC\_PNT  | double | HFWG.R3  |                                      |
@@ -112,7 +112,7 @@
    | OBSERVER  | string | HEASARC  | proposer name?                       |
    |-----------+--------+----------+--------------------------------------|
    | N\_TELS   | int    |          |                                      |
-   | TELLIST   | string |          | comma-separated list of tel IDs /1/  |
+   | TELLIST   | string |          | comma-separated list of tel IDs      |
    | GEOLAT    | double |          | latitude of array center [deg]       |
    | GEOLON    | double |          | longitude of array center [deg]      |
    | ALTITUDE  | double |          | altitude of array center [km]        |
@@ -122,9 +122,6 @@
    | EVTVER    | string |          | event-list version number            |
    |-----------+--------+----------+--------------------------------------|
 
-   Comments: 
-   - 1 :: this list corresponds to the order of telescopes in the TELMASK
-     column and the TELARRAY table
 
 * EVENTS TABLE 
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
@@ -398,8 +395,7 @@ generated for different analysis techniques.
 |-------------+-----------+----------+------------------------------------------|
   
  
-* ARRAY CONFIGURATION INFORMATION
-
+* Array Configuration Information
 ** TELESCOPE TABLE (one entry per telescope)
 
    This is optional information (mostly needed by the low-level
@@ -411,7 +407,8 @@ generated for different analysis techniques.
    | field        | type   | standard | comment / unit                   |
    |--------------+--------+----------+----------------------------------|
    | ~TELID~      | int    |          | telescope number                 |
-   | ~TELCLASS~   | string |          | telescope type (HESS, CTA1,) /1/ |
+   | ~TELCLASS~   | string |          | telescope type (HESS, CTA1,)     |
+   | ~TELCAMID~   | int    |          | type of camera installed         |
    | ~TELPOSX~    | double |          | x pos rel to center of array (M) |
    | ~TELPOSY~    | double |          | y pos rel to center of array (M) |
    | ~TELPOSZ~    | double |          | z (height) of telescope (M)      |
@@ -421,7 +418,7 @@ generated for different analysis techniques.
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
 
-* MONTE-CARLO INFORMATION TABLES
+* Monte-Carlo Information Tables
 ** MCINFO table
    
 ** MCENERGY table
@@ -442,6 +439,47 @@ generated for different analysis techniques.
    | ~N_ERR~ | double |          | optional error on bin   |
    |---------+--------+----------+-------------------------|
 
+
+* Instrument Response tables
+  
+  OGIP provides standards for most instrument response tables, and
+  these are followed as closely as possible here. The major difference
+  between tables for a ground-based telescope and those from a
+  space-based instrument is that generally the response functions vary
+  not only by the polar offset/angle from the pointing position of the
+  instrument, but also with the horizon coordinates (altitude and
+  azimuth) and with various other characteristics of the telescope
+  array (such as the number of triggered telescopes and array layout).
+
+  Common external parameters:
+  - offset in camera from pointing position ($\theta$)
+  - angle in camera from pointing position ($\phi$) [fn:phiangle:
+    often, the response in the camera can be assumed to be radially
+    symmetric, and the $\phi$ angle can be ignored as a parameter in
+    response tables]
+  - Zenith angle of pointing ($\Theta$)
+  - Azimuthal angle of pointing ($\Phi$)
+  - telescope multiplicity ($N$)
+  - optical efficiency ($\epsilon_\mathrm{opt}$)
+
+** Effective Area
+   Gives the effective collection area for detection gamma-rays as a
+   function of energy. 
+
+   $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$
+   
+** Photon Redistribution Matrix
+   
+   Gives the probability of reconstructing a photon with true energy
+   $E_\mathrm{true}$ at reconstructed energy $E_\mathrm{reco}$.  This
+   is stored as a standard OGIP /RMF/ file. 
+   
+** Point-spread-function
+   Gives the 2D probability for reconstructing a photon with true
+   position $(\theta,\phi)_\mathrm{true}$ at reconstructed position
+   $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
+   is equivalant to the impulse-response function for a point-source
+   within the field of view.
 
 * Implemetation notes
 ** Storage of pointing information
@@ -475,3 +513,7 @@ generated for different analysis techniques.
    
    
    
+
+
+* Footnotes
+
