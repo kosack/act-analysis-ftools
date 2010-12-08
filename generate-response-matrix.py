@@ -75,7 +75,9 @@ def writeARF(EBinlow, EBinHigh, effectiveArea, outputFileName="spec_arf.fits"):
 
 
 def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
-
+    """
+    write out the photon distribution matrix in RMF format
+    """
     # The redistribution matrix is just a set of 1D histogram (of
     # probability), one for each true-energy bin, that has N_CHAN
     # reco-energy bins.
@@ -144,7 +146,7 @@ def writeRMF(responseHist, outputFileName="spec_rmf.fits"):
 
 
     matrix = pyfits.new_table( [col_elo, col_ehi,col_ngrp,
-                                col_fchan, col_nchan,col_matrix ] )
+                                col_fchan, col_nchan]) #,col_matrix ] )
 
     # a hack to add TLMIN/MAX keywords to the F_CHAN and N_CHAN
     # columns (pyfits doesn't seem to support these)
@@ -330,6 +332,9 @@ if __name__ == '__main__':
     np.apply_along_axis( normalizeToProb, arr=energyResponseHist.hist, axis=1)
 
     writeRMF( energyResponseHist )
+
+    energyBiasHist.asFITS().writeto("energy_bias.fits",clobber=True)
+    energyResponseHist.asFITS().writeto("energy_response.fits",clobber=True)
 
     # TODO: calculate statistical errors
 
