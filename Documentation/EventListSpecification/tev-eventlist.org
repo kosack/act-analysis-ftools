@@ -464,6 +464,12 @@ generated for different analysis techniques.
   - telescope multiplicity ($N$)
   - optical efficiency ($\epsilon_\mathrm{opt}$)
 
+  Therefore for fully general response matrices, the tables must be
+  stored as a function of these "external" parameters. However, for a
+  single exposure, one can integrate over the distribution of these
+  parameters to provide a /reduced/ response matrix that is suitable
+  for a short observation.
+
 ** Effective Area
    Gives the effective collection area for detection gamma-rays as a
    function of energy. 
