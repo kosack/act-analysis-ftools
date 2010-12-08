@@ -15,8 +15,8 @@ s#+Title:     FITS EventList format for ACTs
                   eventid+telid (reduces disk space with only a slight
                   increase in difficulty of use)
 
-* ABOUT
-** INTRODUCTION 
+* About
+** Introduction 
 
    This document defines the parameters needed in a general
    atmospheric cherenkov telescope (ACT) array event-list file. An
@@ -57,7 +57,7 @@ s#+Title:     FITS EventList format for ACTs
     4. Monte-Carlo information table
     5. Monte-Carlo thrown energy distribution histogram 
        
-** STANDARDS
+** Standards
 
    Here are the standards documents which define columns marked as
    standard below. 
@@ -70,7 +70,7 @@ s#+Title:     FITS EventList format for ACTs
    - HFWG.R3 = ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r3.txt
    - HFWG.R7 = ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
      
-* HEADERS
+* Headers
 ** Observation Header
    |-----------+--------+----------+--------------------------------------|
    | field     | type   | standard | comment / unit                       |
@@ -123,7 +123,7 @@ s#+Title:     FITS EventList format for ACTs
    |-----------+--------+----------+--------------------------------------|
 
 
-* EVENTS TABLE 
+* EVENTS Table 
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
 table containing information for each triggered shower event. It does
 not contain detailed pixel-information for each telescope, but rather
@@ -298,7 +298,7 @@ generated for different analysis techniques.
     characteristics of a hadon vs gamma)
     
      
-* Telescope Parameters table
+* Telescope Parameters (TEVENTS) table
    Because some useful parameters, like the impact parameter of the
    shower or various low-level shower reconstruction parameters, are
    different for each telescope in the array, it is necessary to
@@ -332,6 +332,8 @@ generated for different analysis techniques.
    |          2 |        3 | ...                         |
    ...
 
+
+   * TODO: update this section to use new TEVENTS table: *
 
    For example if the array consists of 4 telescopes with IDs
    1,5,15,22 (e.g. a subset of a larger array), all entries in
@@ -393,15 +395,15 @@ generated for different analysis techniques.
 |-------------+-----------+----------+------------------------------------------|
 | TEL\_IMPACT | double[N] |          | impact parameter of shower with each tel |
 |-------------+-----------+----------+------------------------------------------|
-  
+     
  
 * Array Configuration Information
-** TELESCOPE TABLE (one entry per telescope)
+** TELARRAY Table 
 
-   This is optional information (mostly needed by the low-level
-   analysis), but is useful to include here (and doesn't take up much
-   space). It can be used for example for visualization purposes or for
-   identifying different array configurations in detail
+   This table has one entry per telescope and provides an overview of
+   the array layout. This is optional information at the high-level
+   event-list level, but is needed by the low-level analysis and
+   reconstruction and can be useful for visualizing the array layout.
 
    |--------------+--------+----------+----------------------------------|
    | field        | type   | standard | comment / unit                   |
