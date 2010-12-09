@@ -29,8 +29,10 @@ class Histogram(object):
         
         self.hist = np.zeros(bins)
         self._binLowerEdges= None  #TODO: should be a property, get only
-        self._bins = np.array(bins)
-        self._range=range
+        self._bins = np.array([bins]).flatten()
+        self._range=np.array(range)
+        if (self._range.ndim == 1):
+            self._range.shape=(1,2)
         self.valueScale = None
         self.valueZero = None
         self.name = name
@@ -46,7 +48,7 @@ class Histogram(object):
         if self.ndims < 1:
             raise ValueError("No dimensions specified")
         if self.ndims != len(self._range):
-            raise ValueError("Dimensions of range don't match bins")
+            raise ValueError("Dimensions of range {0} don't match bins {1}".format(len(self._range), self.ndims))
 
         if self.axisNames != None: # ensure the array is size ndims
             self.axisNames = np.array(self.axisNames)
@@ -259,7 +261,7 @@ class Histogram(object):
         ndims = len(self._bins)
 
         bins = np.array([np.digitize( world[:,ii], 
-                                      self._binLowerEdges[ii][1:-1] ) 
+                                      self.binLowerEdges[ii][1:-1] ) 
                          for ii in xrange(ndims)])
 
         maxbin = np.array(self.hist.shape)
@@ -276,21 +278,30 @@ class Histogram(object):
         
         return self.hist[tuple(bins)]
                 
-    def draw2D(self, **kwargs):
+    def draw2D(self, dims=[0,1], **kwargs):
         """
         draw the histogram using pcolormesh() (only works for 2D histograms currently)
         """
-        if self.hist.ndim != 2:
-            raise ValueError("Too many Dimensions")
+        if self.hist.ndim < 2:
+            raise ValueError("Too few dimensions")
 
-        pyplot.pcolormesh( self._binLowerEdges[0], 
-                           self._binLowerEdges[1], 
+        if len(dims) != 2:
+            raise ValueError("dims must be a length-2 integer array")
+
+        pyplot.pcolormesh( self.binLowerEdges[dims[0]], 
+                           self.binLowerEdges[dims[1]], 
                            self.hist.transpose(),**kwargs )
         pyplot.title( self.name )
-        pyplot.xlabel( self.axisNames[0] )
-        pyplot.ylabel( self.axisNames[1] )
+        pyplot.xlabel( self.axisNames[dims[0]] )
+        pyplot.ylabel( self.axisNames[dims[1]] )
         
-        
+    def draw1D(self, dim=0, **kwargs):
+        # todo fix this to work properly with dim argument!
+        pyplot.plot( self.binCenters(dim), self.hist, drawstyle='steps-mid', 
+                     **kwargs)
+
+
+
     def interpolate(self, bins):
         """
         Change the shape of the histogram using an n-dimensional
