@@ -1,0 +1,26 @@
+#+TITLE:     TODO
+#+AUTHOR:    Karl Kosack
+#+EMAIL:     karl.kosack@cea.fr
+#+DATE:      2010-12-10 Fri
+#+DESCRIPTION: 
+#+KEYWORDS: 
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:   
+#+LINK_HOME: 
+#+XSLT: 
+
+
+* TODO RMF compress/expand functions 
+  add to actutils a function to turn a 2D photon redistribution matrix
+  into an RMF (with zero suppression), and vice-versa
+
+  actutils.ResponseToRMF( responseHist )
+
+* TODO Create a tool to combine RMF files 
+  (e.g. ones with different external parameter sets like zenith angle
+  or offset into a single combined file)
