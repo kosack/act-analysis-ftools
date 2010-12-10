@@ -30,9 +30,7 @@ class Histogram(object):
         self.hist = np.zeros(bins)
         self._binLowerEdges= None  #TODO: should be a property, get only
         self._bins = np.array([bins]).flatten()
-        self._range=np.array(range)
-        if (self._range.ndim == 1):
-            self._range.shape=(1,2)
+        self._range=np.array(range, ndmin=2)
         self.valueScale = None
         self.valueZero = None
         self.name = name
@@ -48,7 +46,8 @@ class Histogram(object):
         if self.ndims < 1:
             raise ValueError("No dimensions specified")
         if self.ndims != len(self._range):
-            raise ValueError("Dimensions of range {0} don't match bins {1}".format(len(self._range), self.ndims))
+            raise ValueError("Dimensions of range {0} don't match bins {1}"\
+                                 .format(len(self._range), self.ndims))
 
         if self.axisNames != None: # ensure the array is size ndims
             self.axisNames = np.array(self.axisNames)
