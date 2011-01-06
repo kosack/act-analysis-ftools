@@ -62,13 +62,13 @@ s#+Title:     FITS EventList format for ACTs
    Here are the standards documents which define columns marked as
    standard below. 
 
-   - OGIP1 = OGIP standard for Event Lists
-   - HEASARC =
+   - OGIP1 :: OGIP standard for Event Lists
+   - OGIP-T :: Angelini et al 1992 (time standards)
+   - HEASARC ::
      http://heasarc.gsfc.nasa.gov/docs/heasarc/ofwg/docs/spectra/ogip_92_007/node7.html
      http://heasarc.gsfc.nasa.gov/docs/journal/fits6.html
-   - OGIP-T = Angelini et al 1992 (time standards)
-   - HFWG.R3 = ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r3.txt
-   - HFWG.R7 = ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
+   - HFWG.R3 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r3.txt
+   - HFWG.R7 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
      
 * Headers
 ** Observation Header
@@ -136,6 +136,7 @@ that are specific to a particular analysis.  Since there is only one
 set of shower-reconstruction parameters in the table, only one type of
 analysis should be included in each event-list, and separate lists
 generated for different analysis techniques.
+
 ** Additional and optional parameters
  
    Since the requirements for analysis of CTA data are not fully
@@ -333,73 +334,76 @@ generated for different analysis techniques.
    ...
 
 
-   * TODO: update this section to use new TEVENTS table: *
-
-   For example if the array consists of 4 telescopes with IDs
-   1,5,15,22 (e.g. a subset of a larger array), all entries in
-   the ~TEL\_IMPACT~ column of the eventlist would be length 4 arrays,
-   where the first element corresponds to telescope 1, the second to
-   5, and so on.   If a telescope participating in the observation did
-   not trigger for a given event, the value in it's array element is
-   set to a nominal value (typically 0).  Note that when the event-list is
-   compressed (via e.g. gzip), most of the space lost using
-   fixed-length arrays is regained.
-
-   The information about which telescopes triggered is stored in the
-   TELMASK column of the eventlist, which is not an array, but a
-   bitmask of length /N/, with the same telescope ordering. Using this
-   bitmask, it is trivial to extract the values for triggered
-   telescopes from the telescope-wise columns. 
-
-   For example, using a vector-based language like Python (or e.g. IDL), the
-   following can be used to extract the average impact parameter for
-   telescope 15:
+   The information about which telescopes triggered is stored
+   additionally in the /EVENTS/ table in the TELMASK column of the
+   eventlist, which is a bitmask of length /N/, with the same
+   telescope ordering as in the /TELARRAY/ extension or the ~TELLIST~
+   header keyword (see [[TELARRAY Table]]). 
    
-   #+BEGIN_SRC python
-     eventlist = pyfits.open("evfile.fits")['EVENTS']
-     impacts = eventlist.data.field("TEL_IMPACT")
-     mask = eventlist.data.field("TELMASK")
-     
-     telindex = 2 # corresponding to telid 15 in this example
-     telimpact = impacts[telindex] # just the values for tel 15
-     telmask = mask[telindex]      # which of these are triggers for tel 15
-     avg = numpy.average( telimpact[telmask] )
-   #+END_SRC
+   #+BEGIN_QUOTE
+   *NOTE*: any program that modifies the TEVENTS table
+   (e.g. removes telescopes from the event) should also update the
+   ~TELMASK~ and ~NTELS~ column in the =EVENTS= extension, to be consistent!
+   #+END_QUOTE
+
+   Of course, the pixel positions and other camera-specific info must
+   be stored separately. 
 
 ** Telescope-wise parameters
 
-     As mentioned earlier, some parameters are specific to each
-     telescope. For generating response matrices, for example, one
-     needs the impact parameter of a shower with respect to each
-     telescope. Although in principle this could be calucalted from
-     the telescope location and shower reconstruction parameters, it
-     is a relatively complex computation, involving a number of
-     coordinate transformations. For this reason, it is easiest to
-     have impact parameters pre-calculated and proved in the
-     event-list. 
+   For generating response matrices, for example, one
+   needs the impact parameter of a shower with respect to each
+   telescope. Although in principle this could be calculated from
+   the telescope location and shower reconstruction parameters, it
+   is a relatively complex computation, involving a number of
+   coordinate transformations. For this reason, it is easiest to
+   have impact parameters pre-calculated and proved in the
+   event-list. 
 
-|-------------+-----------+----------+------------------------------------------|
-| field       | type      | standard | comment                                  |
-|-------------+-----------+----------+------------------------------------------|
-| TEL\_IMPACT | double[N] |          | impact parameter of shower with each tel |
-|-------------+-----------+----------+------------------------------------------|
+   |--------------+--------+----------+-----------------------------------------------|
+   | field        | type   | standard | comment                                       |
+   |--------------+--------+----------+-----------------------------------------------|
+   | ~TEL_IMPACT~ | double |          | impact parameter of shower with the given tel |
+   |--------------+--------+----------+-----------------------------------------------|
 
-     For a particuar analysis (E.g. a Hillas-style analysis), one may
-     also store other useful per-telescope parameters, such as the
-     non-reduced Hillas parameters (LENGTH, WIDTH, SIZE, ASYMMETRY,
-     etc). These can be used for reconstruction the shower's geometry
-     or energy for example. 
+   For a particuar analysis (E.g. a Hillas-style analysis), one may
+   also store other useful per-telescope parameters, such as the
+   non-reduced Hillas parameters (LENGTH, WIDTH, SIZE, ASYMMETRY,
+   etc). These can be used for reconstruction the shower's geometry or
+   energy for example.
+   
+   The following is an example of optional telescope-size parameters
+   for a Hillas-style analysis. 
 
-|-------------+-----------+----------+------------------------------------------|
-| field       | type      | standard | comment                                  |
-|-------------+-----------+----------+------------------------------------------|
-| TEL\_IMPACT | double[N] |          | impact parameter of shower with each tel |
-|-------------+-----------+----------+------------------------------------------|
+   |------------------+------+----------+-------------------------------------------------|
+   | field            | type | standard | comment                                         |
+   |------------------+------+----------+-------------------------------------------------|
+   | ~TEL_HIL_WIDTH~  | real |          | second moment of shower image (deg)             |
+   | ~TEL_HIL_LENGTH~ | real |          | second moment of shower image (deg)             |
+   | ~TEL_HIL_PHI~    | real |          | rotation angle of shower image wrt x-axis (deg) |
+   | ~TEL_HIL_COGX~   | real |          | x coord of first moment in camera coordinates   |
+   | ~TEL_HIL_COGY~   | real |          | y coord of first moment in camera coordinates   |
+   | ~TEL_HIL_SKEW~   | real |          | skewness                                        |
+   | ~TEL_HIL_KUR~    | real |          | kurtosis                                        |
+   | ~TEL_HIL_SIZE~   | real |          | integrated intensity of image (P.E.)            |
+   |------------------+------+----------+-------------------------------------------------|
      
+   In even lower-level data, the shower-images themselves can be
+   stored as a set of telescope parameters (using variable-length
+   arrays). To reduce the size of the data, only "cleaned" pixels
+   can be stored by first storing the non-zero pixel numbers as an
+   array ~TEL_IMG_IPIX~ and the corresponding intensities in
+   ~TEL_IMG_INT~:
+   
+   |----------------+--------+----------+------------------------------------------|
+   | field          | type   | standard | comment                                  |
+   |----------------+--------+----------+------------------------------------------|
+   | ~TEL_IMG_IPIX~ | int[*] |          | list of pixel indices in image           |
+   | ~TEL_IMG_INT~  | int[*] |          | list of pixel intensities in image (P.E) |
+   |----------------+--------+----------+------------------------------------------|
  
 * Array Configuration Information
-** TELARRAY Table 
-
+** <<TELARRAY Table>> 
    This table has one entry per telescope and provides an overview of
    the array layout. This is optional information at the high-level
    event-list level, but is needed by the low-level analysis and
@@ -421,9 +425,9 @@ generated for different analysis techniques.
    |--------------+--------+----------+----------------------------------|
 
 * Monte-Carlo Information Tables
-** MCINFO table
+** <<MCINFO Table>>
    
-** MCENERGY table
+** <<MCENERGY Table>>
    The /MCENERGY/ extension contains a table that describes the thrown
    energy distribution (the distribution of energies simulated,
    regardless of what was actually detected) of the simulated events
@@ -440,7 +444,6 @@ generated for different analysis techniques.
    | ~N~     | double |          | number of counts in bin |
    | ~N_ERR~ | double |          | optional error on bin   |
    |---------+--------+----------+-------------------------|
-
 
 * Instrument Response tables
   
