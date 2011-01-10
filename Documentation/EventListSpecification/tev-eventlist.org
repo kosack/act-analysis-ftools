@@ -395,12 +395,13 @@ generated for different analysis techniques.
    array ~TEL_IMG_IPIX~ and the corresponding intensities in
    ~TEL_IMG_INT~:
    
-   |----------------+--------+----------+------------------------------------------|
-   | field          | type   | standard | comment                                  |
-   |----------------+--------+----------+------------------------------------------|
-   | ~TEL_IMG_IPIX~ | int[*] |          | list of pixel indices in image           |
-   | ~TEL_IMG_INT~  | int[*] |          | list of pixel intensities in image (P.E) |
-   |----------------+--------+----------+------------------------------------------|
+   |----------------+----------+----------+------------------------------------------|
+   | field          | type     | standard | comment                                  |
+   |----------------+----------+----------+------------------------------------------|
+   | ~TEL_IMG_NPIX~ | int      |          | number of pixels in image                |
+   | ~TEL_IMG_IPIX~ | int[*]   |          | list of pixel indices in image           |
+   | ~TEL_IMG_INT~  | float[*] |          | list of pixel intensities in image (P.E) |
+   |----------------+----------+----------+------------------------------------------|
  
 * Array Configuration Information
 ** <<TELARRAY Table>> 
