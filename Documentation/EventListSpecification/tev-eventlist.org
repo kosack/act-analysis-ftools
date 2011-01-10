@@ -1,4 +1,4 @@
-s#+Title:     FITS EventList format for ACTs
+#+Title:     FITS EventList format for ACTs
 #+DATE:      2010-08-17
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
@@ -51,12 +51,17 @@ s#+Title:     FITS EventList format for ACTs
    An event-list data file may contain some or all of the following
    information:
 
-    1. observation header information
-    2. Event Shower Table (may have more than 1)
-    3. Array description table
-    4. Monte-Carlo information table
-    5. Monte-Carlo thrown energy distribution histogram 
+    1. Observation header information
+    2. Event table describing reconstructed and simulated shower parameters
+    3. Optional Telescope-Event table with low-level parameters
+    4. Array description table
+    5. Monte-Carlo information Headers
+    6. Monte-Carlo thrown energy distribution histogram 
        
+   These tables and headers may also be spread among multiple files
+   (e.g. one for the basic event-list, and another for low-level
+   shower and Cherenkov image information)
+
 ** Standards
 
    Here are the standards documents which define columns marked as
@@ -71,59 +76,59 @@ s#+Title:     FITS EventList format for ACTs
    - HFWG.R7 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
      
 * Headers
-** Observation Header
-   |-----------+--------+----------+--------------------------------------|
-   | field     | type   | standard | comment / unit                       |
-   |-----------+--------+----------+--------------------------------------|
-   | CREATOR   | string | HFWG.R7  | 'progname v1.2.3'                    |
-   | TELESCOP  | string | OGIP2    | "CTA" (mission name)                 |
-   | EXTNAME   | string | HEASARC  | "events"                             |
-   | RUN\_ID   | int    |          | observation run number or identifier |
-   | DATE\_OBS | string | HEASARC  | yy-mm-dd  (user readable time)       |
-   | TIME\_OBS | string | HEASARC  | hh:mm::ss                            |
-   | DATE\_END | string | HEASARC  | yy-mm-dd                             |
-   | TIME\_END | string | HEASARC  | hh:mm::ss                            |
-   |-----------+--------+----------+--------------------------------------|
-   | TSTART    | double | HEASARC  | mission time of start of obs(s)      |
-   | TSTOP     | double | HEASARC  | mission time of end of obs(s)        |
-   | MJDREFI   | int    | HEASARC  | integer part of start MJD [s]        |
-   | MJDREFF   | double | HEASARC  | fractional part of start MJD         |
-   | TIMEUNIT  | string | HEASARC  | time unit of MJD  ['days']           |
-   | TIMESYS   | string | HEASARC  | 'UTC'                                |
-   | TIMEREF   | string | HEASARC  | 'local'                              |
-   | TELAPSE   | double | HFWG.R11 | diff of start and end times          |
-   | ONTIME    | double | HFWG.R11 | tot good time (incl deadtime)        |
-   | LIVETIME  | double | HFWG.R11 | (deadtime=ONTIME/LIVETIME)           |
-   | DEADC     | double | HFWG.R11 | deadtime fraction                    |
-   | TIMEDEL   | double | HEASARC  | time resolution (e.g. 1.0)           |
-   |-----------+--------+----------+--------------------------------------|
-   | OBJECT    | string | HEASARC  | observed object (if applicable)      |
-   | RA\_OBJ   | double | HFWG.R3  | target position 
-   | RA\_OBJ   | double | HFWG.R3  |                                      |
-   | RA\_PNT   | double | HFWG.R3  | observation position                 |
-   | DEC\_PNT  | double | HFWG.R3  |                                      |
-   | ALT\_PNT  | double |          | average altitide of pointing         |
-   | AZ\_PNT   | double |          | average azimuth of pointing          |
-   | RADECSYS  | string | HFWG.R3  | 'fk5'                                |
-   | EQUINOX   | real   | HEASARC  | (2000.0 for J2000)                   |
-   | CONV\_DEP | real   |          | convergence depth of telescopes      |
-   | CONV\_RA  | real   |          | convergence position RA [deg]        |
-   | CONV\_DEC | real   |          | convergence position Dec [deg]       |
-   | OBSERVER  | string | HEASARC  | proposer name?                       |
-   |-----------+--------+----------+--------------------------------------|
-   | N\_TELS   | int    |          |                                      |
-   | TELLIST   | string |          | comma-separated list of tel IDs      |
-   | GEOLAT    | double |          | latitude of array center [deg]       |
-   | GEOLON    | double |          | longitude of array center [deg]      |
-   | ALTITUDE  | double |          | altitude of array center [km]        |
-   |-----------+--------+----------+--------------------------------------|
-   | EUNIT     | string | HEASARC  | energy unit 'TeV'                    |
-   |-----------+--------+----------+--------------------------------------|
-   | EVTVER    | string |          | event-list version number            |
-   |-----------+--------+----------+--------------------------------------|
+** <<Observation Header>>
+   |------------+--------+----------+--------------------------------------|
+   | Keyword    | type   | standard | comment / unit                       |
+   |------------+--------+----------+--------------------------------------|
+   | ~CREATOR~  | string | HFWG.R7  | 'progname v1.2.3'                    |
+   | ~TELESCOP~ | string | OGIP2    | "CTA" (mission name)                 |
+   | ~EXTNAME~  | string | HEASARC  | "events"                             |
+   | ~RUN_ID~   | int    |          | observation run number or identifier |
+   | ~DATE_OBS~ | string | HEASARC  | yy-mm-dd  (user readable time)       |
+   | ~TIME_OBS~ | string | HEASARC  | hh:mm::ss                            |
+   | ~DATE_END~ | string | HEASARC  | yy-mm-dd                             |
+   | ~TIME_END~ | string | HEASARC  | hh:mm::ss                            |
+   |------------+--------+----------+--------------------------------------|
+   | ~TSTART~   | double | HEASARC  | mission time of start of obs(s)      |
+   | ~TSTOP~    | double | HEASARC  | mission time of end of obs(s)        |
+   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s]        |
+   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD         |
+   | ~TIMEUNIT~ | string | HEASARC  | time unit of MJD  ['days']           |
+   | ~TIMESYS~  | string | HEASARC  | 'UTC'                                |
+   | ~TIMEREF~  | string | HEASARC  | 'local'                              |
+   | ~TELAPSE~  | double | HFWG.R11 | diff of start and end times          |
+   | ~ONTIME~   | double | HFWG.R11 | tot good time (incl deadtime)        |
+   | ~LIVETIME~ | double | HFWG.R11 | (deadtime=ONTIME/LIVETIME)           |
+   | ~DEADC~    | double | HFWG.R11 | deadtime fraction                    |
+   | ~TIMEDEL~  | double | HEASARC  | time resolution (e.g. 1.0)           |
+   |------------+--------+----------+--------------------------------------|
+   | ~OBJECT~   | string | HEASARC  | observed object (if applicable)      |
+   | ~RA_OBJ~   | double | HFWG.R3  | target position                      |
+   | ~RA_OBJ~   | double | HFWG.R3  |                                      |
+   | ~RA_PNT~   | double | HFWG.R3  | observation position                 |
+   | ~DEC_PNT~  | double | HFWG.R3  |                                      |
+   | ~ALT_PNT~  | double |          | average altitide of pointing         |
+   | ~AZ_PNT~   | double |          | average azimuth of pointing          |
+   | ~RADECSYS~ | string | HFWG.R3  | 'fk5'                                |
+   | ~EQUINOX~  | real   | HEASARC  | (2000.0 for J2000)                   |
+   | ~CONV_DEP~ | real   |          | convergence depth of telescopes      |
+   | ~CONV_RA~  | real   |          | convergence position RA [deg]        |
+   | ~CONV_DEC~ | real   |          | convergence position Dec [deg]       |
+   | ~OBSERVER~ | string | HEASARC  | proposer name?                       |
+   |------------+--------+----------+--------------------------------------|
+   | ~N_TELS~   | int    |          |                                      |
+   | ~TELLIST~  | string |          | comma-separated list of tel IDs      |
+   | ~GEOLAT~   | double |          | latitude of array center [deg]       |
+   | ~GEOLON~   | double |          | longitude of array center [deg]      |
+   | ~ALTITUDE~ | double |          | altitude of array center [km]        |
+   |------------+--------+----------+--------------------------------------|
+   | ~EUNIT~    | string | HEASARC  | energy unit 'TeV'                    |
+   |------------+--------+----------+--------------------------------------|
+   | ~EVTVER~   | string |          | event-list version number            |
+   |------------+--------+----------+--------------------------------------|
 
 
-* EVENTS Table 
+* <<EVENTS>> Table 
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
 table containing information for each triggered shower event. It does
 not contain detailed pixel-information for each telescope, but rather
@@ -178,10 +183,10 @@ generated for different analysis techniques.
    | field        | type    | standard | comment                                |
    |--------------+---------+----------+----------------------------------------|
    | ~EVENT_ID~   | uint    |          | event number                           |
-   | ~TIME~       | double  | OGIP1    | timestamp of event, elapsed time (1)   |
+   | ~TIME~       | double  | OGIP1    | timestamp of event, elapsed time       |
    | ~TLIVE~      | double  |          | timestamp of event (livetime so far)   |
    |--------------+---------+----------+----------------------------------------|
-   | ~MULTIP~     | short   |          | multiplicity of tels used in recon /3/ |
+   | ~MULTIP~     | short   |          | multiplicity of tels used in recon /1/ |
    | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
    |--------------+---------+----------+----------------------------------------|
    | ~RA~         | real    | OGIP1    | reconstructed position RA              |
@@ -204,24 +209,10 @@ generated for different analysis techniques.
    |--------------+---------+----------+----------------------------------------|
 
     Comments:
+    - 1 :: In the OGIP memo, TIME is defined in "seconds" stored as a
+       double. 
     - 2 :: ALT and AZ can be stored here for simplicity, or you can let the
        user calculate them from the RA/DEC + TIME information...
-    - 3 :: In the OGIP memo, TIME is defined in "seconds" stored as a
-       double. Is this an MJD? That would make the most sense, but may
-       not be precise enough.
-    - 4 :: the question here is how much to split this up. A flat table is
-       easier and faster, but multiple sub-tables are more
-       flexible. What is shown above seems a fairly good balance
-       between the two.  The only parameter that may be redundant
-       between each reconstuction type is the time (all other
-       parameters are reconstruction-specific)
-    - 5 :: Of course may have more than one of these base shower parameter
-       tables for each event list (one for each type of
-       reconstruction!) So may need the extention name to be something
-       containing a reconstruction type (SHOWER-HILLAS, SHOWER-M3D) or
-       something...
-    - 6 :: need the RADECSYS and EQUINOX keywords in the header of this
-       table
 	   
 *** GAMMA-HADRON SEPARATION PARAMETERS
 
@@ -272,6 +263,12 @@ generated for different analysis techniques.
 
 *** MONTE-CARLO SHOWER PARAMETERS
 # <<MonteCarloParameters>>
+    The following parameters may be included in the /[[EVENTS]]/ table if
+    the data are from simulations. This information is needed to
+    calculate the various instrument response matrices, for example.
+    See the [[Simulation Headers]] section for the various header keywords
+    that are associated with these columns. 
+
    |---------------+--------+----------+-------------------------------------------|
    | field         | type   | standard | comment                                   |
    |---------------+--------+----------+-------------------------------------------|
@@ -291,12 +288,13 @@ generated for different analysis techniques.
     Comments:
     1. May also need simulation "combined" timing parameters here or
        in a separate table.
-       
+      
+
 *** SHOWER TIMING PARAMETERS (TBD)
     Timing parameters that are not telescope-specific
-    (e.g. average-velocity? Who knows. It may be in the end just a
-    "gammaness" parameter of how well the shower matches the timing
-    characteristics of a hadon vs gamma)
+    (e.g. average-velocity?) may be stored here as well. It may be in
+    the end just a "gammaness" parameter of how well the shower
+    matches the timing characteristics of a hadon vs gamma)
     
      
 * Telescope Parameters (TEVENTS) table
@@ -307,12 +305,12 @@ generated for different analysis techniques.
    Parameters table (extension /TEVENTS/) stores telescope-wise
    parameters indexed by an event ID number (~EVENT_ID~) and a
    telescope ID number (~TEL_ID~). The ~EVENT_ID~ should match the value
-   in the /EVENTS/ table, while the ~TEL_ID~ is an integer in the range
+   in the /[[EVENTS]]/ table, while the ~TEL_ID~ is an integer in the range
    1-N (where N is the number of telescopes participating in the run)
    that cam be mapped to an entry in the /TELARRAY/ extension or to
    the ~TELLIST~ header keyword.
 
-   For a given event in the /EVENTS/ table, there will be a row in
+   For a given event in the /[[EVENTS]]/ table, there will be a row in
    /TEVENTS/ for each triggered telescope in that event.  The software
    writing the table should ensure that the rows are in order, sorted
    first by ~EVENT_ID~ and then by ~TEL_ID~, such that a user can expect
@@ -335,7 +333,7 @@ generated for different analysis techniques.
 
 
    The information about which telescopes triggered is stored
-   additionally in the /EVENTS/ table in the TELMASK column of the
+   additionally in the /[[EVENTS]]/ table in the TELMASK column of the
    eventlist, which is a bitmask of length /N/, with the same
    telescope ordering as in the /TELARRAY/ extension or the ~TELLIST~
    header keyword (see [[TELARRAY Table]]). 
@@ -425,14 +423,43 @@ generated for different analysis techniques.
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
 
-* Monte-Carlo Information Tables
-** <<MCINFO Table>>
+* Monte-Carlo Information 
+** <<Simulation Headers>>
+   The following header keywords describe the monte-carlo simulations
+   that were used to produce the [[MonteCarloParameters]] columns in the
+   /[[EVENTS]]/ table.  These keywords are in addition to the standard
+   [[Observation Header]]
+
+   |------------+--------+----------+---------------------------------------|
+   | keyword    | type   | standard | comment / unit                        |
+   |------------+--------+----------+---------------------------------------|
+   | ~SHWRSIM~  | string |          | shower simulation program ('corsika') |
+   | ~SHWRVER~  | string |          | version number of shower simulation   |
+   | ~DETSIM~   | string |          | detector simulation ('sim_telarray')  |
+   | ~DETVER~   | string |          | detector simulation version           |
+   | ~ATMOMODL~ | string |          | atmosphere model used                 |
+   | ~B_FIELD~  | real   |          | magnetic field strength (uT)          |
+   | ~B_INC~    | real   |          | magnetic field inclination (deg)      |
+   | ~B_DEC~    | real   |          | magnetic field declination (deg)      |
+   | ~INJECTHT~ | real   |          | injection height (m)                  |
+   | ~INTDEPTH~ | real   |          | first interaction depth (g/cm**2)     |
+   | ~MC_RUNID~ | int    |          | monte-carlo run identification number |
+   | ~MC_TYPE~  | int    |          | type of primary particle              |
+   | ~MC_MODE~  | int    |          | e.g. 0=point source, 1=diffuse        |
+   | ~MC_NEVT~  | int    |          | number of thrown events               |
+   | ~MC_NREU~  | int    |          | number of reused events               |
+   | ~MC_EMIN~  | float  |          | minimum simulated energy (TeV)        |
+   | ~MC_EMAX~  | float  |          | maximum simulated energy (TeV)        |
+   | ~MC_IDX~   | float  |          | power-law index of simulated energy   |
+   | ~CORE_MIN~ | float  |          | minimum thrown radius (m)             |
+   | ~CORE_MAX~ | float  |          | maximum thrown radius (m)             |
+   |------------+--------+----------+---------------------------------------|
    
 ** <<MCENERGY Table>>
    The /MCENERGY/ extension contains a table that describes the thrown
    energy distribution (the distribution of energies simulated,
    regardless of what was actually detected) of the simulated events
-   in the /EVENTS/ table. This information is necessary for
+   in the /[[EVENTS]]/ table. This information is necessary for
    calculating the effective collection area of the
    instrument/analysis.  It is defined as a generic histogram as
    follows:
@@ -479,13 +506,23 @@ generated for different analysis techniques.
    function of energy. 
 
    $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$
-   
+
+   Effective areas should be stored at least in a standard /ARF/ file
+   on a per-run basis. The format of ARFs allows the effective area
+   matrix to be stored as a function of any number of parameters,
+   however it may be sufficient to store a single reduced (1-D) effective
+   area vs energy curve per observation.
+    
 ** Photon Redistribution Matrix
    
    Gives the probability of reconstructing a photon with true energy
    $E_\mathrm{true}$ at reconstructed energy $E_\mathrm{reco}$.  This
    is stored as a standard OGIP /RMF/ file. 
    
+   As with the effective area, the RMF may be a master N-dimensional
+   response matrix, or a simplified (interpolated and averaged) per-run
+   2-D matrix.
+
 ** Point-spread-function
    Gives the 2D probability for reconstructing a photon with true
    position $(\theta,\phi)_\mathrm{true}$ at reconstructed position
@@ -493,11 +530,28 @@ generated for different analysis techniques.
    is equivalant to the impulse-response function for a point-source
    within the field of view.
 
+* Storage of Times 
+  
+
+
 * Implemetation notes
 ** Storage of pointing information
-*** Run-wise
-*** Globally
-** Keyword names
+   In the current design, pointing information is stored in the
+   [[Observation Header]] as a set of keywords, since this information
+   only changes once per observation.  The current pointing position
+   is also encoded in the /[[EVENTS]]/ table. 
+
+   The storage of pointing information could be done in two ways:
+   run-wise (as above), or globally, using a single "pointing
+   information" dataset for all observations that is independent of
+   the event-list.  The global implementation is similar to what is
+   done with instruments like /Fermi-GST/, where the information is
+   encoded in "spacecraft" data files.  However, since Cherekov
+   Telescopes operate in observation-mode (single, discrete
+   observations), the run-wise method may be simpler for analyzers to
+   use. 
+
+** FITS Keywords
    in FITS, keyword names may only be 8 characters long, so this
    should be taken into account when defining this format in the
    template files.
@@ -505,17 +559,17 @@ generated for different analysis techniques.
     The latest FITS standards support the usage of Hiarachical
     keywords (e.g. ARRAY.LOCATION.ALT). These could be used to
     simplify some of the header information
-** long strings in headers
-   Now supported by FITS and =CFITSIO= (see the =fits\\_*\\_key\\_longstr()=
-   functions). The =CFITSIO= routines will automatically combine
-   "continued" keywords into a single long string, overcomeing the
-   68-character limit for single key/values. They are stored in the FITS
-   header as:
+*** long strings in headers
+     Now supported by FITS and =CFITSIO= (see the =fits\\_*\\_key\\_longstr()=
+     functions). The =CFITSIO= routines will automatically combine
+     "continued" keywords into a single long string, overcomeing the
+     68-character limit for single key/values. They are stored in the FITS
+     header as:
 
-   : KEYWORD = 'this is a test of long strings. It can&'
-   : CONTINUE= 'continue over multiple&'
-   : CONTINUE= 'lines using the CONTINUE keyword'
-   
+     : KEYWORD = 'this is a test of long strings. It can&'
+     : CONTINUE= 'continue over multiple&'
+     : CONTINUE= 'lines using the CONTINUE keyword'
+     
 ** Units
    Units are defined for tables using the TUNITn keyword in the table
    definition, and for header values should be encoded in brackets as the
@@ -527,5 +581,4 @@ generated for different analysis techniques.
    
 
 
-* Footnotes
-
+   
