@@ -1,5 +1,5 @@
 #+Title:     FITS Event Data format for ACTs
-#+DATE:      2010-08-17
+#+DATE:      2011-01-06
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
 #+DESCRIPTION: general list of required information for CTA event lists 
@@ -17,7 +17,6 @@
   - 2011-01-06 :: (kosack) added more information about instrument
                   response matrices
 		
-
 * About
 ** Introduction 
 
@@ -32,12 +31,10 @@
    =CFITSIO= template format (defined in the =CFITSIO= documentation,
    chapter 11) will be generated from the description listed below.
 
-   Whenever possible, existing standards for column names and header
-   keywords have been used, to ensure maximal compatibility with
-   existing analysis tools (e.g. FTOOLS). Standards exist that are
-   provided by the FITS standards committees and for example
-   OGIP. These standards define how basic to complex data products
-   should be stored in FITS format. 
+   Low-level calibration information such as gain corrections,
+   flat-fielding, digital-count-to-photo-electron conversion is
+   assumed to be already applied to the data given to the public,
+   therefore the information here should be post-calibration.
 
    For those not familiar with the FITS format, the data files may
    contain any number of named *extensions*, each of which contains a
@@ -54,22 +51,51 @@
    An event-list data file may contain some or all of the following
    information:
 
-    1. [[Observation Header]] information
-    2. Event table describing reconstructed and simulated shower
-       parameters ([[EVENTS]])
-    3. Optional Telescope-Event table with low-level parameters ([[TEVENTS]])
-    4. Array description table ([[TELARRAY]])
-    5. Monte-Carlo information Headers
-    6. Monte-Carlo thrown energy distribution histogram ([[MCENERGY]])
-       
+   + [[Observation Header]] information
+
+   + Event table describing reconstructed and simulated shower
+      parameters ([[EVENTS]])
+
+   + Optional Telescope-Event table with low-level parameters ([[TEVENTS]])
+     
    These tables and headers may also be spread among multiple files
    (e.g. one for the basic event-list, and another for low-level
    shower and Cherenkov image information)
 
+   Furthermore, some additional configuration information is often needed to
+   allow for the construction of high-level instrument response
+   matrices, or for lower-level reconstruction algorithms (e.g. energy
+   estimation or shower geometry reconstruction). This includes: 
+
+   + Array description table ([[TELARRAY]])
+   + Cherenkov Camera description table ([[CHERCAM]])
+   + Monte-Carlo information Headers
+   + Monte-Carlo thrown energy distribution histogram ([[MCENERGY]])
+      
+
+   For high-level analysis, instrument response matrices are
+   also required that correspond to the given event list. These
+   include the following, and can be generated from the information
+   in the event list plus the auxiliary configuration information:
+   
+   + Effective area responses
+
+   + Photon distribution matrices
+
+   + Point-spread functions
+     
+   
+
 ** Standards
 
-   Here are the standards documents which define columns marked as
-   standard below. 
+   Whenever possible, existing standards for column names and header
+   keywords have been used, to ensure maximal compatibility with
+   existing analysis tools (e.g. FTOOLS). Standards exist that are
+   provided by the FITS standards committees and for example
+   OGIP. These standards define how basic to complex data products
+   should be stored in FITS format. 
+
+   The documents which define columns marked as standard are:
 
    - OGIP1 :: OGIP standard for Event Lists
    - OGIP-T :: Angelini et al 1992 (time standards)
@@ -352,9 +378,6 @@ generated for different analysis techniques.
    ~TELMASK~ and ~NTELS~ column in the =EVENTS= extension, to be consistent!
    #+END_QUOTE
 
-   Of course, the pixel positions and other camera-specific info must
-   be stored separately. 
-
 ** Telescope-wise parameters
 
    For generating response matrices, for example, one
@@ -408,9 +431,13 @@ generated for different analysis techniques.
    | ~TEL_IMG_IPIX~ | int[*]   |          | list of pixel indices in image           |
    | ~TEL_IMG_INT~  | float[*] |          | list of pixel intensities in image (P.E) |
    |----------------+----------+----------+------------------------------------------|
+
+   Pixel positions and other camera-specific info will be stored in a separate
+   (to be defined) extension.
+
  
-* Array Configuration Information
-** <<TELARRAY>> 
+* Instrument Configuration Information
+** <<TELARRAY>> Extension: Array layout 
    This table has one entry per telescope and provides an overview of
    the array layout. This is optional information at the high-level
    event-list level, but is needed by the low-level analysis and
@@ -430,6 +457,30 @@ generated for different analysis techniques.
    | ~TELCAMAREA~ | double |          | camera area m^2                  |
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
+** <<CHERCAM>>: Cherenkov Camera information 
+
+   *This section is a work in progress* 
+
+   The information about each Cherenkov camera (referenced in the
+   ~TELCAMID~ field in /TELARRAY/) may also be stored in a data table
+   or a series of hierarchical keywords. This information should
+   include information about each pixel in the camera (location,
+   diameter, etc.). This information is intended for use by low-level
+   reconstruction algorithms that are run /after/ calibration of the
+   Cherenkov images has been made. Therefore detailed information on
+   pixel gains, etc, are not needed.  For example:
+
+   |------------+--------+----------+--------------------------------------|
+   | field      | type   | standard | comment / unit                       |
+   |------------+--------+----------+--------------------------------------|
+   | ~TELCAMID~ | int    |          | same as in TELARRAY extension        |
+   | ~PIX_ID~   | uint   |          | index of the camera pixel            |
+   | ~PIX_POSX~ | double |          | pixel X position (m) from cam center |
+   | ~PIX_POSY~ | double |          | pixel Y position (m) from cam center |
+   | ~PIX_DIAM~ | double |          | pixel diameter (deg)                 |
+   | ~PIX_AREA~ | double |          | pixel area                           |
+   | ...        |        |          |                                      |
+   |            |        |          |                                      |
 
 * Monte-Carlo Information 
 ** <<Simulation Headers>>
@@ -567,7 +618,7 @@ generated for different analysis techniques.
     keywords (e.g. ARRAY.LOCATION.ALT). These could be used to
     simplify some of the header information
 *** long strings in headers
-     Now supported by FITS and =CFITSIO= (see the =fits\\_*\\_key\\_longstr()=
+     Now supported by FITS and =CFITSIO= (see the ~fits_*_key_longstr()~
      functions). The =CFITSIO= routines will automatically combine
      "continued" keywords into a single long string, overcoming the
      68-character limit for single key/values. They are stored in the FITS
