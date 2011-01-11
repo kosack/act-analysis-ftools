@@ -1,4 +1,4 @@
-#+Title:     FITS EventList format for ACTs
+#+Title:     FITS Event Data format for ACTs
 #+DATE:      2010-08-17
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
@@ -14,20 +14,23 @@
                   are in their own separate table indexed by
                   eventid+telid (reduces disk space with only a slight
                   increase in difficulty of use)
+  - 2011-01-06 :: (kosack) added more information about instrument
+                  response matrices
+		
 
 * About
 ** Introduction 
 
    This document defines the parameters needed in a general
-   atmospheric cherenkov telescope (ACT) array event-list file. An
-   event list is a high-level data product that provides information
-   about each shower detected by the array ("combined" parameters,
-   like /energy/ or /hadronness/), and may optionally contain results
-   from individual telescopes (e.g. /impact parameter/).  Event list
-   files will be stored in FITS format, and template header/table
-   definitions in the standard =CFITSIO= template format (defined in
-   the =CFITSIO= documentation, chapter 11) will be generated from the
-   description listed below.
+   atmospheric Cherenkov telescope (ACT) array event-list file and
+   supporting response files. An event list is a high-level data
+   product that provides information about each shower detected by the
+   array ("combined" parameters, like /energy/ or /hadronness/), and
+   may optionally contain results from individual telescopes
+   (e.g. /impact parameter/).  Event list files will be stored in FITS
+   format, and template header/table definitions in the standard
+   =CFITSIO= template format (defined in the =CFITSIO= documentation,
+   chapter 11) will be generated from the description listed below.
 
    Whenever possible, existing standards for column names and header
    keywords have been used, to ensure maximal compatibility with
@@ -42,21 +45,22 @@
    *n-dimensional array*.  
 
    In the case of a /table/, the columns of the table are described in
-   a standard format in the /header/ for that extension (along with any
-   other header information for that table).  For each column, one may
-   define a *name*, a *type*, a *unit*, and optionally a *UCD*
-   (universal descriptor defined by the VO standards committee
-   describing the column)
+   a standard format in the /header/ for that extension (along with
+   any other header information for that table).  For each column, one
+   may define a *name*, a *type*, a *unit*, and optionally a *UCD*, a
+   universal descriptor defined by the Virtual Observatory (VO)
+   standards committee describing the column.
 
    An event-list data file may contain some or all of the following
    information:
 
-    1. Observation header information
-    2. Event table describing reconstructed and simulated shower parameters
-    3. Optional Telescope-Event table with low-level parameters
-    4. Array description table
+    1. [[Observation Header]] information
+    2. Event table describing reconstructed and simulated shower
+       parameters ([[EVENTS]])
+    3. Optional Telescope-Event table with low-level parameters ([[TEVENTS]])
+    4. Array description table ([[TELARRAY]])
     5. Monte-Carlo information Headers
-    6. Monte-Carlo thrown energy distribution histogram 
+    6. Monte-Carlo thrown energy distribution histogram ([[MCENERGY]])
        
    These tables and headers may also be spread among multiple files
    (e.g. one for the basic event-list, and another for low-level
@@ -83,7 +87,7 @@
    | ~CREATOR~  | string | HFWG.R7  | 'progname v1.2.3'                    |
    | ~TELESCOP~ | string | OGIP2    | "CTA" (mission name)                 |
    | ~EXTNAME~  | string | HEASARC  | "events"                             |
-   | ~RUN_ID~   | int    |          | observation run number or identifier |
+   | ~OBS_ID~   | int    |          | observation run number or identifier |
    | ~DATE_OBS~ | string | HEASARC  | yy-mm-dd  (user readable time)       |
    | ~TIME_OBS~ | string | HEASARC  | hh:mm::ss                            |
    | ~DATE_END~ | string | HEASARC  | yy-mm-dd                             |
@@ -107,7 +111,7 @@
    | ~RA_OBJ~   | double | HFWG.R3  |                                      |
    | ~RA_PNT~   | double | HFWG.R3  | observation position                 |
    | ~DEC_PNT~  | double | HFWG.R3  |                                      |
-   | ~ALT_PNT~  | double |          | average altitide of pointing         |
+   | ~ALT_PNT~  | double |          | average altitude of pointing         |
    | ~AZ_PNT~   | double |          | average azimuth of pointing          |
    | ~RADECSYS~ | string | HFWG.R3  | 'fk5'                                |
    | ~EQUINOX~  | real   | HEASARC  | (2000.0 for J2000)                   |
@@ -116,8 +120,8 @@
    | ~CONV_DEC~ | real   |          | convergence position Dec [deg]       |
    | ~OBSERVER~ | string | HEASARC  | proposer name?                       |
    |------------+--------+----------+--------------------------------------|
-   | ~N_TELS~   | int    |          |                                      |
-   | ~TELLIST~  | string |          | comma-separated list of tel IDs      |
+   | ~N_TELS~   | int    |          | number of telescopes in event list   |
+   | ~TELLIST~  | string |          | comma-separated list of tel IDs /1/  |
    | ~GEOLAT~   | double |          | latitude of array center [deg]       |
    | ~GEOLON~   | double |          | longitude of array center [deg]      |
    | ~ALTITUDE~ | double |          | altitude of array center [km]        |
@@ -127,15 +131,19 @@
    | ~EVTVER~   | string |          | event-list version number            |
    |------------+--------+----------+--------------------------------------|
 
+   Notes: 
+   - 1 :: The ~TELLIST~ keyword is just for convenience and reproduces
+          the list and order of telescopes in the [[TELARRAY]] extension,
+          described later.
 
-* <<EVENTS>> Table 
+
+* <<EVENTS>> Extension  
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
 table containing information for each triggered shower event. It does
 not contain detailed pixel-information for each telescope, but rather
-single reconstructed shower parameters or parameters that are
-calculated for each telescope. 
+single reconstructed shower parameters. 
 
-The EVENTS table is intended to be a simple-to-work-eith, flat table
+The EVENTS table is intended to be a simple-to-work-with, flat table
 that contains a base set of columns plus an number of optional columns
 that are specific to a particular analysis.  Since there is only one
 set of shower-reconstruction parameters in the table, only one type of
@@ -143,11 +151,11 @@ analysis should be included in each event-list, and separate lists
 generated for different analysis techniques.
 
 ** Additional and optional parameters
- 
+
    Since the requirements for analysis of CTA data are not fully
    defined, this format must be extensible (adding more lower-level
    reconstruction parameters when needed). Generally all analyses need
-   a gamma-hadron separation parameter, and generally there are severl
+   a gamma-hadron separation parameter, and generally there are several
    such parameters (e.g. for Hillas-type, 3D model, 2D template,
    boosted decision tree, or any other type of reconstruction) For
    example, one might find that the timing information is useful in
@@ -163,11 +171,11 @@ generated for different analysis techniques.
    to the new parameters. 
 
    Column names for additional parameters should be prefixed by the
-   type of analysis they correspond to (e.g. ~MC\_~ for Monte-carlo
+   type of analysis they correspond to (e.g. ~MC\_~ for Monte-Carlo
    parameters, ~HIL\_~ for Hillas-style analysis parameters)
 
 ** Contents of the EVENTS table:
-*** BASE SHOWER PARAMETERS
+*** Base Shower Parameters
     
     The base parameters should always be in every event-list file,
     regardless of what reconstruction technique produced the
@@ -177,14 +185,14 @@ generated for different analysis techniques.
     an instrument response matrix describing their probability
     distributions. The /true/ values of the parameters, if known
     (e.g. from simulated data), are described later in the
-    [[MonteCarloParameters][Monte Carlo Parameters]] section
+    [[Monte-Carlo Shower Parameters]] section
 
    |--------------+---------+----------+----------------------------------------|
    | field        | type    | standard | comment                                |
    |--------------+---------+----------+----------------------------------------|
    | ~EVENT_ID~   | uint    |          | event number                           |
-   | ~TIME~       | double  | OGIP1    | timestamp of event, elapsed time       |
-   | ~TLIVE~      | double  |          | timestamp of event (livetime so far)   |
+   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time       |
+   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)   |
    |--------------+---------+----------+----------------------------------------|
    | ~MULTIP~     | short   |          | multiplicity of tels used in recon /1/ |
    | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
@@ -202,7 +210,7 @@ generated for different analysis techniques.
    | ~COREY~      | double  |          | position on ground (M)                 |
    | ~CORE_ERR~   | double  |          | error on core reconstruction (M)       |
    | ~XMAX~       | double  |          | position of shower max (M)             |
-   | ~XMAX_ERR~   | double  |          | error on showermax                     |
+   | ~XMAX_ERR~   | double  |          | error on shower-max                     |
    |--------------+---------+----------+----------------------------------------|
    | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
    | ~ENERGY_ERR~ | double  |          | error on energy                        |
@@ -214,9 +222,9 @@ generated for different analysis techniques.
     - 2 :: ALT and AZ can be stored here for simplicity, or you can let the
        user calculate them from the RA/DEC + TIME information...
 	   
-*** GAMMA-HADRON SEPARATION PARAMETERS
+*** Gamma-Hadron Separation Parameters
 
-    Since VHE gamma-ray data are dominated by backround events caused
+    Since VHE gamma-ray data are dominated by background events caused
     by cosmic ray (hadronic) induced air showers, no list of events is
     ever purely gamma-rays. Therefore it is necessary to have some
     sort of gamma-hadron separation parameter, on which cuts can be
@@ -231,8 +239,8 @@ generated for different analysis techniques.
     moment-analysis of cleaned shower images (the resulting set of
     moments are known as the Hillas parameters
     [TODO:citation]). In a Hillas-parameter based analysis, the
-    gamma-hadron separation parameter is usualy a combination of the
-    /mean-reduced-scaled-width/ and /mean-reduced-scaled-lenght/
+    gamma-hadron separation parameter is usually a combination of the
+    /mean-reduced-scaled-width/ and /mean-reduced-scaled-length/
     parameters (defined in e.g. [TODO: cite]).  
     
     The following gives examples of parameters that may be included in
@@ -261,82 +269,82 @@ generated for different analysis techniques.
     | ...            |        |          |                                  |
     |----------------+--------+----------+----------------------------------|
 
-*** MONTE-CARLO SHOWER PARAMETERS
-# <<MonteCarloParameters>>
+*** <<Monte-Carlo Shower Parameters>>
     The following parameters may be included in the /[[EVENTS]]/ table if
     the data are from simulations. This information is needed to
     calculate the various instrument response matrices, for example.
     See the [[Simulation Headers]] section for the various header keywords
     that are associated with these columns. 
 
-   |---------------+--------+----------+-------------------------------------------|
-   | field         | type   | standard | comment                                   |
-   |---------------+--------+----------+-------------------------------------------|
-   | ~MC_EVENTID~  | uint   |          | event number from simulation              |
-   | ~MC_SHOWERID~ | uint   |          | shower id from simulation                 |
-   | ~MC_PRIMID~   | uint   |          | type of primary particle                  |
-   | ~MC_ENERGY~   | double |          | true energy                               |
-   | ~MC_ALT~      | double |          | true direction                            |
-   | ~MC_AZ~       | double |          | true direction                            |
-   | ~MC_XMAX~     | double |          | true showerMax [g/cm^2]                   |
-   | ~MC_COREX~    | double |          | true core X pos of shower axis            |
-   | ~MC_COREY~    | double |          | true core Y pos of shower axis            |
-   | ~MC_FIRSTINT~ | double |          | height of first interaction [m]           |
-   | ~MC_XSTART~   | double |          | atmos. depth of first interaction [g/cm2] |
-   |---------------+--------+----------+-------------------------------------------|
+   |---------------+--------+----------+--------------------------------------------|
+   | field         | type   | standard | comment                                    |
+   |---------------+--------+----------+--------------------------------------------|
+   | ~MC_EVENTID~  | uint   |          | event number from simulation               |
+   | ~MC_SHOWERID~ | uint   |          | shower id from simulation                  |
+   | ~MC_PRIMID~   | uint   |          | type of primary particle                   |
+   | ~MC_ENERGY~   | double |          | true energy                                |
+   | ~MC_ALT~      | double |          | true direction                             |
+   | ~MC_AZ~       | double |          | true direction                             |
+   | ~MC_XMAX~     | double |          | true showerMax [g/cm^2]                    |
+   | ~MC_COREX~    | double |          | true core X pos of shower axis             |
+   | ~MC_COREY~    | double |          | true core Y pos of shower axis             |
+   | ~MC_FIRSTINT~ | double |          | height of first interaction [m]            |
+   | ~MC_XSTART~   | double |          | atmos. depth of first interaction [g/cm^2] |
+   |               |        |          |                                            |
+   |---------------+--------+----------+--------------------------------------------|
 
     Comments:
     1. May also need simulation "combined" timing parameters here or
        in a separate table.
       
-
 *** SHOWER TIMING PARAMETERS (TBD)
     Timing parameters that are not telescope-specific
     (e.g. average-velocity?) may be stored here as well. It may be in
     the end just a "gammaness" parameter of how well the shower
-    matches the timing characteristics of a hadon vs gamma)
+    matches the timing characteristics of a hadron vs gamma)
     
-     
-* Telescope Parameters (TEVENTS) table
-   Because some useful parameters, like the impact parameter of the
-   shower or various low-level shower reconstruction parameters, are
-   different for each telescope in the array, it is necessary to
-   define a method for storing these parameters. The Telescope
-   Parameters table (extension /TEVENTS/) stores telescope-wise
-   parameters indexed by an event ID number (~EVENT_ID~) and a
-   telescope ID number (~TEL_ID~). The ~EVENT_ID~ should match the value
-   in the /[[EVENTS]]/ table, while the ~TEL_ID~ is an integer in the range
-   1-N (where N is the number of telescopes participating in the run)
-   that cam be mapped to an entry in the /TELARRAY/ extension or to
-   the ~TELLIST~ header keyword.
+* <<TEVENTS>> Extension  (lower-level data)
+  The TEVENTS table is only necessary for lower-level analysis and
+  reconstruction, and for the generation of instrument response functions.
 
-   For a given event in the /[[EVENTS]]/ table, there will be a row in
-   /TEVENTS/ for each triggered telescope in that event.  The software
-   writing the table should ensure that the rows are in order, sorted
-   first by ~EVENT_ID~ and then by ~TEL_ID~, such that a user can expect
-   that if the event ID changes between two rows that a new event has
-   begun.
-
-   For example, if for event 1, telescopes 4,6,8 triggered, and for
-   event 2, telescopes 1 and 3 triggered, the table would look like
-   this:
-
-   |------------+----------+-----------------------------|
-   | ~EVENT_ID~ | ~TEL_ID~ | Telescope param columns ... |
-   |------------+----------+-----------------------------|
-   |          1 |        4 | ...                         |
-   |          1 |        6 | ...                         |
-   |          1 |        8 | ...                         |
-   |          2 |        1 | ...                         |
-   |          2 |        3 | ...                         |
+  Because some useful parameters, like the impact parameter of the
+  shower or various low-level shower reconstruction parameters, are
+  different for each telescope in the array, it is necessary to
+  define a method for storing these parameters. The Telescope
+  Parameters table (extension /TEVENTS/) stores telescope-wise
+  parameters indexed by an event ID number (~EVENT_ID~) and a
+  telescope ID number (~TEL_ID~). The ~EVENT_ID~ should match the
+  value in the /[[EVENTS]]/ table, while the ~TEL_ID~ is an integer in
+  the range 1-N (where N is the number of telescopes participating in
+  the run) that cam be mapped to an entry in the /TELARRAY/ extension
+  or to the ~TELLIST~ header keyword.
+  
+  For a given event in the /[[EVENTS]]/ table, there will be a row in
+  /TEVENTS/ for each triggered telescope in that event.  The software
+  writing the table should ensure that the rows are in order, sorted
+  first by ~EVENT_ID~ and then by ~TEL_ID~, such that a user can expect
+  that if the event ID changes between two rows that a new event has
+  begun.
+  
+  For example, if for event 1, telescopes 4,6,8 triggered, and for
+  event 2, telescopes 1 and 3 triggered, the table would look like
+  this:
+  
+  |------------+----------+-----------------------------|
+  | ~EVENT_ID~ | ~TEL_ID~ | Telescope param columns ... |
+  |------------+----------+-----------------------------|
+  |          1 |        4 | ...                         |
+  |          1 |        6 | ...                         |
+  |          1 |        8 | ...                         |
+  |          2 |        1 | ...                         |
+  |          2 |        3 | ...                         |
    ...
-
 
    The information about which telescopes triggered is stored
    additionally in the /[[EVENTS]]/ table in the TELMASK column of the
    eventlist, which is a bitmask of length /N/, with the same
    telescope ordering as in the /TELARRAY/ extension or the ~TELLIST~
-   header keyword (see [[TELARRAY Table]]). 
+   header keyword (see [[TELARRAY]] extension).
    
    #+BEGIN_QUOTE
    *NOTE*: any program that modifies the TEVENTS table
@@ -355,8 +363,8 @@ generated for different analysis techniques.
    the telescope location and shower reconstruction parameters, it
    is a relatively complex computation, involving a number of
    coordinate transformations. For this reason, it is easiest to
-   have impact parameters pre-calculated and proved in the
-   event-list. 
+   have impact parameters pre-calculated and provided in the
+   telescope-wise event-list. 
 
    |--------------+--------+----------+-----------------------------------------------|
    | field        | type   | standard | comment                                       |
@@ -364,7 +372,7 @@ generated for different analysis techniques.
    | ~TEL_IMPACT~ | double |          | impact parameter of shower with the given tel |
    |--------------+--------+----------+-----------------------------------------------|
 
-   For a particuar analysis (E.g. a Hillas-style analysis), one may
+   For a particular analysis (E.g. a Hillas-style analysis), one may
    also store other useful per-telescope parameters, such as the
    non-reduced Hillas parameters (LENGTH, WIDTH, SIZE, ASYMMETRY,
    etc). These can be used for reconstruction the shower's geometry or
@@ -389,7 +397,7 @@ generated for different analysis techniques.
    In even lower-level data, the shower-images themselves can be
    stored as a set of telescope parameters (using variable-length
    arrays). To reduce the size of the data, only "cleaned" pixels
-   can be stored by first storing the non-zero pixel numbers as an
+   may be stored by first listing the non-zero pixel numbers as an
    array ~TEL_IMG_IPIX~ and the corresponding intensities in
    ~TEL_IMG_INT~:
    
@@ -402,7 +410,7 @@ generated for different analysis techniques.
    |----------------+----------+----------+------------------------------------------|
  
 * Array Configuration Information
-** <<TELARRAY Table>> 
+** <<TELARRAY>> 
    This table has one entry per telescope and provides an overview of
    the array layout. This is optional information at the high-level
    event-list level, but is needed by the low-level analysis and
@@ -425,7 +433,7 @@ generated for different analysis techniques.
 
 * Monte-Carlo Information 
 ** <<Simulation Headers>>
-   The following header keywords describe the monte-carlo simulations
+   The following header keywords describe the monte-Carlo simulations
    that were used to produce the [[MonteCarloParameters]] columns in the
    /[[EVENTS]]/ table.  These keywords are in addition to the standard
    [[Observation Header]]
@@ -455,7 +463,7 @@ generated for different analysis techniques.
    | ~CORE_MAX~ | float  |          | maximum thrown radius (m)             |
    |------------+--------+----------+---------------------------------------|
    
-** <<MCENERGY Table>>
+** <<MCENERGY>> Extension
    The /MCENERGY/ extension contains a table that describes the thrown
    energy distribution (the distribution of energies simulated,
    regardless of what was actually detected) of the simulated events
@@ -485,39 +493,41 @@ generated for different analysis techniques.
   array (such as the number of triggered telescopes and array layout).
 
   Common external parameters:
-  - offset in camera from pointing position ($\theta$)
-  - angle in camera from pointing position ($\phi$) [fn:phiangle:
+  - radial offset in camera from pointing position ($\theta$)
+  - polar angle in camera from pointing position ($\phi$) [fn:phiangle:
     often, the response in the camera can be assumed to be radially
     symmetric, and the $\phi$ angle can be ignored as a parameter in
     response tables]
-  - Zenith angle of pointing ($\Theta$)
+  - zenith angle of pointing ($\Theta$)
   - Azimuthal angle of pointing ($\Phi$)
   - telescope multiplicity ($N$)
-  - optical efficiency ($\epsilon_\mathrm{opt}$)
+  - optical efficiency correction ($\epsilon_\mathrm{opt}$)
 
   Therefore for fully general response matrices, the tables must be
   stored as a function of these "external" parameters. However, for a
   single exposure, one can integrate over the distribution of these
   parameters to provide a /reduced/ response matrix that is suitable
   for a short observation.
-
+  
 ** Effective Area
-   Gives the effective collection area for detection gamma-rays as a
-   function of energy. 
-
-   $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$
+   $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, 
+   gives the effective collection area for detection gamma-rays as a
+   function of energy.
 
    Effective areas should be stored at least in a standard /ARF/ file
-   on a per-run basis. The format of ARFs allows the effective area
-   matrix to be stored as a function of any number of parameters,
-   however it may be sufficient to store a single reduced (1-D) effective
-   area vs energy curve per observation.
+   on a per-run basis (See Ogip memo CAL/GEN/92-019). The format of
+   ARFs allows the effective area matrix to be stored as a function of
+   any number of parameters, however it may be sufficient to store a
+   single reduced (1-D) effective area vs energy curve per
+   observation. Effective areas should be stored both as a function of
+   true energy ($E_\mathrm{true}$) and reconstructed energy
+   $(E_\mathrm{reco}$).
     
 ** Photon Redistribution Matrix
    
    Gives the probability of reconstructing a photon with true energy
    $E_\mathrm{true}$ at reconstructed energy $E_\mathrm{reco}$.  This
-   is stored as a standard OGIP /RMF/ file. 
+   2-D matrix is stored as a standard OGIP /RMF/ file. 
    
    As with the effective area, the RMF may be a master N-dimensional
    response matrix, or a simplified (interpolated and averaged) per-run
@@ -527,14 +537,11 @@ generated for different analysis techniques.
    Gives the 2D probability for reconstructing a photon with true
    position $(\theta,\phi)_\mathrm{true}$ at reconstructed position
    $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
-   is equivalant to the impulse-response function for a point-source
+   is equivalent to the impulse-response function for a point-source
    within the field of view.
-
+   
 * Storage of Times 
-  
-
-
-* Implemetation notes
+* Implementation notes
 ** Storage of pointing information
    In the current design, pointing information is stored in the
    [[Observation Header]] as a set of keywords, since this information
@@ -543,10 +550,10 @@ generated for different analysis techniques.
 
    The storage of pointing information could be done in two ways:
    run-wise (as above), or globally, using a single "pointing
-   information" dataset for all observations that is independent of
+   information" data set for all observations that is independent of
    the event-list.  The global implementation is similar to what is
    done with instruments like /Fermi-GST/, where the information is
-   encoded in "spacecraft" data files.  However, since Cherekov
+   encoded in "spacecraft" data files.  However, since Cherenkov
    Telescopes operate in observation-mode (single, discrete
    observations), the run-wise method may be simpler for analyzers to
    use. 
@@ -556,13 +563,13 @@ generated for different analysis techniques.
    should be taken into account when defining this format in the
    template files.
 *** Hierarchical keywords
-    The latest FITS standards support the usage of Hiarachical
+    The latest FITS standards support the usage of Hierarchical
     keywords (e.g. ARRAY.LOCATION.ALT). These could be used to
     simplify some of the header information
 *** long strings in headers
      Now supported by FITS and =CFITSIO= (see the =fits\\_*\\_key\\_longstr()=
      functions). The =CFITSIO= routines will automatically combine
-     "continued" keywords into a single long string, overcomeing the
+     "continued" keywords into a single long string, overcoming the
      68-character limit for single key/values. They are stored in the FITS
      header as:
 
