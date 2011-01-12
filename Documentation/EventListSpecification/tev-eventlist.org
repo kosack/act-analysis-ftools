@@ -197,8 +197,8 @@ generated for different analysis techniques.
    to the new parameters. 
 
    Column names for additional parameters should be prefixed by the
-   type of analysis they correspond to (e.g. ~MC\_~ for Monte-Carlo
-   parameters, ~HIL\_~ for Hillas-style analysis parameters)
+   type of analysis they correspond to (e.g. ~MC_~ for Monte-Carlo
+   parameters, ~HIL_~ for Hillas-style analysis parameters)
 
 ** Contents of the EVENTS table:
 *** Base Shower Parameters
@@ -252,14 +252,14 @@ generated for different analysis techniques.
 
     Since VHE gamma-ray data are dominated by background events caused
     by cosmic ray (hadronic) induced air showers, no list of events is
-    ever purely gamma-rays. Therefore it is necessary to have some
-    sort of gamma-hadron separation parameter, on which cuts can be
-    made to reduce the hadronic background. Since there are many
-    techniques for doing this, and since these cuts can also be
+    ever made up purely of gamma rays. Therefore it is necessary to
+    have some sort of gamma-hadron separation parameter, on which cuts
+    can be made to reduce the hadronic background. Since there are
+    many techniques for doing this, and since these cuts can also be
     optimized for different energy ranges, it us useful to store one
     or more "hadronness" parameters in the event-list. This allows
-    analyses optimized for multiple energy ranges and source
-    strengths to be used with a single event list. 
+    analyses optimized for multiple energy ranges and source strengths
+    to be used with a single event list.
 
     The simplest parametrization of an air-shower event is a
     moment-analysis of cleaned shower images (the resulting set of
