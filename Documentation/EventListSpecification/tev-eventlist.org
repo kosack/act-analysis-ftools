@@ -592,6 +592,20 @@ generated for different analysis techniques.
    $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
    is equivalent to the impulse-response function for a point-source
    within the field of view.
+* <<Storage of Times>>
+
+The storage of times follows the guidelines set by the /Fermi GST/
+spacecraft (). Times are stored in double-precision fields as the number
+of seconds since a reference time, and are expressed in /terrestrial
+time/ (which unlike UTC doesn't require the calculation of leap seconds). 
+
+The reference time is typically fixed and chosen to start near the
+beginning of the mission, or using an existing standard time base
+(e.g. 1 January 2010).
+
+** Terrestrial Time
+
+** Time resolution requirements for science analysis
    
 * Good-time-interval (<<GTI>>) tables
   Even though ACTs typically take data as a set of small
@@ -629,20 +643,6 @@ generated for different analysis techniques.
   GTI file from the monitoring data. Note that the ~CFITSIO~ library
   has built-in support for filtering event data using a GTI extension
   via the ~gtifilter()~ filter.
-
-* <<Storage of Times>>
-
-The storage of times follows the guidelines set by the /Fermi GST/
-spacecraft (). Times are stored in double-precision fields as the number
-of seconds since a reference time, and are expressed in /terrestrial
-time/ (which unlike UTC doesn't require the calculation of leap seconds). 
-
-The reference time is typically fixed and chosen to start near the
-beginning of the mission (e.g. 1 January 2010). 
-
-** Terrestrial Time
-
-** Time resolution requirements for science analysis
    
    
    
