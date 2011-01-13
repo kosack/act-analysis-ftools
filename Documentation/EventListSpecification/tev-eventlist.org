@@ -121,10 +121,10 @@
    |------------+--------+----------+--------------------------------------|
    | ~TSTART~   | double | HEASARC  | mission time of start of obs(s)      |
    | ~TSTOP~    | double | HEASARC  | mission time of end of obs(s)        |
-   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s]        |
-   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD         |
+   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] /1/    |
+   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  /1/    |
    | ~TIMEUNIT~ | string | HEASARC  | time unit of MJD  ['days']           |
-   | ~TIMESYS~  | string | HEASARC  | 'UTC'                                |
+   | ~TIMESYS~  | string | HEASARC  | 'TT' (Terrestrial Time)              |
    | ~TIMEREF~  | string | HEASARC  | 'local'                              |
    | ~TELAPSE~  | double | HFWG.R11 | diff of start and end times          |
    | ~ONTIME~   | double | HFWG.R11 | tot good time (incl deadtime)        |
@@ -147,7 +147,7 @@
    | ~OBSERVER~ | string | HEASARC  | proposer name?                       |
    |------------+--------+----------+--------------------------------------|
    | ~N_TELS~   | int    |          | number of telescopes in event list   |
-   | ~TELLIST~  | string |          | comma-separated list of tel IDs /1/  |
+   | ~TELLIST~  | string |          | comma-separated list of tel IDs /2/  |
    | ~GEOLAT~   | double |          | latitude of array center [deg]       |
    | ~GEOLON~   | double |          | longitude of array center [deg]      |
    | ~ALTITUDE~ | double |          | altitude of array center [km]        |
@@ -158,7 +158,9 @@
    |------------+--------+----------+--------------------------------------|
 
    Notes: 
-   - 1 :: The ~TELLIST~ keyword is just for convenience and reproduces
+   - 1 :: The storage of times follows the conventions set by the
+          /Fermi GST/ (see [[Storage Of Times]])
+   - 2 :: The ~TELLIST~ keyword is just for convenience and reproduces
           the list and order of telescopes in the [[TELARRAY]] extension,
           described later.
 
@@ -591,7 +593,60 @@ generated for different analysis techniques.
    is equivalent to the impulse-response function for a point-source
    within the field of view.
    
-* Storage of Times 
+* Good-time-interval (<<GTI>>) tables
+  Even though ACTs typically take data as a set of small
+  (approximately 30 minute) observations, it is often the case that
+  all or part of the data within an observation does not pass a set of
+  quality criteria. This can happen for example because of hardware
+  problems or atmospheric conditions (clouds passing through the
+  field-of-view, etc).
+
+  The criteria used for data quality selection may vary with the
+  science case. For example, a detection of a new object may not
+  require spectral-quality data, and thus some data in poor-weather
+  conditions may be used, whereas for a detailed study of an object,
+  only high-quality data are useful. 
+
+  To determine the starting and ending times of "good" data, it is
+  common to use good-time interval (GTI) tables, which are defined by
+  OGIP to have a very simple format, a binary table with two columns
+  in an extension called /GTI/:
+
+  |-------+--------+----------+------------------------|
+  | field | type   | standard | comment                |
+  |-------+--------+----------+------------------------|
+  | START | double |          | start time of interval |
+  | STOP  | double |          | stop time of interval  |
+  |-------+--------+----------+------------------------|
+
+  In addition to this, the standard time headers should also be
+  included (~MJDREFI~, ~MJDREFF~, ~TIMEUNIT~, ~TIMESYS~,
+  ~TIMEREF~). The times are expressed in the same units as in the
+  EVENTS table (seconds since mission start in terresterial time).
+
+  Since the GTIs are dependent on science case, it may be necessary to
+  have multiple GTI files, or to provide a user tool that generates a
+  GTI file from the monitoring data. Note that the ~CFITSIO~ library
+  has built-in support for filtering event data using a GTI extension
+  via the ~gtifilter()~ filter.
+
+* <<Storage of Times>>
+
+The storage of times follows the guidelines set by the /Fermi GST/
+spacecraft (). Times are stored in double-precision fields as the number
+of seconds since a reference time, and are expressed in /terrestrial
+time/ (which unlike UTC doesn't require the calculation of leap seconds). 
+
+The reference time is typically fixed and chosen to start near the
+beginning of the mission (e.g. 1 January 2010). 
+
+** Terrestrial Time
+
+** Time resolution requirements for science analysis
+   
+   
+   
+
 * Implementation notes
 ** Storage of pointing information
    In the current design, pointing information is stored in the
