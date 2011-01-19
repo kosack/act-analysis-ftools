@@ -107,6 +107,12 @@
      
 * Headers
 ** <<Observation Header>>
+
+   The observation header should be included with all EventLists, and
+   higher-level data products. It stores information that is global to
+   all the events in the data set (or to the products such as images
+   produced from it).
+
    |------------+--------+----------+--------------------------------------|
    | Keyword    | type   | standard | comment / unit                       |
    |------------+--------+----------+--------------------------------------|
@@ -164,7 +170,12 @@
           the list and order of telescopes in the [[TELARRAY]] extension,
           described later.
 
-
+** <<Version Headers>>
+   
+   Headers that store version and analysis history information are
+   also needed to track the production of each data product. These
+   should link the file and version of the parent data products.
+   
 * <<EVENTS>> Extension  
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
 table containing information for each triggered shower event. It does
@@ -525,14 +536,15 @@ generated for different analysis techniques.
    instrument/analysis.  It is defined as a generic histogram as
    follows:
    
-   |---------+--------+----------+-------------------------|
-   | field   | type   | standard | comment / unit          |
-   |---------+--------+----------+-------------------------|
-   | ~E_MIN~ | double |          | bin lower edge (TeV)    |
-   | ~E_MAX~ | double |          | bin upper edge (TeV)    |
-   | ~N~     | double |          | number of counts in bin |
-   | ~N_ERR~ | double |          | optional error on bin   |
-   |---------+--------+----------+-------------------------|
+   |---------+--------+----------+---------------------------------|
+   | field   | type   | standard | comment / unit                  |
+   |---------+--------+----------+---------------------------------|
+   | ~E_MIN~ | double |          | bin lower edge (TeV)            |
+   | ~E_MAX~ | double |          | bin upper edge (TeV)            |
+   | ~N~     | double |          | number of showers simulated     |
+   | ~N_ERR~ | double |          | optional error on bin           |
+   | ~AREA~  | double |          | area thrown for this energy bin |
+   |---------+--------+----------+---------------------------------|
 
 * Instrument Response tables
   
