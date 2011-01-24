@@ -226,40 +226,45 @@ generated for different analysis techniques.
     (e.g. from simulated data), are described later in the
     [[Monte-Carlo Shower Parameters]] section
 
-   |--------------+---------+----------+-----------------------------------------|
-   | field        | type    | standard | comment                                 |
-   |--------------+---------+----------+-----------------------------------------|
-   | ~EVENT_ID~   | uint    |          | event number                            |
-   | ~OBS_ID~     | uint    |          | associated observation run ID           |
-   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time       |
-   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)   |
-   |--------------+---------+----------+-----------------------------------------|
-   | ~MULTIP~     | short   |          | multiplicity of tels used in recon (^1) |
-   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels           |
-   |--------------+---------+----------+-----------------------------------------|
-   | ~RA~         | real    | OGIP1    | reconstructed position RA               |
-   | ~DEC~        | real    | OGIP1    | reconstructed position DEC              |
-   | ~DIR_ERR~    | double  |          | measure of error in position            |
-   | ~DETX~       | double  |          | tangential coord in nominal sys         |
-   | ~DETY~       | double  |          | tangential coord in nominal sys         |
-   | ~ALT~        | double  |          | event altitude (^2)                     |
-   | ~AZ~         | double  |          | event azimuth  (^2)                     |
-   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience      |
-   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience       |
-   | ~COREX~      | double  |          | position on ground (M)                  |
-   | ~COREY~      | double  |          | position on ground (M)                  |
-   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)        |
-   | ~XMAX~       | double  |          | position of shower max (M)              |
-   | ~XMAX_ERR~   | double  |          | error on shower-max                     |
-   |--------------+---------+----------+-----------------------------------------|
-   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                     |
-   | ~ENERGY_ERR~ | double  |          | error on energy                         |
-   |--------------+---------+----------+-----------------------------------------|
+   |--------------+---------+----------+--------------------------------------------|
+   | field        | type    | standard | comment                                    |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                               |
+   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)    |
+   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time          |
+   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)      |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~MULTIP~     | short   |          | multiplicity of tels used in recon (\star) |
+   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels              |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA                  |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC                 |
+   | ~DIR_ERR~    | double  |          | measure of error in position               |
+   | ~DETX~       | double  |          | tangential coord in nominal sys            |
+   | ~DETY~       | double  |          | tangential coord in nominal sys            |
+   | ~ALT~        | double  |          | event altitude (\oplus)                    |
+   | ~AZ~         | double  |          | event azimuth  (\oplus)                    |
+   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience         |
+   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience          |
+   | ~COREX~      | double  |          | position on ground (M)                     |
+   | ~COREY~      | double  |          | position on ground (M)                     |
+   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)           |
+   | ~XMAX~       | double  |          | position of shower max (M)                 |
+   | ~XMAX_ERR~   | double  |          | error on shower-max                        |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                        |
+   | ~ENERGY_ERR~ | double  |          | error on energy                            |
+   |--------------+---------+----------+--------------------------------------------|
 
     Comments:
-    - 1 :: In the OGIP memo, TIME is defined in "seconds" stored as a
+    - \dagger :: the observation id can be used to cross reference the
+                 array configuration information, in the case where
+                 the observation header is no longer available or
+                 where multiple observations are combined into a
+                 single event-list.
+    - \star :: In the OGIP memo, TIME is defined in "seconds" stored as a
        double. 
-    - 2 :: ALT and AZ can be stored here for simplicity, or you can let the
+    - \oplus :: ALT and AZ can be stored here for simplicity, or you can let the
        user calculate them from the RA/DEC + TIME information...
 	   
 *** Gamma-Hadron Separation Parameters
@@ -330,7 +335,6 @@ generated for different analysis techniques.
    | ~MC_COREY~    | double |          | true core Y pos of shower axis             |
    | ~MC_FIRSTINT~ | double |          | height of first interaction [m]            |
    | ~MC_XSTART~   | double |          | atmos. depth of first interaction [g/cm^2] |
-   |               |        |          |                                            |
    |---------------+--------+----------+--------------------------------------------|
 
     Comments:
@@ -494,6 +498,44 @@ generated for different analysis techniques.
    | ~PIX_AREA~ | double |          | pixel area                           |
    | ...        |        |          |                                      |
    |            |        |          |                                      |
+
+** Storage of Telescope-Array pointing and configuration information
+   In the current design, pointing and array configuration information
+   is stored in the [[Observation Header]] as a set of keywords, since
+   this information only changes once per observation.  The current
+   pointing position is also encoded in the /[[EVENTS]]/ table.
+
+   The storage of pointing information could be done in two ways:
+   /run-wise/ (as above), or /globally/, using a single "pointing
+   information" data set for all observations that is independent of
+   the event-list.  The global implementation is similar to what is
+   done with instruments like /Fermi-GST/, where the information is
+   encoded in "spacecraft" data files.  However, since Cherenkov
+   Telescopes operate in observation-mode (single, discrete
+   observations), the run-wise method may be simpler for analyzers to
+   use. 
+
+    The ~OBS_ID~ field of the [[EVENTS]] table can be used to cross
+    reference an event with the tracking information (or indeed any
+    other array configuration information).
+
+*** Global pointing table
+
+    *This section is a work in progress*
+    
+    Even though all information about the pointing/tracking of the
+    array is contained in the [[Observation Header]] /for a single
+    observation/, it is sometimes useful to combine multiple
+    observations into a single event list file. Because doing so would
+    throw out some of the pointing information, it is necessary to have
+    a separate external table that stores the characteristics of the
+    array as a function of mission time or observation ID number. It
+    should be possible to generate this table from the header information in
+    each observation's event list (and vice-versa), therefore
+    supporting both methods of storing the pointing information.
+
+
+
 
 * Monte-Carlo Information 
 ** <<Simulation Headers>>
@@ -660,21 +702,6 @@ beginning of the mission, or using an existing standard time base
    
 
 * Implementation notes
-** Storage of pointing information
-   In the current design, pointing information is stored in the
-   [[Observation Header]] as a set of keywords, since this information
-   only changes once per observation.  The current pointing position
-   is also encoded in the /[[EVENTS]]/ table. 
-
-   The storage of pointing information could be done in two ways:
-   run-wise (as above), or globally, using a single "pointing
-   information" data set for all observations that is independent of
-   the event-list.  The global implementation is similar to what is
-   done with instruments like /Fermi-GST/, where the information is
-   encoded in "spacecraft" data files.  However, since Cherenkov
-   Telescopes operate in observation-mode (single, discrete
-   observations), the run-wise method may be simpler for analyzers to
-   use. 
 
 ** FITS Keywords
    in FITS, keyword names may only be 8 characters long, so this
