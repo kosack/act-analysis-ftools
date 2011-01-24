@@ -138,12 +138,13 @@
    | ~TIMEDEL~  | double | HEASARC  | time resolution (e.g. 1.0)           |
    |------------+--------+----------+--------------------------------------|
    | ~OBJECT~   | string | HEASARC  | observed object (if applicable)      |
-   | ~RA_OBJ~   | double | HFWG.R3  | target position                      |
-   | ~RA_OBJ~   | double | HFWG.R3  |                                      |
-   | ~RA_PNT~   | double | HFWG.R3  | observation position                 |
-   | ~DEC_PNT~  | double | HFWG.R3  |                                      |
-   | ~ALT_PNT~  | double |          | average altitude of pointing         |
-   | ~AZ_PNT~   | double |          | average azimuth of pointing          |
+   | ~RA_OBJ~   | double | HFWG.R3  | target position RA [deg]             |
+   | ~DEC_OBJ~  | double | HFWG.R3  | target position dec [deg]            |
+   | ~RA_PNT~   | double | HFWG.R3  | observation position RA [deg]        |
+   | ~DEC_PNT~  | double | HFWG.R3  | observation position dec [deg]       |
+   | ~ALT_PNT~  | double |          | average altitude of pointing [deg]   |
+   | ~AZ_PNT~   | double |          | average azimuth of pointing [deg]    |
+   | ~PNTMODE~  | string |          | pointing mode ('track', 'drift')     |
    | ~RADECSYS~ | string | HFWG.R3  | 'fk5'                                |
    | ~EQUINOX~  | real   | HEASARC  | (2000.0 for J2000)                   |
    | ~CONV_DEP~ | real   |          | convergence depth of telescopes      |
@@ -229,6 +230,7 @@ generated for different analysis techniques.
    | field        | type    | standard | comment                                 |
    |--------------+---------+----------+-----------------------------------------|
    | ~EVENT_ID~   | uint    |          | event number                            |
+   | ~OBS_ID~     | uint    |          | associated observation run ID           |
    | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time       |
    | ~TLIVE~      | double  |          | time stamp of event (livetime so far)   |
    |--------------+---------+----------+-----------------------------------------|
