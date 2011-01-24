@@ -85,7 +85,6 @@
    + Point-spread functions
      
    
-
 ** Standards
 
    Whenever possible, existing standards for column names and header
@@ -127,8 +126,8 @@
    |------------+--------+----------+--------------------------------------|
    | ~TSTART~   | double | HEASARC  | mission time of start of obs(s)      |
    | ~TSTOP~    | double | HEASARC  | mission time of end of obs(s)        |
-   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] /1/    |
-   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  /1/    |
+   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] (^1)   |
+   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  (^1)   |
    | ~TIMEUNIT~ | string | HEASARC  | time unit of MJD  ['days']           |
    | ~TIMESYS~  | string | HEASARC  | 'TT' (Terrestrial Time)              |
    | ~TIMEREF~  | string | HEASARC  | 'local'                              |
@@ -153,7 +152,7 @@
    | ~OBSERVER~ | string | HEASARC  | proposer name?                       |
    |------------+--------+----------+--------------------------------------|
    | ~N_TELS~   | int    |          | number of telescopes in event list   |
-   | ~TELLIST~  | string |          | comma-separated list of tel IDs /2/  |
+   | ~TELLIST~  | string |          | comma-separated list of tel IDs (^2) |
    | ~GEOLAT~   | double |          | latitude of array center [deg]       |
    | ~GEOLON~   | double |          | longitude of array center [deg]      |
    | ~ALTITUDE~ | double |          | altitude of array center [km]        |
@@ -226,34 +225,34 @@ generated for different analysis techniques.
     (e.g. from simulated data), are described later in the
     [[Monte-Carlo Shower Parameters]] section
 
-   |--------------+---------+----------+----------------------------------------|
-   | field        | type    | standard | comment                                |
-   |--------------+---------+----------+----------------------------------------|
-   | ~EVENT_ID~   | uint    |          | event number                           |
+   |--------------+---------+----------+-----------------------------------------|
+   | field        | type    | standard | comment                                 |
+   |--------------+---------+----------+-----------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                            |
    | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time       |
    | ~TLIVE~      | double  |          | time stamp of event (livetime so far)   |
-   |--------------+---------+----------+----------------------------------------|
-   | ~MULTIP~     | short   |          | multiplicity of tels used in recon /1/ |
-   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
-   |--------------+---------+----------+----------------------------------------|
-   | ~RA~         | real    | OGIP1    | reconstructed position RA              |
-   | ~DEC~        | real    | OGIP1    | reconstructed position DEC             |
-   | ~DIR_ERR~    | double  |          | measure of error in position           |
-   | ~DETX~       | double  |          | tangential coord in nominal sys        |
-   | ~DETY~       | double  |          | tangential coord in nominal sys        |
-   | ~ALT~        | double  |          | event altitude /2/                     |
-   | ~AZ~         | double  |          | event azimuth  /2/                     |
-   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience     |
-   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience      |
-   | ~COREX~      | double  |          | position on ground (M)                 |
-   | ~COREY~      | double  |          | position on ground (M)                 |
-   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)       |
-   | ~XMAX~       | double  |          | position of shower max (M)             |
+   |--------------+---------+----------+-----------------------------------------|
+   | ~MULTIP~     | short   |          | multiplicity of tels used in recon (^1) |
+   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels           |
+   |--------------+---------+----------+-----------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA               |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC              |
+   | ~DIR_ERR~    | double  |          | measure of error in position            |
+   | ~DETX~       | double  |          | tangential coord in nominal sys         |
+   | ~DETY~       | double  |          | tangential coord in nominal sys         |
+   | ~ALT~        | double  |          | event altitude (^2)                     |
+   | ~AZ~         | double  |          | event azimuth  (^2)                     |
+   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience      |
+   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience       |
+   | ~COREX~      | double  |          | position on ground (M)                  |
+   | ~COREY~      | double  |          | position on ground (M)                  |
+   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)        |
+   | ~XMAX~       | double  |          | position of shower max (M)              |
    | ~XMAX_ERR~   | double  |          | error on shower-max                     |
-   |--------------+---------+----------+----------------------------------------|
-   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
-   | ~ENERGY_ERR~ | double  |          | error on energy                        |
-   |--------------+---------+----------+----------------------------------------|
+   |--------------+---------+----------+-----------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                     |
+   | ~ENERGY_ERR~ | double  |          | error on energy                         |
+   |--------------+---------+----------+-----------------------------------------|
 
     Comments:
     - 1 :: In the OGIP memo, TIME is defined in "seconds" stored as a
@@ -447,7 +446,6 @@ generated for different analysis techniques.
 
    Pixel positions and other camera-specific info will be stored in a separate
    (to be defined) extension.
-
  
 * Instrument Configuration Information
 ** <<TELARRAY>> Extension: Array layout 
