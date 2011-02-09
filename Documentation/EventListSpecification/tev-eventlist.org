@@ -5,7 +5,7 @@
 #+DESCRIPTION: general list of required information for CTA event lists 
 #+KEYWORDS: 
 #+LANGUAGE:  en
-#+OPTIONS:   H:3 num:t toc:2 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
+#+OPTIONS:   H:3 num:t toc:3 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
 #+STARTUP: hidestars
 
 * Changes
@@ -18,7 +18,8 @@
                   response matrices
   + 2011-01-15 :: (kosack) added ~OBS_ID~ to the event-list to allow
                   for connecting events to external pointing
-                  information tables
+                  information tables. Added sections on array and
+                  telescope monitoring data. Added Issues section
 		
 * About
 ** Introduction 
