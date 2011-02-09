@@ -9,13 +9,16 @@
 #+STARTUP: hidestars
 
 * Changes
-  - 2010-11-16 :: (kosack) telescope-wise parameters are no longer
+  + 2010-11-16 :: (kosack) telescope-wise parameters are no longer
                   fixed-length arrays added to the EVENTS table, but
                   are in their own separate table indexed by
                   eventid+telid (reduces disk space with only a slight
                   increase in difficulty of use)
-  - 2011-01-06 :: (kosack) added more information about instrument
+  + 2011-01-06 :: (kosack) added more information about instrument
                   response matrices
+  + 2011-01-15 :: (kosack) added ~OBS_ID~ to the event-list to allow
+                  for connecting events to external pointing
+                  information tables
 		
 * About
 ** Introduction 
@@ -499,7 +502,7 @@ generated for different analysis techniques.
    | ...        |        |          |                                      |
    |            |        |          |                                      |
 
-** Storage of Telescope-Array pointing and configuration information
+** Storage of Array pointing and configuration information
    In the current design, pointing and array configuration information
    is stored in the [[Observation Header]] as a set of keywords, since
    this information only changes once per observation.  The current
@@ -515,26 +518,102 @@ generated for different analysis techniques.
    observations), the run-wise method may be simpler for analyzers to
    use. 
 
-    The ~OBS_ID~ field of the [[EVENTS]] table can be used to cross
-    reference an event with the tracking information (or indeed any
-    other array configuration information).
+    - The ~OBS_ID~ field of the [[EVENTS]] table can be used to cross
+      reference an event with the tracking information (or indeed any
+      other array configuration information).
 
-*** Global pointing table
+    - A tool can be made to convert the run-wise observation headers
+      into an external table, or vice-versa, supporting both methods
+      of storage. 
+    
+*** External pointing table
 
     *This section is a work in progress*
     
     Even though all information about the pointing/tracking of the
-    array is contained in the [[Observation Header]] /for a single
-    observation/, it is sometimes useful to combine multiple
-    observations into a single event list file. Because doing so would
-    throw out some of the pointing information, it is necessary to have
-    a separate external table that stores the characteristics of the
-    array as a function of mission time or observation ID number. It
-    should be possible to generate this table from the header information in
-    each observation's event list (and vice-versa), therefore
-    supporting both methods of storing the pointing information.
+    array is contained in the event-list itself and the [[Observation
+    Header]] /for a single observation/, it is sometimes useful to
+    combine multiple observations into a single event list
+    file. Because doing so would throw out some of the pointing
+    information, it is necessary to have a separate external table
+    that stores the characteristics of the array as a function of
+    mission time or observation ID number. It should be possible to
+    generate this table from the header information in each
+    observation's event list (and vice-versa), therefore supporting
+    both methods of storing the pointing information.
 
+   |---------+------+----------+----------------|
+   | field   | type | standard | comment / unit |
+   |---------+------+----------+----------------|
+   | TSTART  |      |          |                |
+   | TSTOP   |      |          |                |
+   | RA_PNT  |      |          |                |
+   | DEC_PNT |      |          |                |
+   | ALT_PNT |      |          |                |
+   | DEC_PNT |      |          |                |
 
+*** External Array Configuration tables
+
+    The array layout (in e.g. [[/TELARRAY]]/ extensions) must be stored on
+    a per-run basis (indexed by ~OBS_ID~) in order for events to be
+    matched up to the appropriate response matrices.
+
+    See [[Array Configuration Issues]]
+    
+** Storage of Quality and Slow-control Monitoring information
+   In addition to pointing and array configuration information, a
+   variety of other data must be stored to monitor the quality of the
+   telescope array hardware and the state of the atmosphere.
+
+   This information is critical for selecting [[GTI][good time intervals]] for
+   analysis. It should be stored in two places:
+
+   1. in data files (for archival purposes)
+
+   2. in a metadata search archive (e.g. a database or similar)
+
+   The list of monitoring data can be broken into: /telescope-specific
+   monitoring data/ and /array monitoring data/. The stastics stored
+   for each run should contain minimally min/max/mean/rms values for
+   a set of parameters, but may also contain histograms.  Each table
+   should store statistics in time steps that are smaller than the
+   length of a single observation, but large enough for the stastics
+   to be useful. This allows one to cut out part of a run due to for
+   example a cloud passing overhead, while retaining as much useful
+   data as possible.
+
+*** Telescope Monitoring Data
+    - Camera status
+      + high voltage statistics
+      + internal temperatures
+    - Low-level reconstruction statistics
+    - broken pixel statistics
+    - optical efficiency measurement
+    - tracking statistics/quality
+      + mispointing in RA/Dec, and Alt/Az directions
+      + pointing-correction details (e.g. CCD fit statuses)
+    - telescope trigger statistics/quality
+      + event problem counts
+      + trigger sector stats
+      + telescope trigger participation fraction
+      + dead time statistics
+*** Array Monitoring Data
+    - Weather and atmosopheric information
+      + sky temperature statistics 
+      + atmospheric pressure statistics
+      + wind speed and direction
+      + humidity at ground-level
+      + cloud cover estimates 
+      + central trigger rate and deviations from constant
+      + lidar results
+      + atmospheric extinction
+      + atmospheric seeing
+    - Other quality info
+      + high-level reconstruction statistics
+      + broken telescope statistics
+      + central trigger status
+	- number of events dropped
+	- deadtime
 
 
 * Monte-Carlo Information 
@@ -734,3 +813,36 @@ beginning of the mission, or using an existing standard time base
 
 
    
+
+* Outstanding Issues
+** EVENTS table issues
+   - Should the pointing information (~ALT_PNT~, ~AZ_PNT~) be stored
+     in [[EVENTS]] in an event-by-event basis, or in the external pointing
+     table at regular intervals?  Probably the external table is
+     sufficient since this information is not always needed given that
+     the events are already also stored in ALT/AZ coordinates.
+ 
+** <<Array Config Issues>>
+   Due to changing sub-arrays and possible broken or offline
+   telescopes, the general layout of the Array will change from
+   observation to observation.  For each possible configuration, a set
+   of instrument response tables must be generated.  Since there are
+   far too many possible combinations, there are two possible ways to
+   proceed:
+   
+   1. Via simulation studies, detemine the affect of missing
+      telescopes, assign a maximum allowed systematic error, and
+      generate a standard subset of "good-enough" response matrices
+      that are provided to the user. For example, ignoring exactly
+      which telescope are missing, generate tables where 10%, 20%, etc
+      of each telescope type are not participating in the subarray.
+
+   2. Provide as a data product a set of reduced instrument response
+      tables for /each observation/. This would require large
+      computing power at the data center, but would then provide users
+      with simple response matrices (one for each ~OBS_ID~) 
+   
+
+   Note that option 2 may still require a reduced set of possibilities from
+   option 1, since it still may not be feasable to generate the
+   reduced tables in a short amount of time.
