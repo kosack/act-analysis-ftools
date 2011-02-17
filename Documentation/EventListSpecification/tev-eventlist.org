@@ -42,15 +42,13 @@
    Figure \ref{fig:dataflow}).
    
 
-   For those not familiar with the FITS format, the data files may
-   contain any number of named *extensions*, each of which contains a
-   *header* plus *data*. The /data/ may be a *table* or an
-   *n-dimensional array*.  
-
-   In the case of a /table/, the columns of the table are described in
-   a standard format in the /header/ for that extension (along with
-   any other header information for that table).  For each column, one
-   may define a *name*, a *type*, a *unit*, and optionally a *UCD*, a
+   In the FITS format, data files may contain any number of named
+   *extensions*, each of which contains a *header* plus *data*. The
+   /data/ may be a *table* or an *n-dimensional array*.  In the case
+   of a /table/, the columns of the table are described in a standard
+   format in the /header/ for that extension (along with any other
+   meta-data information for that table).  For each column, one may
+   define a *name*, a *type*, a *unit*, and optionally a *UCD*, a
    universal descriptor defined by the Virtual Observatory (VO)
    standards committee describing the column.
 
@@ -89,8 +87,12 @@
    + Photon distribution matrices
 
    + Point-spread functions
+
+   + Telescope array pointing and slow-control information
      
-   #+CAPTION: Simplified data flow diagram for ACT analysis.  The
+
+   #+CAPTION: Simplified data flow diagram for ACT analysis (not including
+   #+CAPTION: slow-control information). The
    #+CAPTION: round boxes are data products, while the rectangles are
    #+CAPTION: software tools. Minimally, everything below the
    #+CAPTION: horizontal line is in FITS format and is described in this document.
@@ -387,8 +389,11 @@ generated for different analysis techniques.
     matches the timing characteristics of a hadron vs gamma)
     
 * <<TEVENTS>> Extension  (lower-level data)
-  The TEVENTS table is only necessary for lower-level analysis and
-  reconstruction, and for the generation of instrument response functions.
+  The TEVENTS table contains information on shower images for each
+  telescope (as opposed to for the whole instrument). It is only
+  necessary for lower-level analysis and reconstruction, and for the
+  generation of instrument response functions, so is not generally
+  necessary for end-user science analysis.
 
   Because some useful parameters, like the impact parameter of the
   shower or various low-level shower reconstruction parameters, are
@@ -435,6 +440,20 @@ generated for different analysis techniques.
    ~TELMASK~ and ~NTELS~ column in the =EVENTS= extension, to be consistent!
    #+END_QUOTE
 
+   #+BEGIN_QUOTE
+   *NOTE*: a simplified TEVENTS table, where only a single telescope
+    is present, may be used as the data format coming out of a single
+    telescope after calibration has been applied (i.e. the /intermediate
+    telescope events table/ shown Figure \ref{fig:dataflow}).
+   #+END_QUOTE
+
+** Telescope-wise header information
+
+   Most of the information needed is already stored in [[Observation
+   Header]] of the /EVENTS/ table, however additional information about
+   low-level reconstruction may be stored here (e.g. image-cleaning
+   thresholds, if used)
+   
 ** Telescope-wise parameters
 
    For generating response matrices, for example, one needs the impact
