@@ -1,5 +1,5 @@
-#+Title:     FITS Event Data format for ACTs
-#+DATE:      2011-01-06
+#+Title:     FITS Data format for ACTs
+#+DATE:      2011-01-17
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
 #+DESCRIPTION: general list of required information for CTA event lists 
@@ -38,7 +38,9 @@
    Low-level calibration information such as gain corrections,
    flat-fielding, digital-count-to-photo-electron conversion is
    assumed to be already applied to the data given to the public,
-   therefore the information here should be post-calibration.
+   therefore the information here should be post-calibration (see
+   Figure \ref{fig:dataflow}).
+   
 
    For those not familiar with the FITS format, the data files may
    contain any number of named *extensions*, each of which contains a
@@ -88,6 +90,12 @@
 
    + Point-spread functions
      
+   #+CAPTION: Simplified data flow diagram for ACT analysis.  The
+   #+CAPTION: round boxes are data products, while the rectangles are
+   #+CAPTION: software tools. Minimally, everything below the
+   #+CAPTION: horizontal line is in FITS format and is described in this document.
+   #+LABEL:   fig:dataflow
+    [[./dataflow.pdf]]
    
 ** Standards
 
@@ -107,7 +115,31 @@
      http://heasarc.gsfc.nasa.gov/docs/journal/fits6.html
    - HFWG.R3 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r3.txt
    - HFWG.R7 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
-     
+   
+  
+** Philosophy
+
+   The design of this data format come from a wide experience of
+   analyzing data from Atmospheric Cherenkov telescopes.  The basic
+   philosophy is to keep the data format as simple as possible for the
+   end-user. To this end several guidelines are followed:
+
+   - Minimize the number of separate tables: :: Use optional columns
+        instead of separate tables for information that is logically
+        grouped with other data, but which may not appear in the final
+        data product. This requires minimal software effort to support
+        new parameters (a simple check that a column exists or doesn't)
+   - Support common astronomy tools: :: Allow the data to be at least
+        minimally processed with existing tools, essentially by
+        following existing standards as close as possible. It should
+        be possible to get a rough view of the data /only using FTOOLS/
+        for example, with minimal effort.
+   - Support multiple data-processing models: :: Allow the end-user to
+        process the data by analyzing individual observations
+        separately, as well as combining all into a single dataset
+   
+
+
 * Headers
 ** <<Observation Header>>
 
@@ -130,8 +162,8 @@
    |------------+--------+----------+--------------------------------------|
    | ~TSTART~   | double | HEASARC  | mission time of start of obs(s)      |
    | ~TSTOP~    | double | HEASARC  | mission time of end of obs(s)        |
-   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] (^1)   |
-   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  (^1)   |
+   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] (^1)    |
+   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  (^1)    |
    | ~TIMEUNIT~ | string | HEASARC  | time unit of MJD  ['days']           |
    | ~TIMESYS~  | string | HEASARC  | 'TT' (Terrestrial Time)              |
    | ~TIMEREF~  | string | HEASARC  | 'local'                              |
@@ -155,17 +187,20 @@
    | ~CONV_RA~  | real   |          | convergence position RA [deg]        |
    | ~CONV_DEC~ | real   |          | convergence position Dec [deg]       |
    | ~OBSERVER~ | string | HEASARC  | proposer name?                       |
-   |------------+--------+----------+--------------------------------------|
-   | ~N_TELS~   | int    |          | number of telescopes in event list   |
-   | ~TELLIST~  | string |          | comma-separated list of tel IDs (^2) |
-   | ~GEOLAT~   | double |          | latitude of array center [deg]       |
-   | ~GEOLON~   | double |          | longitude of array center [deg]      |
-   | ~ALTITUDE~ | double |          | altitude of array center [km]        |
-   |------------+--------+----------+--------------------------------------|
-   | ~EUNIT~    | string | HEASARC  | energy unit 'TeV'                    |
-   |------------+--------+----------+--------------------------------------|
-   | ~EVTVER~   | string |          | event-list version number            |
-   |------------+--------+----------+--------------------------------------|
+   | ...        |        |          |                                      |
+
+
+   | ...        |        |         |                                     |
+   | ~N_TELS~   | int    |         | number of telescopes in event list  |
+   | ~TELLIST~  | string |         | comma-separated list of tel IDs (^2) |
+   | ~GEOLAT~   | double |         | latitude of array center [deg]      |
+   | ~GEOLON~   | double |         | longitude of array center [deg]     |
+   | ~ALTITUDE~ | double |         | altitude of array center [km]       |
+   |------------+--------+---------+-------------------------------------|
+   | ~EUNIT~    | string | HEASARC | energy unit 'TeV'                   |
+   |------------+--------+---------+-------------------------------------|
+   | ~EVTVER~   | string |         | event-list version number           |
+   |------------+--------+---------+-------------------------------------|
 
    Notes: 
    - 1 :: The storage of times follows the conventions set by the
@@ -230,35 +265,35 @@ generated for different analysis techniques.
     (e.g. from simulated data), are described later in the
     [[Monte-Carlo Shower Parameters]] section
 
-   |--------------+---------+----------+--------------------------------------------|
-   | field        | type    | standard | comment                                    |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~EVENT_ID~   | uint    |          | event number                               |
-   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)    |
-   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time          |
-   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)      |
-   |--------------+---------+----------+--------------------------------------------|
+   |--------------+---------+----------+----------------------------------------|
+   | field        | type    | standard | comment                                |
+   |--------------+---------+----------+----------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                           |
+   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)      |
+   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time      |
+   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)  |
+   |--------------+---------+----------+----------------------------------------|
    | ~MULTIP~     | short   |          | multiplicity of tels used in recon (\star) |
-   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels              |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~RA~         | real    | OGIP1    | reconstructed position RA                  |
-   | ~DEC~        | real    | OGIP1    | reconstructed position DEC                 |
-   | ~DIR_ERR~    | double  |          | measure of error in position               |
-   | ~DETX~       | double  |          | tangential coord in nominal sys            |
-   | ~DETY~       | double  |          | tangential coord in nominal sys            |
-   | ~ALT~        | double  |          | event altitude (\oplus)                    |
-   | ~AZ~         | double  |          | event azimuth  (\oplus)                    |
-   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience         |
-   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience          |
-   | ~COREX~      | double  |          | position on ground (M)                     |
-   | ~COREY~      | double  |          | position on ground (M)                     |
-   | ~CORE_ERR~   | double  |          | error on core reconstruction (M)           |
-   | ~XMAX~       | double  |          | position of shower max (M)                 |
-   | ~XMAX_ERR~   | double  |          | error on shower-max                        |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                        |
-   | ~ENERGY_ERR~ | double  |          | error on energy                            |
-   |--------------+---------+----------+--------------------------------------------|
+   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
+   |--------------+---------+----------+----------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA              |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC             |
+   | ~DIR_ERR~    | double  |          | measure of error in position           |
+   | ~DETX~       | double  |          | tangential coord in nominal sys        |
+   | ~DETY~       | double  |          | tangential coord in nominal sys        |
+   | ~ALT~        | double  |          | event altitude (\oplus)                               |
+   | ~AZ~         | double  |          | event azimuth  (\oplus)                               |
+   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience     |
+   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience      |
+   | ~COREX~      | double  |          | position on ground (m)                 |
+   | ~COREY~      | double  |          | position on ground (m)                 |
+   | ~CORE_ERR~   | double  |          | error on core reconstruction (m)       |
+   | ~XMAX~       | double  |          | position of shower max (m)             |
+   | ~XMAX_ERR~   | double  |          | error on shower-max                    |
+   |--------------+---------+----------+----------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
+   | ~ENERGY_ERR~ | double  |          | error on energy                        |
+   |--------------+---------+----------+----------------------------------------|
 
     Comments:
     - \dagger :: the observation id can be used to cross reference the
@@ -299,7 +334,7 @@ generated for different analysis techniques.
     conflicting column names.  Alternately, one could stipulate that
     all analyses provide a "HADRONNESS" value in a defined range.
 
-**** Example Hillas parameter columns
+**** Example Hillas-parameter Gamma-hadron separation columns
     |---------------+--------+----------+--------------------|
     | field         | type   | standard | comment            |
     |---------------+--------+----------+--------------------|
@@ -309,7 +344,7 @@ generated for different analysis techniques.
     | ~HIL_MSL_ERR~ | double |          | error on MSL       |
     |---------------+--------+----------+--------------------|
 	
-**** example Model parameter columns
+**** example Model parameter selection columns
     |----------------+--------+----------+----------------------------------|
     | field          | type   | standard | comment                          |
     |----------------+--------+----------+----------------------------------|
@@ -325,27 +360,27 @@ generated for different analysis techniques.
     See the [[Simulation Headers]] section for the various header keywords
     that are associated with these columns. 
 
-   |---------------+--------+----------+--------------------------------------------|
-   | field         | type   | standard | comment                                    |
-   |---------------+--------+----------+--------------------------------------------|
-   | ~MC_EVENTID~  | uint   |          | event number from simulation               |
-   | ~MC_SHOWERID~ | uint   |          | shower id from simulation                  |
-   | ~MC_PRIMID~   | uint   |          | type of primary particle                   |
-   | ~MC_ENERGY~   | double |          | true energy                                |
-   | ~MC_ALT~      | double |          | true direction                             |
-   | ~MC_AZ~       | double |          | true direction                             |
+   |---------------+--------+----------+-------------------------------------------|
+   | field         | type   | standard | comment                                   |
+   |---------------+--------+----------+-------------------------------------------|
+   | ~MC_EVENTID~  | uint   |          | event number from simulation              |
+   | ~MC_SHOWERID~ | uint   |          | shower id from simulation                 |
+   | ~MC_PRIMID~   | uint   |          | type of primary particle                  |
+   | ~MC_ENERGY~   | double |          | true energy                               |
+   | ~MC_ALT~      | double |          | true direction                            |
+   | ~MC_AZ~       | double |          | true direction                            |
    | ~MC_XMAX~     | double |          | true showerMax [g/cm^2]                    |
-   | ~MC_COREX~    | double |          | true core X pos of shower axis             |
-   | ~MC_COREY~    | double |          | true core Y pos of shower axis             |
-   | ~MC_FIRSTINT~ | double |          | height of first interaction [m]            |
+   | ~MC_COREX~    | double |          | true core X pos of shower axis            |
+   | ~MC_COREY~    | double |          | true core Y pos of shower axis            |
+   | ~MC_FIRSTINT~ | double |          | height of first interaction [m]           |
    | ~MC_XSTART~   | double |          | atmos. depth of first interaction [g/cm^2] |
-   |---------------+--------+----------+--------------------------------------------|
+   |---------------+--------+----------+-------------------------------------------|
 
     Comments:
     1. May also need simulation "combined" timing parameters here or
        in a separate table.
       
-*** SHOWER TIMING PARAMETERS (TBD)
+*** Shower Timing Parameters 
     Timing parameters that are not telescope-specific
     (e.g. average-velocity?) may be stored here as well. It may be in
     the end just a "gammaness" parameter of how well the shower
@@ -402,61 +437,61 @@ generated for different analysis techniques.
 
 ** Telescope-wise parameters
 
-   For generating response matrices, for example, one
-   needs the impact parameter of a shower with respect to each
-   telescope. Although in principle this could be calculated from
-   the telescope location and shower reconstruction parameters, it
-   is a relatively complex computation, involving a number of
-   coordinate transformations. For this reason, it is easiest to
-   have impact parameters pre-calculated and provided in the
-   telescope-wise event-list. 
+   For generating response matrices, for example, one needs the impact
+   parameter of a shower with respect to each telescope, and the
+   shower image's intensity (which can later be related to the energy
+   of the shower). Although the impact parameter could be calculated from
+   the telescope location and shower reconstruction parameters, it is
+   a relatively complex computation, involving a number of coordinate
+   transformations. For this reason, it is easiest to have impact
+   parameters pre-calculated and provided in the telescope-wise
+   event-list.
 
-   |--------------+--------+----------+-----------------------------------------------|
-   | field        | type   | standard | comment                                       |
-   |--------------+--------+----------+-----------------------------------------------|
-   | ~TEL_IMPACT~ | double |          | impact parameter of shower with the given tel |
-   |--------------+--------+----------+-----------------------------------------------|
+   |-----------------+--------+----------+-----------------------------------------|
+   | field           | type   | standard | comment                                 |
+   |-----------------+--------+----------+-----------------------------------------|
+   | ~TEL_IMPACT~    | double |          | impact parameter of shower w.r.t. a tel |
+   | ~TEL_INTENS~    | real   |          | integrated intensity of image (P.E.)    |
+   |-----------------+--------+----------+-----------------------------------------|
 
-   For a particular analysis (E.g. a Hillas-style analysis), one may
-   also store other useful per-telescope parameters, such as the
-   non-reduced Hillas parameters (LENGTH, WIDTH, SIZE, ASYMMETRY,
-   etc). These can be used for reconstruction the shower's geometry or
-   energy for example.
+   Minimally, the moments of the shower images (the /Hillas
+   Parameters/) are also stored here:
    
-   The following is an example of optional telescope-size parameters
-   for a Hillas-style analysis. 
-
    |------------------+------+----------+-------------------------------------------------|
    | field            | type | standard | comment                                         |
    |------------------+------+----------+-------------------------------------------------|
+   | ~TEL_HIL_COGX~   | real |          | x coord of first moment in camera coords        |
+   | ~TEL_HIL_COGY~   | real |          | y coord of first moment in camera coords        |
    | ~TEL_HIL_WIDTH~  | real |          | second moment of shower image (deg)             |
    | ~TEL_HIL_LENGTH~ | real |          | second moment of shower image (deg)             |
    | ~TEL_HIL_PHI~    | real |          | rotation angle of shower image wrt x-axis (deg) |
-   | ~TEL_HIL_COGX~   | real |          | x coord of first moment in camera coordinates   |
-   | ~TEL_HIL_COGY~   | real |          | y coord of first moment in camera coordinates   |
-   | ~TEL_HIL_SKEW~   | real |          | skewness                                        |
-   | ~TEL_HIL_KUR~    | real |          | kurtosis                                        |
-   | ~TEL_HIL_SIZE~   | real |          | integrated intensity of image (P.E.)            |
+   | ~TEL_HIL_SKEW~   | real |          | skewness (3rd order moments)                    |
+   | ~TEL_HIL_KUR~    | real |          | kurtosis (3rd order moments)                    |
    |------------------+------+----------+-------------------------------------------------|
-     
-   In even lower-level data, the shower-images themselves can be
-   stored as a set of telescope parameters (using variable-length
-   arrays). To reduce the size of the data, only "cleaned" pixels
-   may be stored by first listing the non-zero pixel numbers as an
-   array ~TEL_IMG_IPIX~ and the corresponding intensities in
-   ~TEL_IMG_INT~:
    
-   |----------------+----------+----------+------------------------------------------|
-   | field          | type     | standard | comment                                  |
-   |----------------+----------+----------+------------------------------------------|
-   | ~TEL_IMG_NPIX~ | int      |          | number of pixels in image                |
-   | ~TEL_IMG_IPIX~ | int[*]   |          | list of pixel indices in image           |
-   | ~TEL_IMG_INT~  | float[*] |          | list of pixel intensities in image (P.E) |
-   |----------------+----------+----------+------------------------------------------|
+   In addition to these, there may be several optional columns
+   describing analysis-specific parameters or timing parameters of
+   the shower (image velocity, etc).
 
-   Pixel positions and other camera-specific info will be stored in a separate
-   (to be defined) extension.
- 
+*** Image information
+    In even lower-level data, the shower-images themselves can
+    optionally be stored in this same table (using variable-length
+    arrays). To reduce the size of the data, only "cleaned" pixels may
+    be stored by first listing the non-zero pixel numbers as an array
+    ~TEL_IMG_IPIX~ and the corresponding intensities in ~TEL_IMG_INT~:
+    
+    |----------------+----------+----------+------------------------------------------|
+    | field          | type     | standard | comment                                  |
+    |----------------+----------+----------+------------------------------------------|
+    | ~TEL_IMG_NPIX~ | int      |          | number of pixels in image                |
+    | ~TEL_IMG_IPIX~ | int[*]   |          | list of pixel indices in image           |
+    | ~TEL_IMG_INT~  | float[*] |          | list of pixel intensities in image (P.E) |
+    |----------------+----------+----------+------------------------------------------|
+
+    Pixel positions and other camera-specific info will be stored in a separate
+    (to be defined) extension.
+
+  
 * Instrument Configuration Information
 ** <<TELARRAY>> Extension: Array layout 
    This table has one entry per telescope and provides an overview of
@@ -474,8 +509,8 @@ generated for different analysis techniques.
    | ~TELPOSY~    | double |          | y pos rel to center of array (M) |
    | ~TELPOSZ~    | double |          | z (height) of telescope (M)      |
    | ~TELFOV~     | double |          | fov in deg                       |
-   | ~TELMIRAREA~ | double |          | mirror area (m^2)                |
-   | ~TELCAMAREA~ | double |          | camera area m^2                  |
+   | ~TELMIRAREA~ | double |          | mirror area (m^2)                 |
+   | ~TELCAMAREA~ | double |          | camera area m^2                   |
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
 ** <<CHERCAM>>: Cherenkov Camera information 
@@ -533,25 +568,26 @@ generated for different analysis techniques.
     
     Even though all information about the pointing/tracking of the
     array is contained in the event-list itself and the [[Observation
-    Header]] /for a single observation/, it is sometimes useful to
-    combine multiple observations into a single event list
-    file. Because doing so would throw out some of the pointing
-    information, it is necessary to have a separate external table
-    that stores the characteristics of the array as a function of
-    mission time or observation ID number. It should be possible to
-    generate this table from the header information in each
-    observation's event list (and vice-versa), therefore supporting
-    both methods of storing the pointing information.
+    Header]] /for a single observation/, it is sometimes useful to combine
+    multiple observations into a single event list file. Because doing
+    so would throw out some of the pointing information, it is
+    necessary to have a separate external table that stores the
+    characteristics of the array as a function of mission time or
+    observation ID number. It should be possible to generate this
+    table from the header information in each observation's event list
+    (and vice-versa), therefore supporting both methods of storing the
+    pointing information.
 
-   |---------+------+----------+----------------|
-   | field   | type | standard | comment / unit |
-   |---------+------+----------+----------------|
-   | TSTART  |      |          |                |
-   | TSTOP   |      |          |                |
+   |--------+------+----------+----------------|
+   | field  | type | standard | comment / unit |
+   |--------+------+----------+----------------|
+   | TSTART |      |          |                |
+   | TSTOP  |      |          |                |
    | RA_PNT  |      |          |                |
    | DEC_PNT |      |          |                |
    | ALT_PNT |      |          |                |
    | DEC_PNT |      |          |                |
+   |--------+------+----------+----------------|
 
 *** External Array Configuration tables
 
@@ -737,9 +773,17 @@ The reference time is typically fixed and chosen to start near the
 beginning of the mission, or using an existing standard time base
 (e.g. 1 January 2010).
 
-** Terrestrial Time
+Note that the time resolution used in the raw data may be higher that
+that written to the FITS event lists (since some instrumental
+calibration and reconstruction will most-likely need higher-precision
+(sub-nanosecond) timing. However, this is not in general needed for
+science analysis.
 
 ** Time resolution requirements for science analysis
+
+   Science cases requiring high inter-event time resolution:
+   - Pulsar timing (<ms)
+   - ...
    
 * Good-time-interval (<<GTI>>) tables
   Even though ACTs typically take data as a set of small
@@ -822,6 +866,13 @@ beginning of the mission, or using an existing standard time base
      table at regular intervals?  Probably the external table is
      sufficient since this information is not always needed given that
      the events are already also stored in ALT/AZ coordinates.
+
+   - how should pointing corrections be handled? They
+     should be applied as late in the data processing as possible (but
+     probably necessarily before the high-level event-list is
+     generated). The reason for not applying them at the lowest level
+     is that they may be revised over time, requiring re-processing of
+     the data
  
 ** <<Array Config Issues>>
    Due to changing sub-arrays and possible broken or offline
@@ -847,3 +898,4 @@ beginning of the mission, or using an existing standard time base
    Note that option 2 may still require a reduced set of possibilities from
    option 1, since it still may not be feasable to generate the
    reduced tables in a short amount of time.
+

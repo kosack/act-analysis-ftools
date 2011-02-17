@@ -211,7 +211,7 @@ def makeImageHDU(center,geom=(300,300), FOV=(1.0,1.0), projection="CAR",
     FOV = np.array(FOV)
     delta = FOV/geom
     
-    hdu = pyfits.NP_pyfits.PrimaryHDU()
+    hdu = pyfits.PrimaryHDU()
     hdu.data = np.zeros( geom ).transpose()
     
     hdu.update_header()
