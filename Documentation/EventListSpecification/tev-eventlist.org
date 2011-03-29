@@ -839,17 +839,25 @@ science analysis.
 
   To determine the starting and ending times of "good" data, it is
   common to use good-time interval (GTI) tables, which are defined by
-  OGIP to have a very simple format, a binary table with two columns
+  OGIP to have a very simple format, a binary table with three columns
   in an extension called /GTI/:
 
-  |-------+--------+----------+------------------------|
-  | field | type   | standard | comment                |
-  |-------+--------+----------+------------------------|
-  | START | double |          | start time of interval |
-  | STOP  | double |          | stop time of interval  |
-  |-------+--------+----------+------------------------|
+  |----------+--------+----------+-------------------------------|
+  | field    | type   | standard | comment                       |
+  |----------+--------+----------+-------------------------------|
+  | ~TEL_ID~ | int    |          | telescope for this interval   |
+  | ~START~  | double |          | start time of interval in MET |
+  | ~STOP~   | double |          | stop time of interval in MET  |
+  |----------+--------+----------+-------------------------------|
 
-  In addition to this, the standard time headers should also be
+  It should be noted that good time intervals do not apply to the full
+  array, but rather to each telescope individually (since individual
+  telescopes may have problems or be repointed during an
+  observation). Therefore, the GTI table must be used to determine
+  which telescopes are present at any given time (which is needed to
+  properly calculate the instrumental response).
+
+  In addition to this table, the standard time headers should also be
   included (~MJDREFI~, ~MJDREFF~, ~TIMEUNIT~, ~TIMESYS~,
   ~TIMEREF~). The times are expressed in the same units as in the
   EVENTS table (seconds since mission start in terresterial time).
@@ -859,7 +867,6 @@ science analysis.
   GTI file from the monitoring data. Note that the ~CFITSIO~ library
   has built-in support for filtering event data using a GTI extension
   via the ~gtifilter()~ filter.
-   
    
    
 * Implementation notes
