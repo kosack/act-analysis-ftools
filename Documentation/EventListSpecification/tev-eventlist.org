@@ -765,6 +765,22 @@ generated for different analysis techniques.
    observation. Effective areas should be stored both as a function of
    true energy ($E_\mathrm{true}$) and reconstructed energy
    $(E_\mathrm{reco}$).
+
+** Background Acceptance
+  
+   $B_\mathrm{acc}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, gives Since the
+   acceptance of gamma-rays (calculated from the Effective Area
+   matrix) is different from that of background events (which are
+   generally not gamma-rays, but mis-reconstructed electrons), it is
+   necessary to also have a response matrix that models the background
+   acceptance across the field of view for each energy. This response
+   matrix may be calculated from real data (e.g. by taking all events
+   excluding known sources) in an iterative fashion, or if enough
+   diffuse simulations are available from Monte-Carlo data. The 2D
+   background rate for a given observation can be calculated by
+   normalizing the background acceptance to the number of detected
+   events.  The matrix is required for producing sky maps and for
+   several spectral modelling techniques. 
     
 ** Photon Redistribution Matrix
    
@@ -782,6 +798,8 @@ generated for different analysis techniques.
    $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
    is equivalent to the impulse-response function for a point-source
    within the field of view.
+   
+
 * <<Storage of Times>>
 
 The storage of times follows the guidelines set by the /Fermi GST/
@@ -893,27 +911,49 @@ science analysis.
      the data
  
 ** <<Array Config Issues>>
-   Due to changing sub-arrays and possible broken or offline
-   telescopes, the general layout of the Array will change from
-   observation to observation.  For each possible configuration, a set
-   of instrument response tables must be generated.  Since there are
-   far too many possible combinations, there are two possible ways to
-   proceed:
-   
-   1. Via simulation studies, detemine the affect of missing
-      telescopes, assign a maximum allowed systematic error, and
-      generate a standard subset of "good-enough" response matrices
-      that are provided to the user. For example, ignoring exactly
-      which telescope are missing, generate tables where 10%, 20%, etc
-      of each telescope type are not participating in the subarray.
+*** Multiple Sub-Arrays
 
-   2. Provide as a data product a set of reduced instrument response
-      tables for /each observation/. This would require large
-      computing power at the data center, but would then provide users
-      with simple response matrices (one for each ~OBS_ID~) 
-   
+    Due to changing sub-arrays and possible broken or offline
+    telescopes, the general layout of the Array will change from
+    observation to observation.  For each possible configuration, a set
+    of instrument response tables must be generated.  Since there are
+    far too many possible combinations, there are two possible ways to
+    proceed:
+    
+    1. Via simulation studies, detemine the affect of missing
+       telescopes, assign a maximum allowed systematic error, and
+       generate a standard subset of "good-enough" response matrices
+       that are provided to the user. For example, ignoring exactly
+       which telescope are missing, generate tables where 10%, 20%, etc
+       of each telescope type are not participating in the subarray.
 
-   Note that option 2 may still require a reduced set of possibilities from
-   option 1, since it still may not be feasable to generate the
-   reduced tables in a short amount of time.
+    2. Provide as a data product a set of reduced instrument response
+       tables for /each observation/. This would require large
+       computing power at the data center, but would then provide users
+       with simple response matrices (one for each ~OBS_ID~) 
+    
 
+    Note that option 2 may still require a reduced set of possibilities from
+    option 1, since it still may not be feasable to generate the
+    reduced tables in a short amount of time.
+
+*** Response Matrices and Event Multiplicity
+
+    Response matrices (e.g. PSF and $A_\mathrm{eff}$) change
+    drastically with the number of telescopes that detect a particular
+    shower.  For this reason, in current ACTs, one dimension of the
+    response matrix is the multiplicity: e.g., 4-telescope events have
+    a better PSF than 3-telescope events, etc.  However for a
+    non-heterogenious/symmetric array like CTA, this dimension is more
+    complex: a 2-telescope event for two medium-sized telescopes
+    doesn't have the same response as a 2-telescope event with mixed
+    telescope types, or for events where the telescope spacings are
+    different.
+
+    Therefore, it may be necessary to make the response matrices as a
+    function of /Effective multiplicity/, which is calculated from the
+    ~TELMASK~ for each event and knowledge of the array layout. This
+    may be sufficient to get a resonable measure of the response per
+    event (rather than having every possible combination of
+    participating telescopes modeled separate, which would be nearly
+    impossible).
