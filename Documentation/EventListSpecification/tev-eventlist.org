@@ -55,7 +55,7 @@
    An event-list data file may contain some or all of the following
    information:
 
-   + [[Observation Header]] information
+   + [[Observation Header]] information (if the event list is for a single observation)
 
    + Event table describing reconstructed and simulated shower
       parameters ([[EVENTS]])
@@ -141,14 +141,18 @@
         separately, as well as combining all into a single dataset
    
 
-
 * Headers
 ** <<Observation Header>>
 
    The observation header should be included with all EventLists, and
-   higher-level data products. It stores information that is global to
-   all the events in the data set (or to the products such as images
-   produced from it).
+   higher-level data products /that pertain to a single
+   observation/. It stores information that is global to all the
+   events in the data set (or to the products such as images produced
+   from it). For event lists that combine multiple observations, the
+   information must be looked up externally by referencing the
+   ~OBS_ID~ field in the /EVENTS/ data table.  The external
+   observation table may simply be a tabular version of this header,d
+   with ~OBS_ID~ as the primary index (see [[External Pointing Table]]).
 
    |------------+--------+----------+--------------------------------------|
    | Keyword    | type   | standard | comment / unit                       |
@@ -164,8 +168,8 @@
    |------------+--------+----------+--------------------------------------|
    | ~TSTART~   | double | HEASARC  | mission time of start of obs(s)      |
    | ~TSTOP~    | double | HEASARC  | mission time of end of obs(s)        |
-   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] (^1)    |
-   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  (^1)    |
+   | ~MJDREFI~  | int    | HEASARC  | integer part of start MJD [s] (\dagger)    |
+   | ~MJDREFF~  | double | HEASARC  | fractional part of start MJD  (\dagger)    |
    | ~TIMEUNIT~ | string | HEASARC  | time unit of MJD  ['days']           |
    | ~TIMESYS~  | string | HEASARC  | 'TT' (Terrestrial Time)              |
    | ~TIMEREF~  | string | HEASARC  | 'local'                              |
@@ -194,7 +198,7 @@
 
    | ...        |        |         |                                     |
    | ~N_TELS~   | int    |         | number of telescopes in event list  |
-   | ~TELLIST~  | string |         | comma-separated list of tel IDs (^2) |
+   | ~TELLIST~  | string |         | comma-separated list of tel IDs (\dagger) |
    | ~GEOLAT~   | double |         | latitude of array center [deg]      |
    | ~GEOLON~   | double |         | longitude of array center [deg]     |
    | ~ALTITUDE~ | double |         | altitude of array center [km]       |
@@ -205,7 +209,7 @@
    |------------+--------+---------+-------------------------------------|
 
    Notes: 
-   - 1 :: The storage of times follows the conventions set by the
+   - \dagger :: The storage of times follows the conventions set by the
           /Fermi GST/ (see [[Storage Of Times]])
    - 2 :: The ~TELLIST~ keyword is just for convenience and reproduces
           the list and order of telescopes in the [[TELARRAY]] extension,
@@ -287,10 +291,10 @@ generated for different analysis techniques.
    | ~AZ~         | double  |          | event azimuth  (\oplus)                               |
    | ~ALT_PNT~    | double  |          | pointing altitude, for convenience     |
    | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience      |
-   | ~COREX~      | double  |          | position on ground (m)                 |
-   | ~COREY~      | double  |          | position on ground (m)                 |
-   | ~CORE_ERR~   | double  |          | error on core reconstruction (m)       |
-   | ~XMAX~       | double  |          | position of shower max (m)             |
+   | ~COREX~      | double  |          | position on ground [m]                 |
+   | ~COREY~      | double  |          | position on ground [m]                 |
+   | ~CORE_ERR~   | double  |          | error on core reconstruction [m]       |
+   | ~XMAX~       | double  |          | position of shower max [m]             |
    | ~XMAX_ERR~   | double  |          | error on shower-max                    |
    |--------------+---------+----------+----------------------------------------|
    | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
@@ -509,8 +513,6 @@ generated for different analysis techniques.
 
     Pixel positions and other camera-specific info will be stored in a separate
     (to be defined) extension.
-
-  
 * Instrument Configuration Information
 ** <<TELARRAY>> Extension: Array layout 
    This table has one entry per telescope and provides an overview of
@@ -524,12 +526,12 @@ generated for different analysis techniques.
    | ~TELID~      | int    |          | telescope number                 |
    | ~TELCLASS~   | string |          | telescope type (HESS, CTA1,)     |
    | ~TELCAMID~   | int    |          | type of camera installed         |
-   | ~TELPOSX~    | double |          | x pos rel to center of array (M) |
-   | ~TELPOSY~    | double |          | y pos rel to center of array (M) |
-   | ~TELPOSZ~    | double |          | z (height) of telescope (M)      |
+   | ~TELPOSX~    | double |          | x pos rel to center of array [m] |
+   | ~TELPOSY~    | double |          | y pos rel to center of array [m] |
+   | ~TELPOSZ~    | double |          | z (height) of telescope [m]      |
    | ~TELFOV~     | double |          | fov in deg                       |
-   | ~TELMIRAREA~ | double |          | mirror area (m^2)                 |
-   | ~TELCAMAREA~ | double |          | camera area m^2                   |
+   | ~TELMIRAREA~ | double |          | mirror area [m^2 ]                |
+   | ~TELCAMAREA~ | double |          | camera area [m^2 ]                |
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
 ** <<CHERCAM>>: Cherenkov Camera information 
@@ -550,9 +552,9 @@ generated for different analysis techniques.
    |------------+--------+----------+--------------------------------------|
    | ~TELCAMID~ | int    |          | same as in TELARRAY extension        |
    | ~PIX_ID~   | uint   |          | index of the camera pixel            |
-   | ~PIX_POSX~ | double |          | pixel X position (m) from cam center |
-   | ~PIX_POSY~ | double |          | pixel Y position (m) from cam center |
-   | ~PIX_DIAM~ | double |          | pixel diameter (deg)                 |
+   | ~PIX_POSX~ | double |          | pixel X position [m] from cam center |
+   | ~PIX_POSY~ | double |          | pixel Y position [m] from cam center |
+   | ~PIX_DIAM~ | double |          | pixel diameter [deg]                 |
    | ~PIX_AREA~ | double |          | pixel area                           |
    | ...        |        |          |                                      |
    |            |        |          |                                      |
@@ -581,21 +583,21 @@ generated for different analysis techniques.
       into an external table, or vice-versa, supporting both methods
       of storage. 
     
-*** External pointing table
+*** <<External Pointing Table>>
 
     *This section is a work in progress*
     
     Even though all information about the pointing/tracking of the
     array is contained in the event-list itself and the [[Observation
-    Header]] /for a single observation/, it is sometimes useful to combine
-    multiple observations into a single event list file. Because doing
-    so would throw out some of the pointing information, it is
-    necessary to have a separate external table that stores the
-    characteristics of the array as a function of mission time or
-    observation ID number. It should be possible to generate this
-    table from the header information in each observation's event list
-    (and vice-versa), therefore supporting both methods of storing the
-    pointing information.
+    Header]] /for a single observation/, it is sometimes useful to
+    combine multiple observations into a single event list
+    file. Because doing so would throw out some of the pointing
+    information, it is necessary to have a separate external table
+    that stores the characteristics of the array as a function of
+    mission time or observation ID number. It should be possible to
+    generate this table from the [[Observation Header]] information in
+    each observation's event list (and vice-versa), therefore
+    supporting both methods of storing the pointing information.
 
    |--------+------+----------+----------------|
    | field  | type | standard | comment / unit |
@@ -671,7 +673,6 @@ generated for different analysis techniques.
 	- number of events dropped
 	- deadtime
 
-
 * Monte-Carlo Information 
 ** <<Simulation Headers>>
    The following header keywords describe the monte-Carlo simulations
@@ -679,30 +680,30 @@ generated for different analysis techniques.
    /[[EVENTS]]/ table.  These keywords are in addition to the standard
    [[Observation Header]]
 
-   |------------+--------+----------+---------------------------------------|
-   | keyword    | type   | standard | comment / unit                        |
-   |------------+--------+----------+---------------------------------------|
-   | ~SHWRSIM~  | string |          | shower simulation program ('corsika') |
-   | ~SHWRVER~  | string |          | version number of shower simulation   |
-   | ~DETSIM~   | string |          | detector simulation ('sim_telarray')  |
-   | ~DETVER~   | string |          | detector simulation version           |
-   | ~ATMOMODL~ | string |          | atmosphere model used                 |
-   | ~B_FIELD~  | real   |          | magnetic field strength (uT)          |
-   | ~B_INC~    | real   |          | magnetic field inclination (deg)      |
-   | ~B_DEC~    | real   |          | magnetic field declination (deg)      |
-   | ~INJECTHT~ | real   |          | injection height (m)                  |
-   | ~INTDEPTH~ | real   |          | first interaction depth (g/cm**2)     |
-   | ~MC_RUNID~ | int    |          | monte-carlo run identification number |
-   | ~MC_TYPE~  | int    |          | type of primary particle              |
-   | ~MC_MODE~  | int    |          | e.g. 0=point source, 1=diffuse        |
-   | ~MC_NEVT~  | int    |          | number of thrown events               |
-   | ~MC_NREU~  | int    |          | number of reused events               |
-   | ~MC_EMIN~  | float  |          | minimum simulated energy (TeV)        |
-   | ~MC_EMAX~  | float  |          | maximum simulated energy (TeV)        |
-   | ~MC_IDX~   | float  |          | power-law index of simulated energy   |
-   | ~CORE_MIN~ | float  |          | minimum thrown radius (m)             |
-   | ~CORE_MAX~ | float  |          | maximum thrown radius (m)             |
-   |------------+--------+----------+---------------------------------------|
+   |------------+--------+----------+----------------------------------------|
+   | keyword    | type   | standard | comment / unit                         |
+   |------------+--------+----------+----------------------------------------|
+   | ~SHWRSIM~  | string |          | shower simulation program ('corsika')  |
+   | ~SHWRVER~  | string |          | version number of shower simulation    |
+   | ~DETSIM~   | string |          | detector simulation ('~sim_telarray~') |
+   | ~DETVER~   | string |          | detector simulation version            |
+   | ~ATMOMODL~ | string |          | atmosphere model used                  |
+   | ~B_FIELD~  | real   |          | magnetic field strength [uT]           |
+   | ~B_INC~    | real   |          | magnetic field inclination [deg]       |
+   | ~B_DEC~    | real   |          | magnetic field declination [deg]       |
+   | ~INJECTHT~ | real   |          | injection height [m]                   |
+   | ~INTDEPTH~ | real   |          | first interaction depth [g/cm**2]      |
+   | ~MC_RUNID~ | int    |          | monte-carlo run identification number  |
+   | ~MC_TYPE~  | int    |          | type of primary particle               |
+   | ~MC_MODE~  | int    |          | e.g. 0=point source, 1=diffuse         |
+   | ~MC_NEVT~  | int    |          | number of thrown events                |
+   | ~MC_NREU~  | int    |          | number of reused events                |
+   | ~MC_EMIN~  | float  |          | minimum simulated energy [TeV]         |
+   | ~MC_EMAX~  | float  |          | maximum simulated energy [TeV]         |
+   | ~MC_IDX~   | float  |          | power-law index of simulated energy    |
+   | ~CORE_MIN~ | float  |          | minimum thrown radius [m]              |
+   | ~CORE_MAX~ | float  |          | maximum thrown radius [m]              |
+   |------------+--------+----------+----------------------------------------|
    
 ** <<MCENERGY>> Extension
    The /MCENERGY/ extension contains a table that describes the thrown
@@ -764,6 +765,22 @@ generated for different analysis techniques.
    observation. Effective areas should be stored both as a function of
    true energy ($E_\mathrm{true}$) and reconstructed energy
    $(E_\mathrm{reco}$).
+
+** Background Acceptance
+  
+   $B_\mathrm{acc}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, gives Since the
+   acceptance of gamma-rays (calculated from the Effective Area
+   matrix) is different from that of background events (which are
+   generally not gamma-rays, but mis-reconstructed electrons), it is
+   necessary to also have a response matrix that models the background
+   acceptance across the field of view for each energy. This response
+   matrix may be calculated from real data (e.g. by taking all events
+   excluding known sources) in an iterative fashion, or if enough
+   diffuse simulations are available from Monte-Carlo data. The 2D
+   background rate for a given observation can be calculated by
+   normalizing the background acceptance to the number of detected
+   events.  The matrix is required for producing sky maps and for
+   several spectral modelling techniques. 
     
 ** Photon Redistribution Matrix
    
@@ -781,6 +798,8 @@ generated for different analysis techniques.
    $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
    is equivalent to the impulse-response function for a point-source
    within the field of view.
+   
+
 * <<Storage of Times>>
 
 The storage of times follows the guidelines set by the /Fermi GST/
@@ -843,7 +862,6 @@ science analysis.
    
    
    
-
 * Implementation notes
 
 ** FITS Keywords
@@ -877,7 +895,6 @@ science analysis.
 
 
    
-
 * Outstanding Issues
 ** EVENTS table issues
    - Should the pointing information (~ALT_PNT~, ~AZ_PNT~) be stored
@@ -894,27 +911,49 @@ science analysis.
      the data
  
 ** <<Array Config Issues>>
-   Due to changing sub-arrays and possible broken or offline
-   telescopes, the general layout of the Array will change from
-   observation to observation.  For each possible configuration, a set
-   of instrument response tables must be generated.  Since there are
-   far too many possible combinations, there are two possible ways to
-   proceed:
-   
-   1. Via simulation studies, detemine the affect of missing
-      telescopes, assign a maximum allowed systematic error, and
-      generate a standard subset of "good-enough" response matrices
-      that are provided to the user. For example, ignoring exactly
-      which telescope are missing, generate tables where 10%, 20%, etc
-      of each telescope type are not participating in the subarray.
+*** Multiple Sub-Arrays
 
-   2. Provide as a data product a set of reduced instrument response
-      tables for /each observation/. This would require large
-      computing power at the data center, but would then provide users
-      with simple response matrices (one for each ~OBS_ID~) 
-   
+    Due to changing sub-arrays and possible broken or offline
+    telescopes, the general layout of the Array will change from
+    observation to observation.  For each possible configuration, a set
+    of instrument response tables must be generated.  Since there are
+    far too many possible combinations, there are two possible ways to
+    proceed:
+    
+    1. Via simulation studies, detemine the affect of missing
+       telescopes, assign a maximum allowed systematic error, and
+       generate a standard subset of "good-enough" response matrices
+       that are provided to the user. For example, ignoring exactly
+       which telescope are missing, generate tables where 10%, 20%, etc
+       of each telescope type are not participating in the subarray.
 
-   Note that option 2 may still require a reduced set of possibilities from
-   option 1, since it still may not be feasable to generate the
-   reduced tables in a short amount of time.
+    2. Provide as a data product a set of reduced instrument response
+       tables for /each observation/. This would require large
+       computing power at the data center, but would then provide users
+       with simple response matrices (one for each ~OBS_ID~) 
+    
 
+    Note that option 2 may still require a reduced set of possibilities from
+    option 1, since it still may not be feasable to generate the
+    reduced tables in a short amount of time.
+
+*** Response Matrices and Event Multiplicity
+
+    Response matrices (e.g. PSF and $A_\mathrm{eff}$) change
+    drastically with the number of telescopes that detect a particular
+    shower.  For this reason, in current ACTs, one dimension of the
+    response matrix is the multiplicity: e.g., 4-telescope events have
+    a better PSF than 3-telescope events, etc.  However for a
+    non-heterogenious/symmetric array like CTA, this dimension is more
+    complex: a 2-telescope event for two medium-sized telescopes
+    doesn't have the same response as a 2-telescope event with mixed
+    telescope types, or for events where the telescope spacings are
+    different.
+
+    Therefore, it may be necessary to make the response matrices as a
+    function of /Effective multiplicity/, which is calculated from the
+    ~TELMASK~ for each event and knowledge of the array layout. This
+    may be sufficient to get a resonable measure of the response per
+    event (rather than having every possible combination of
+    participating telescopes modeled separate, which would be nearly
+    impossible).
