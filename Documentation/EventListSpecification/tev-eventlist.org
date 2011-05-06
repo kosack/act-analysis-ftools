@@ -1,5 +1,5 @@
 #+Title:     FITS Event Data format for ACTs
-#+DATE:      2011-02-XX
+#+DATE:      2011-05-02
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
 #+DESCRIPTION: general list of required information for CTA event lists 
@@ -20,7 +20,7 @@
                   for connecting events to external pointing
                   information tables. Added sections on array and
                   telescope monitoring data. Added Issues section
-		
+		  
 * About
 ** Introduction 
 
@@ -117,8 +117,7 @@
      http://heasarc.gsfc.nasa.gov/docs/journal/fits6.html
    - HFWG.R3 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r3.txt
    - HFWG.R7 :: ftp://legacy.gsfc.nasa.gov/fits_info/ofwg_recomm/r7.txt
-   
-  
+     
 ** Philosophy
 
    The design of this data format come from a wide experience of
@@ -530,8 +529,8 @@ generated for different analysis techniques.
    | ~TELPOSY~    | double |          | y pos rel to center of array [m] |
    | ~TELPOSZ~    | double |          | z (height) of telescope [m]      |
    | ~TELFOV~     | double |          | fov in deg                       |
-   | ~TELMIRAREA~ | double |          | mirror area [m^2 ]                |
-   | ~TELCAMAREA~ | double |          | camera area [m^2 ]                |
+   | ~TELMIRAREA~ | double |          | mirror area [m^2 ]               |
+   | ~TELCAMAREA~ | double |          | camera area [m^2 ]               |
    | ~TELFNUM~    | double |          | F-number or focal length         |
    |--------------+--------+----------+----------------------------------|
 ** <<CHERCAM>>: Cherenkov Camera information 
@@ -599,16 +598,25 @@ generated for different analysis techniques.
     each observation's event list (and vice-versa), therefore
     supporting both methods of storing the pointing information.
 
-   |--------+------+----------+----------------|
-   | field  | type | standard | comment / unit |
-   |--------+------+----------+----------------|
-   | TSTART |      |          |                |
-   | TSTOP  |      |          |                |
-   | RA_PNT  |      |          |                |
-   | DEC_PNT |      |          |                |
-   | ALT_PNT |      |          |                |
-   | DEC_PNT |      |          |                |
-   |--------+------+----------+----------------|
+    *NOTE: do we need this to be per telescope? each tel may
+     have pointing error* 
+
+   |--------------+------+----------+----------------------------------|
+   | field        | type | standard | comment / unit                   |
+   |--------------+------+----------+----------------------------------|
+   | ~OBS_ID~     |      |          |                                  |
+   | ~TSTART~     |      |          | start time of interval           |
+   | ~TSTOP~      |      |          | stop time of interval            |
+   | ~RA_PNT~     |      |          | RA of nominal pointing position  |
+   | ~DEC_PNT~    |      |          | DEC of nominal pointing position |
+   | ~ALT_PNT~    |      |          |                                  |
+   | ~AZ_PNT~     |      |          |                                  |
+   | ~PNT_MODE~   |      |          | e.g. TRACK or DRIFT              |
+   | ~CONV_DEPTH~ |      |          | Convergence depth                |
+   | ~CONV_RA~    |      |          | Convergence reference point      |
+   | ~CONV_DEC~   |      |          | Convergence reference point      |
+   |--------------+------+----------+----------------------------------|
+
 
 *** External Array Configuration tables
 
@@ -750,55 +758,8 @@ generated for different analysis techniques.
   stored as a function of these "external" parameters. However, for a
   single exposure, one can integrate over the distribution of these
   parameters to provide a /reduced/ response matrix that is suitable
-  for a short observation.
-  
-** Effective Area
-   $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, 
-   gives the effective collection area for detection gamma-rays as a
-   function of energy.
+  for a short observation. [fn:1]
 
-   Effective areas should be stored at least in a standard /ARF/ file
-   on a per-run basis (See Ogip memo CAL/GEN/92-019). The format of
-   ARFs allows the effective area matrix to be stored as a function of
-   any number of parameters, however it may be sufficient to store a
-   single reduced (1-D) effective area vs energy curve per
-   observation. Effective areas should be stored both as a function of
-   true energy ($E_\mathrm{true}$) and reconstructed energy
-   $(E_\mathrm{reco}$).
-
-** Background Acceptance
-  
-   $B_\mathrm{acc}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, gives Since the
-   acceptance of gamma-rays (calculated from the Effective Area
-   matrix) is different from that of background events (which are
-   generally not gamma-rays, but mis-reconstructed electrons), it is
-   necessary to also have a response matrix that models the background
-   acceptance across the field of view for each energy. This response
-   matrix may be calculated from real data (e.g. by taking all events
-   excluding known sources) in an iterative fashion, or if enough
-   diffuse simulations are available from Monte-Carlo data. The 2D
-   background rate for a given observation can be calculated by
-   normalizing the background acceptance to the number of detected
-   events.  The matrix is required for producing sky maps and for
-   several spectral modelling techniques. 
-    
-** Photon Redistribution Matrix
-   
-   Gives the probability of reconstructing a photon with true energy
-   $E_\mathrm{true}$ at reconstructed energy $E_\mathrm{reco}$.  This
-   2-D matrix is stored as a standard OGIP /RMF/ file. 
-   
-   As with the effective area, the RMF may be a master N-dimensional
-   response matrix, or a simplified (interpolated and averaged) per-run
-   2-D matrix.
-
-** Point-spread-function
-   Gives the 2D probability for reconstructing a photon with true
-   position $(\theta,\phi)_\mathrm{true}$ at reconstructed position
-   $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
-   is equivalent to the impulse-response function for a point-source
-   within the field of view.
-   
 
 * <<Storage of Times>>
 
@@ -845,6 +806,7 @@ science analysis.
   |----------+--------+----------+-------------------------------|
   | field    | type   | standard | comment                       |
   |----------+--------+----------+-------------------------------|
+  | ~OBS_ID~ | int    |          | corresponding observation id  |
   | ~TEL_ID~ | int    |          | telescope for this interval   |
   | ~START~  | double |          | start time of interval in MET |
   | ~STOP~   | double |          | stop time of interval in MET  |
@@ -964,3 +926,10 @@ science analysis.
     event (rather than having every possible combination of
     participating telescopes modeled separate, which would be nearly
     impossible).
+
+
+* Footnotes
+
+[fn:1] with large FOV, may need to keep some dimensions like Zenith
+
+   
