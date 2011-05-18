@@ -1,12 +1,11 @@
-#+Title:     FITS Event Data format for ACTs
-#+DATE:      2011-05-02
+#+Title:     FITS Data format for ACTs
+#+DATE:      2011-05-18
 #+AUTHOR:    Karl Kosack
 #+EMAIL:     kosack@gmail.com
 #+DESCRIPTION: general list of required information for CTA event lists 
 #+KEYWORDS: 
 #+LANGUAGE:  en
 #+OPTIONS:   H:3 num:t toc:3 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
-#+STARTUP: hidestars
 
 * Changes
   + 2010-11-16 :: (kosack) telescope-wise parameters are no longer
@@ -16,10 +15,13 @@
                   increase in difficulty of use)
   + 2011-01-06 :: (kosack) added more information about instrument
                   response matrices
-  + 2011-02-XX :: (kosack) added ~OBS_ID~ to the event-list to allow
+  + 2011-02-10 :: (kosack) added ~OBS_ID~ to the event-list to allow
                   for connecting events to external pointing
                   information tables. Added sections on array and
                   telescope monitoring data. Added Issues section
+  + 2011-05-18 :: minor changes following DAFA Format review at FACe
+                  in Paris.
+
 		  
 * About
 ** Introduction 
@@ -219,6 +221,14 @@
    Headers that store version and analysis history information are
    also needed to track the production of each data product. These
    should link the file and version of the parent data products.
+
+   |----------+--------+----------+--------------------------------------|
+   | Keyword  | type   | standard | comment / unit                       |
+   |----------+--------+----------+--------------------------------------|
+   | CALIBVER | string |          | calibration version info             |
+   | GEOMVER  | string |          | geometry reconstruction version info |
+   | ENERGVER | string |          | energy reconstruction version        |
+   | ...      |        |          |                                      |
    
 * <<EVENTS>> Extension  
 The EVENTS table (stored in an extension called /EVENTS/) is a binary
@@ -262,43 +272,44 @@ generated for different analysis techniques.
     
     The base parameters should always be in every event-list file,
     regardless of what reconstruction technique produced the
-    list. They contain temporal, spatial, energetic, and trigger
-    information. These base shower parameters are
-    /reconstructed/ information, and therefore each may correspond with
-    an instrument response matrix describing their probability
-    distributions. The /true/ values of the parameters, if known
-    (e.g. from simulated data), are described later in the
-    [[Monte-Carlo Shower Parameters]] section
+    list. They contain a physical description of the shower and
+    contain temporal, spatial, energetic, and trigger
+    information. These base shower parameters are /reconstructed/
+    information, and therefore each may correspond with an instrument
+    response matrix describing their probability distributions. The
+    /true/ values of the parameters, if known (e.g. from simulated
+    data), are described later in the [[Monte-Carlo Shower Parameters]]
+    section
 
-   |--------------+---------+----------+----------------------------------------|
-   | field        | type    | standard | comment                                |
-   |--------------+---------+----------+----------------------------------------|
-   | ~EVENT_ID~   | uint    |          | event number                           |
-   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)      |
-   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time      |
-   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)  |
-   |--------------+---------+----------+----------------------------------------|
+   |--------------+---------+----------+--------------------------------------------|
+   | field        | type    | standard | comment                                    |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                               |
+   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)    |
+   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time          |
+   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)      |
+   |--------------+---------+----------+--------------------------------------------|
    | ~MULTIP~     | short   |          | multiplicity of tels used in recon (\star) |
-   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels          |
-   |--------------+---------+----------+----------------------------------------|
-   | ~RA~         | real    | OGIP1    | reconstructed position RA              |
-   | ~DEC~        | real    | OGIP1    | reconstructed position DEC             |
-   | ~DIR_ERR~    | double  |          | measure of error in position           |
-   | ~DETX~       | double  |          | tangential coord in nominal sys        |
-   | ~DETY~       | double  |          | tangential coord in nominal sys        |
-   | ~ALT~        | double  |          | event altitude (\oplus)                               |
-   | ~AZ~         | double  |          | event azimuth  (\oplus)                               |
-   | ~ALT_PNT~    | double  |          | pointing altitude, for convenience     |
-   | ~AZ_PNT~     | double  |          | pointing azimuth, for convenience      |
-   | ~COREX~      | double  |          | position on ground [m]                 |
-   | ~COREY~      | double  |          | position on ground [m]                 |
-   | ~CORE_ERR~   | double  |          | error on core reconstruction [m]       |
-   | ~XMAX~       | double  |          | position of shower max [m]             |
-   | ~XMAX_ERR~   | double  |          | error on shower-max                    |
-   |--------------+---------+----------+----------------------------------------|
-   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                    |
-   | ~ENERGY_ERR~ | double  |          | error on energy                        |
-   |--------------+---------+----------+----------------------------------------|
+   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels              |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA                  |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC                 |
+   | ~DIR_ERR~    | real    |          | measure of error in position (\ddag)       |
+   | ~DETX~       | real    |          | tangential coord in nominal sys            |
+   | ~DETY~       | real    |          | tangential coord in nominal sys            |
+   | ~ALT~        | real    |          | event altitude (\oplus)                    |
+   | ~AZ~         | real    |          | event azimuth  (\oplus)                    |
+   | ~COREX~      | real    |          | position on ground [m]                     |
+   | ~COREY~      | real    |          | position on ground [m]                     |
+   | ~CORE_ERR~   | real    |          | error on core reconstruction [m]           |
+   | ~XMAX~       | real    |          | position of shower max [g/cm^2]            |
+   | ~XMAX_ERR~   | real    |          | error on shower-max [g/cm^2]               |
+   | ~SHWIDTH~    | real    |          | intrinsic shower width (if known) [m]      |
+   | ~SHLENGTH~   | real    |          | intrinsic shower length (if known) [m]     |
+   |--------------+---------+----------+--------------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                        |
+   | ~ENERGY_ERR~ | real    |          | error on energy (TeV)                      |
+   |--------------+---------+----------+--------------------------------------------|
 
     Comments:
     - \dagger :: the observation id can be used to cross reference the
@@ -308,8 +319,16 @@ generated for different analysis techniques.
                  single event-list.
     - \star :: In the OGIP memo, TIME is defined in "seconds" stored as a
        double. 
-    - \oplus :: ALT and AZ can be stored here for simplicity, or you can let the
-       user calculate them from the RA/DEC + TIME information...
+    - \oplus :: ALT and AZ can be stored here for simplicity. It is
+		possible to calculate these from the RA/DEC + TIME
+		information, however as that requires a complex series
+		of coordinate transformations, it is best to provide
+		it for the user.
+
+    - \ddag :: the error on the direction is in principle a matrix,
+                  however it should be sufficient here to store a
+                  single number (simply for selecting events with good
+                  reconstruction). 
 	   
 *** Gamma-Hadron Separation Parameters
 
@@ -325,29 +344,33 @@ generated for different analysis techniques.
     to be used with a single event list.
 
     The simplest parametrization of an air-shower event is a
-    moment-analysis of cleaned shower images (the resulting set of
-    moments are known as the Hillas parameters
-    [TODO:citation]). In a Hillas-parameter based analysis, the
-    gamma-hadron separation parameter is usually a combination of the
-    /mean-reduced-scaled-width/ and /mean-reduced-scaled-length/
-    parameters (defined in e.g. [TODO: cite]).  
+    moment-analysis of cleaned shower images, where the resulting set of
+    moments are known as the Hillas parameters. In a Hillas-parameter
+    based analysis, the gamma-hadron separation parameter is usually a
+    combination of the /mean-reduced-scaled-width/ and
+    /mean-reduced-scaled-length/ parameters (which provide a
+    generalized description of a shower taking into account all
+    telescope moments).
     
     The following gives examples of parameters that may be included in
     an event list for several types of gamma-hadron separation
-    techniques (Hillas-style,  2D Model template, and 3D model). In
-    each case, a prefix for the analysis type is appended, to avoid
-    conflicting column names.  Alternately, one could stipulate that
-    all analyses provide a "HADRONNESS" value in a defined range.
+    techniques (Hillas-style, 2D Model template, and 3D model). For
+    internal parameters, in each case, a prefix for the analysis type
+    is appended, to avoid conflicting column names.  Regardless of
+    which gamma-hadron separation method is used, one should always
+    include provide a "HADRONNESS" value that provides  a gamma-hadron
+    separation in the range [0,1], where 1 is fully gamma-like.
 
 **** Example Hillas-parameter Gamma-hadron separation columns
-    |---------------+--------+----------+--------------------|
-    | field         | type   | standard | comment            |
-    |---------------+--------+----------+--------------------|
-    | ~HIL_MSW~     | double |          | mean scaled width  |
-    | ~HIL_MSL~     | double |          | mean scaled length |
-    | ~HIL_MSW_ERR~ | double |          | error on MSW       |
-    | ~HIL_MSL_ERR~ | double |          | error on MSL       |
-    |---------------+--------+----------+--------------------|
+    |---------------+--------+----------+---------------------|
+    | field         | type   | standard | comment             |
+    |---------------+--------+----------+---------------------|
+    | ~HIL_MSW~     | double |          | mean scaled width   |
+    | ~HIL_MSL~     | double |          | mean scaled length  |
+    | ~HIL_MSW_ERR~ | double |          | error on MSW        |
+    | ~HIL_MSL_ERR~ | double |          | error on MSL        |
+    | ~HADRONNNESS~ | double |          | haddronness measure |
+    |---------------+--------+----------+---------------------|
 	
 **** example Model parameter selection columns
     |----------------+--------+----------+----------------------------------|
@@ -416,19 +439,24 @@ generated for different analysis techniques.
   first by ~EVENT_ID~ and then by ~TEL_ID~, such that a user can expect
   that if the event ID changes between two rows that a new event has
   begun.
-  
+
+  A ~TIMESLICE~ column is provided to support intruments with detailed
+  timing info, where multiple time slices of a single event are
+  given. It should be set to a nominal value (-1) for time-integrated
+  events.
+
   For example, if for event 1, telescopes 4,6,8 triggered, and for
   event 2, telescopes 1 and 3 triggered, the table would look like
   this:
   
-  |------------+----------+-----------------------------|
-  | ~EVENT_ID~ | ~TEL_ID~ | Telescope param columns ... |
-  |------------+----------+-----------------------------|
-  |          1 |        4 | ...                         |
-  |          1 |        6 | ...                         |
-  |          1 |        8 | ...                         |
-  |          2 |        1 | ...                         |
-  |          2 |        3 | ...                         |
+  |------------+----------+-------------+-----------------------------|
+  | ~EVENT_ID~ | ~TEL_ID~ | ~TIMESLICE~ | Telescope param columns ... |
+  |------------+----------+-------------+-----------------------------|
+  |          1 |        4 |           0 | ...                         |
+  |          1 |        6 |           0 | ...                         |
+  |          1 |        8 |           0 | ...                         |
+  |          2 |        1 |           0 | ...                         |
+  |          2 |        3 |           0 | ...                         |
    ...
 
    The information about which telescopes triggered is stored
@@ -440,7 +468,7 @@ generated for different analysis techniques.
    #+BEGIN_QUOTE
    *NOTE*: any program that modifies the TEVENTS table
    (e.g. removes telescopes from the event) should also update the
-   ~TELMASK~ and ~NTELS~ column in the =EVENTS= extension, to be consistent!
+   ~TELMASK~ and ~NTELS~ column in the =EVENTS= extension, to be consistent.
    #+END_QUOTE
 
    #+BEGIN_QUOTE
@@ -497,8 +525,7 @@ generated for different analysis techniques.
 
 *** Image information
     In even lower-level data, the shower-images themselves can
-    optionally be stored in this same table (using variable-length
-    arrays). To reduce the size of the data, only "cleaned" pixels may
+    optionally be stored in this same table. To reduce the size of the data, only "cleaned" pixels may
     be stored by first listing the non-zero pixel numbers as an array
     ~TEL_IMG_IPIX~ and the corresponding intensities in ~TEL_IMG_INT~:
     
@@ -510,8 +537,23 @@ generated for different analysis techniques.
     | ~TEL_IMG_INT~  | float[*] |          | list of pixel intensities in image (P.E) |
     |----------------+----------+----------+------------------------------------------|
 
-    Pixel positions and other camera-specific info will be stored in a separate
-    (to be defined) extension.
+    There are two ways of storing the pixel arrays ~TEL_IMG_INT~ and
+    ~TEL_IMG_PIX~:
+
+    1) Using variable length arrays
+    2) Using fixed-length arrays, with the clean pixels listed first
+       and unused entries padded with 0s
+    
+    In each case, the columns and indexing are the same, but the
+    currently implementation of variable-length arrays in FITS suffers
+    from some efficiency issues. Using fixed-length arrays may
+    therefore be faster, at the expense of some increase in storage
+    space (which can be greatly reduced by compressing the file).
+    From the standpoint of reading the table, each case is identical.
+
+    Pixel positions and other camera-specific info will be stored in a
+    separate (to be defined) extension.
+
 * Instrument Configuration Information
 ** <<TELARRAY>> Extension: Array layout 
    This table has one entry per telescope and provides an overview of
@@ -760,7 +802,6 @@ generated for different analysis techniques.
   parameters to provide a /reduced/ response matrix that is suitable
   for a short observation. [fn:1]
 
-
 * <<Storage of Times>>
 
 The storage of times follows the guidelines set by the /Fermi GST/
@@ -830,7 +871,7 @@ science analysis.
   has built-in support for filtering event data using a GTI extension
   via the ~gtifilter()~ filter.
    
-   
+ 
 * Implementation notes
 
 ** FITS Keywords
