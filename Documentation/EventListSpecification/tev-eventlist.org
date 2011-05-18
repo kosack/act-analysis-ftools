@@ -803,6 +803,56 @@ generated for different analysis techniques.
   parameters to provide a /reduced/ response matrix that is suitable
   for a short observation. [fn:1]
 
+** Effective Area
+   $A_\mathrm{eff}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, 
+   gives the effective collection area for detection gamma-rays as a
+   function of energy.
+
+   Effective areas should be stored at least in a standard /ARF/ file
+   on a per-run basis (See Ogip memo CAL/GEN/92-019). The format of
+   ARFs allows the effective area matrix to be stored as a function of
+   any number of parameters, however it may be sufficient to store a
+   single reduced (1-D) effective area vs energy curve per
+   observation. Effective areas should be stored both as a function of
+   true energy ($E_\mathrm{true}$) and reconstructed energy
+   $(E_\mathrm{reco}$).
+
+** Background Acceptance
+  
+   $B_\mathrm{acc}(E|\theta,\phi,\Theta,\Phi,N,\epsilon_\mathrm{opt})$, gives Since the
+   acceptance of gamma-rays (calculated from the Effective Area
+   matrix) is different from that of background events (which are
+   generally not gamma-rays, but mis-reconstructed electrons), it is
+   necessary to also have a response matrix that models the background
+   acceptance across the field of view for each energy. This response
+   matrix may be calculated from real data (e.g. by taking all events
+   excluding known sources) in an iterative fashion, or if enough
+   diffuse simulations are available from Monte-Carlo data. The 2D
+   background rate for a given observation can be calculated by
+   normalizing the background acceptance to the number of detected
+   events.  The matrix is required for producing sky maps and for
+   several spectral modelling techniques. 
+    
+** Photon Redistribution Matrix
+   
+   Gives the probability of reconstructing a photon with true energy
+   $E_\mathrm{true}$ at reconstructed energy $E_\mathrm{reco}$.  This
+   2-D matrix is stored as a standard OGIP /RMF/ file. 
+   
+   As with the effective area, the RMF may be a master N-dimensional
+   response matrix, or a simplified (interpolated and averaged) per-run
+   2-D matrix.
+
+** Point-spread-function
+   Gives the 2D probability for reconstructing a photon with true
+   position $(\theta,\phi)_\mathrm{true}$ at reconstructed position
+   $(\theta,\phi)_\mathrm{reco}$ within the camera field of view. This
+   is equivalent to the impulse-response function for a point-source
+   within the field of view.
+   
+
+
+
 * <<Storage of Times>>
 
 The storage of times follows the guidelines set by the /Fermi GST/
