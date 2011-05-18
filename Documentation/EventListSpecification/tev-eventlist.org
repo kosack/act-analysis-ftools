@@ -99,6 +99,7 @@
    #+CAPTION: software tools. Minimally, everything below the
    #+CAPTION: horizontal line is in FITS format and is described in this document.
    #+LABEL:   fig:dataflow
+   #+ATTR_LaTeX: width=0.5\linewidth
     [[./dataflow.pdf]]
    
 ** Standards
