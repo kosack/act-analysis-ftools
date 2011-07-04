@@ -3,8 +3,19 @@ from kapteyn import maputils
 from matplotlib import pyplot as plt
 import sys
 import math
+from optparse import OptionParser
 
-nfigs = int(len(sys.argv)-1)
+parser = OptionParser()
+parser.set_usage( "display-fits.py [options] <fitsimage> [<fitsimage...]")
+parser.add_option( "-g","--gridsys", dest="gridsys", 
+                   default="fk5", 
+                   help="system for grid overlay")
+(opts, args) = parser.parse_args()
+
+
+
+
+nfigs = int(len(args)-1)
 fig = plt.figure()
 ifig = 1
 
@@ -12,14 +23,15 @@ nx = 1
 while (nfigs > nx**2):
     nx+=1
 
+print "args=",args
 print "nx=",nx,"nfigs=",nfigs
 
 while (1):
 
-    if len(sys.argv) == 1:
+    if len(args) == 0:
         break
 
-    fname = sys.argv.pop(1)
+    fname = args.pop(0)
 
     print "Loading:",fname
     ff = pyfits.open( fname )
@@ -45,7 +57,7 @@ while (1):
     colorbar = img.Colorbar()
 
     img.Image()
-    img.Graticule()
+    img.Graticule(skyout=opts.gridsys)
 
     # galactic overlay:
     #gr2 = img.Graticule(skyout="galactic", visible=True)
