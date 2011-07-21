@@ -84,7 +84,7 @@
     relational database, etc).
     
 
-* Instrumental response matrices:
+* Array-wise Instrumental response matrices:
 
   Here the parameters that go into each response matrix are
   outlined. For simplicity, the parameter names follow the FITS header
@@ -108,7 +108,8 @@
    |          | ~OFFS_R~   | float | radial offset of events from the pointing dir (deg)       |
    |          | ~OFFS_PHI~ | float | azimuthal direction of events from the pointing dir (deg) |
    |          | ~SRCSIZE~  | float | opening angle of simulated source (0=point-source)        |
-   |          |            |       |                                                           |
+   |----------+------------+-------+-----------------------------------------------------------|
+   | ~SKY~    | ~NSB~      | float | Night-sky-background level                                |
    |----------+------------+-------+-----------------------------------------------------------|
    | ~ARRAY~  | ~TELESCOP~ | text  | super-array name (e.g. CTA-ULTRA1)                        |
    |          | ~SUBARRAY~ | text  | sub-array name                                            |
@@ -120,26 +121,87 @@
    |          |            |       |                                                           |
 
 
-** Continuous parameters for each response
+** Response tables
    
-   The following describes the dimensions of the FITS data matrix
-   contained in a response file/extension for a set of fixed
-   simulation parameters. Note that the minimum, maximum, and number
-   of bins are simply reasonable suggestions and software should not
-   rely on them being fixed to those values.
+   The following describes the continuous parameters---dimensions of
+   the FITS data matrix---contained in a response file/extension for a
+   set of fixed simulation parameters. Note that the minimum, maximum,
+   and number of bins are simply reasonable suggestions and software
+   should not rely on them being fixed to those values.
 
 *** Effective Area
 
-    | Parameter   | Description         | Min | Max | Bins |
-    |-------------+---------------------+-----+-----+------|
-    | ~EFFAREA~   | effective area (m^2) |     |     |      |
-    | ~LOGENERGY~ | log_10(E/TeV)        |  -3 | 2.5 |      |
-    |             |                     |     |     |      |
+    - Variable: ~EFFAREA~ ::,  effective area (m^2) 
 
+    | Dimension   | Description  | Min | Max | Bins |
+    |-------------+--------------+-----+-----+------|
+    | ~LOGENERGY~ | log_10(E/TeV) |  -3 | 2.5 |      |
+
+    
+
+*** Energy redistribution 
     
 *** 1D Point-Spread-Function 
 
 *** 2D Point-Spread-Function
 
-*** Energy redistribution 
+* Telescope-wise Instrumental Response Matrices
 
+  The response matrices required by shower reconstruction algorithms
+  typically vary depending on the algorithm used.  Shown below are the
+  tables uses for a simple Hillas-parameter based shower
+  reconstruction, however more tables will exist for other methods.
+
+** Telescope Response tables
+ 
+*** Energy Responses
+    Energy can be reconstructed from the integrated shower image amplitude and
+    impact distance (in addition to each fixed simulation parameter)
+    via the following response matrices:
+    
+    Responses:
+    - ~ENERGY~ :  reconstructed energy (stored as log_10(E) )
+    - ~ENERGY_RMS~ : standard deviation of reconstructed energy (stored as log_10(E) )
+
+    | Dimension | Description                                  | Min | Max | Bins |
+    |-----------+----------------------------------------------+-----+-----+------|
+    | ~LOGSIZE~ | log_10(image amplitude) of the cleaned shower |     |     |      |
+    | ~IMPACT~  | impact distance (m) from the telescope       |     |     |      |
+    
+
+*** Scaled Parameter responses (for Hillas Analysis)
+
+    These response tables are needed to calcualte the
+    /mean-reduced-scaled-length/ and /mean-reduced-scaled-width/
+    parameters used for gamma-hadron separation in a standard
+    Hillas-based analysis.
+
+    Responses:
+    -  ~LENGTH~ :  reduced length of shower image
+    -  ~LENGTH_RMS~ :  RMS error on reduced length 
+    -  ~WIDTH~ :  reduced width of shower image
+    -  ~WIDTH_RMS~ :  RMS error on reduced width 
+
+    | Dimension | Description                                  | Min | Max | Bins |
+    |-----------+----------------------------------------------+-----+-----+------|
+    | ~LOGSIZE~ | log_10(image amplitude) of the cleaned shower |     |     |      |
+    | ~IMPACT~  | impact distance (m) from the telescope       |     |     |      |
+
+
+*** Shower displacement response:
+    
+    For a simple Hillas-based analysis, the shower origin can be
+    estimated for a single telscope, and later using an ensemble of
+    parameters, combined in stereo to give an even more accurate
+    view of the shower geometry. 
+
+    - ~DISP~: (deg) gives the angular displacement of the
+      point-of-origin from the shower image centroid, used for a
+      single telescope reconstruction method. This value may also be used
+      in stereo-reconstruction to improve the reconstruction.
+    - ~DISP_RMS~: RMS error on the displacement
+
+    | Dimension | Description                                       | Min | Max | Bins |
+    |-----------+---------------------------------------------------+-----+-----+------|
+    | ~ELONG~   | elongation factor of image                        |     |     |      |
+    | ~DIST~    | distance of image centroid from the camera center |     |     |      |
