@@ -1,0 +1,55 @@
+* Intro
+
+  This document describes the requirements for a CTA response file
+  database. 
+
+  In the design of such a database, it is important to distinguish
+  between simulated information that is /continuous/ vs /fixed/ in the
+  simulations.   For example, the Monte-Carlo simulations that are produced for CTA
+  generally  are produced with fixed zenith/azimuthal angle, offset in
+  the camera, array configuration, night-sky-background level, etc.,
+  while parameters such as energy are continuous (and simulated with
+  e.g. a power-law distribution).
+
+  The database described here is a "global" response database, storing
+  matrices for all possible simulations for CTA.  General analysis users will
+  use a reduced set of response files that can be generated from this
+  global database by interpolation and weighted averaging. 
+
+
+** Glossary of terms:
+   - response file :: A FITS file containing a response matrix for a
+                      set of fixed parameters
+   - fixed parameters :: parameters of the monte-carlo simulation that do not
+        change between configurations
+   - continuous parameters :: parameters that are free in the simulation
+
+   - observation :: a contiguous set of data from the telescope array
+                    pointed at a single observation position (which
+                    may be fixed in RA/Dec or Alt/Az coordinates)
+
+   - Monte-Carlo dataset :: a 
+
+
+     
+
+* Response file requirements:
+
+  - the response files are in FITS format
+  - there is one response file for each set of fixed parameters
+    (though these may be merged into multiple extensions if need be)
+  - the fixed parameters are stored in the header of the file/extension
+  - the data portion of the file contains a N-dimensional array, where
+    N is the number of continuous parameters for that response.
+
+
+* Response tool requirements:
+
+
+  - a tool will be provided that can interpolate between bins in the
+    internal and external parameters of the simulation database, and
+    produce a "realistic" response for a true observation.
+
+  - the tools should not assume that the number of bins in each
+    response table is the same
+  
