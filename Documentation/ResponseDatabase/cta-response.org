@@ -9,7 +9,13 @@
   generally  are produced with fixed zenith/azimuthal angle, offset in
   the camera, array configuration, night-sky-background level, etc.,
   while parameters such as energy are continuous (and simulated with
-  e.g. a power-law distribution).
+  e.g. a power-law distribution).  As more simulations are produced,
+  additional points in the distribution of fixed parameters will be
+  generated, therefore the file structure should make it simple enough
+  to add new simulation information when it is available without
+  re-generating all of the files.  For this reason, fixed parameters
+  should not be a dimension in the underlying array used to store the
+  response histograms.
 
   The database described here is a "global" response database, storing
   matrices for all possible simulations for CTA.  General analysis users will
@@ -20,18 +26,22 @@
 ** Glossary of terms:
    - response file :: A FITS file containing a response matrix for a
                       set of fixed parameters
-   - fixed parameters :: parameters of the monte-carlo simulation that do not
-        change between configurations
-   - continuous parameters :: parameters that are free in the simulation
+
+   - fixed parameters :: parameters of the Monte-Carlo simulation that do not
+        change between events for a Monte-Carlo dataset (e.g. zenith
+        angle for a point-source simulation). 
+
+   - continuous parameters :: parameters that change freely between
+        events in a Monte-Carlo dataset (e.g. energy)
 
    - observation :: a contiguous set of data from the telescope array
                     pointed at a single observation position (which
                     may be fixed in RA/Dec or Alt/Az coordinates)
 
-   - Monte-Carlo dataset :: a 
+   - Monte-Carlo dataset :: a set of Monte-Carlo event data for a
+        fixed array and simulation configuration
 
-
-     
+ 
 
 * Response file requirements:
 
@@ -41,15 +51,54 @@
   - the fixed parameters are stored in the header of the file/extension
   - the data portion of the file contains a N-dimensional array, where
     N is the number of continuous parameters for that response.
-
+    
+    
 
 * Response tool requirements:
 
 
   - a tool will be provided that can interpolate between bins in the
-    internal and external parameters of the simulation database, and
+    fixed and continuous parameters of the simulation database, and
     produce a "realistic" response for a true observation.
 
-  - the tools should not assume that the number of bins in each
-    response table is the same
-  
+  - the tools should not assume that the number of bins in the
+    internal array of each response table is the same
+
+  - a tool should be provided that extracts the meta-data (headers
+    containing fixed parameter information) from a set of response
+    files and produces an index table (which may be a FITS table,
+    relational database, etc).
+    
+
+* Instrumental response matrices:
+
+** Fixed simulation parameters:
+
+    | Parameter   | Description                                                   |
+    |-------------+---------------------------------------------------------------|
+    | ~COSZENITH~ | cos(\theta), \theta is the zenith angle of the pointing direction (deg) |
+    | ~AZIMUTH~   | azimuthal angle of pointing direction (deg)                   |
+    |             |                                                               |
+
+** Continuous parameters for each response
+   
+   The following describes the dimensions of the FITS data matrix
+   contained in a response file/extension for a set of fixed
+   simulation parameters. Note that the minimum, maximum, and number
+   of bins are simply reasonable suggestions and software should not
+   rely on them being fixed to those values.
+
+*** Effective Area
+
+    | Parameter   | Description         | Min | Max | Bins |
+    |-------------+---------------------+-----+-----+------|
+    | ~EFFAREA~   | effective area (m^2) |     |     |      |
+    | ~LOGENERGY~ | log_10(E/TeV)        |  -3 | 2.5 |      |
+    |             |                     |     |     |      |
+
+    
+*** 1D Point-Spread-Function 
+
+*** 2D Point-Spread-Function
+
+*** Energy redistribution 
