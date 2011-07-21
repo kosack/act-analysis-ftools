@@ -101,25 +101,26 @@
    header information in the Event-List definition.
 
 
-   | Group    | Parameter  | type  | Description                                               |
-   |----------+------------+-------+-----------------------------------------------------------|
-   | ~SOURCE~ | ~ZENITH~   | float | \theta = zenith angle of the pointing dir (deg)                |
-   |          | ~AZIMUTH~  | float | azimuthal angle of pointing direction (deg)               |
-   |          | ~OFFS_R~   | float | radial offset of events from the pointing dir (deg)       |
-   |          | ~OFFS_PHI~ | float | azimuthal direction of events from the pointing dir (deg) |
-   |          | ~SRCSIZE~  | float | opening angle of simulated source (0=point-source)        |
-   |----------+------------+-------+-----------------------------------------------------------|
-   | ~SKY~    | ~NSB~      | float | Night-sky-background level                                |
-   |----------+------------+-------+-----------------------------------------------------------|
-   | ~ARRAY~  | ~TELESCOP~ | text  | super-array name (e.g. CTA-ULTRA1)                        |
-   |          | ~SUBARRAY~ | text  | sub-array name                                            |
-   |----------+------------+-------+-----------------------------------------------------------|
-   | ~MCVER~  | ~SHWRVER~  | text  | version of shower simulation                              |
-   |          | ~DETVER~   | text  | version of detector simulation                            |
-   |          | ~ANAVER~   | text  | analysis/reconstruction program/version                   |
-   |          | ~ANATYPE~  | text  | analysis/reconstruction type (e.g. 'Hillas')              |
-   |          |            |       |                                                           |
-
+   | Group    | Parameter   | type  | Description                                                 |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~SOURCE~ | ~ZENITH~    | float | \theta = zenith angle of the pointing dir (deg)                  |
+   |          | ~AZIMUTH~   | float | azimuthal angle of pointing direction (deg)                 |
+   |          | ~OFFS_R~    | float | radial offset of events from the pointing dir (deg)         |
+   |          | ~OFFS_PHI~  | float | azimuthal direction of events from the pointing dir (deg)   |
+   |          | ~SRCSIZE~   | float | opening angle of simulated source (0=point-source)          |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~SKY~    | ~NSB~       | float | Night-sky-background level                                  |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~ARRAY~  | ~TELESCOP~  | text  | super-array name (e.g. CTA-ULTRA1)                          |
+   |          | ~SUBARRAY~  | text  | sub-array name                                              |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~MCVER~  | ~SHWRVER~   | text  | version of shower simulation                                |
+   |          | ~DETVER~    | text  | version of detector simulation                              |
+   |          | ~ANAVER~    | text  | analysis/reconstruction program/version                     |
+   |          | ~ANATYPE~   | text  | analysis/reconstruction type (e.g. 'Hillas')                |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~CUTS~   | ~CUTCONFIG~ | text  | name of ensemble of gamma/hadron and threshold cuts applied |
+   |          |             |       |                                                             |
 
 ** Response tables
    
@@ -131,15 +132,22 @@
 
 *** Effective Area
 
-    - Variable: ~EFFAREA~ ::,  effective area (m^2) 
+    -  ~EFFAREA~ : effective area (m^2) 
 
     | Dimension   | Description  | Min | Max | Bins |
     |-------------+--------------+-----+-----+------|
     | ~LOGENERGY~ | log_10(E/TeV) |  -3 | 2.5 |      |
 
-    
-
 *** Energy redistribution 
+
+    - ~EDIST~: probability of reproducing E_reco given E_true during
+      energy reconstruction
+
+    | Dimension  | Description      | Min | Max | Bins |
+    |------------+------------------+-----+-----+------|
+    | ~LOGETRUE~ | log_10(E_true/TeV) |  -3 | 2.5 |      |
+    | ~LOGERECO~ | log_10(E_reco/TeV) |  -3 | 2.5 |      |
+   
     
 *** 1D Point-Spread-Function 
 
