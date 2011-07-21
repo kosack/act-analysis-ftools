@@ -1,3 +1,16 @@
+#+TITLE:     CTA Response Database Requirements
+#+AUTHOR:    Karl Kosack, Martin Raue, Jim Hinton, etc.
+#+EMAIL:     karl.kosack@cea.fr
+#+DATE:      2011-07-21 Thu
+#+DESCRIPTION: 
+#+KEYWORDS: 
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+
+
+
 * Intro
 
   This document describes the requirements for a CTA response file
@@ -49,8 +62,9 @@
   - there is one response file for each set of fixed parameters
     (though these may be merged into multiple extensions if need be)
   - the fixed parameters are stored in the header of the file/extension
-  - the data portion of the file contains a N-dimensional array, where
-    N is the number of continuous parameters for that response.
+  - the data portion of the file contains either an N-dimensional array, where
+    N is the number of continuous parameters for that response, or a
+    functional representation of the response with the same number of parameters.
     
     
 
@@ -72,13 +86,39 @@
 
 * Instrumental response matrices:
 
-** Fixed simulation parameters:
+  Here the parameters that go into each response matrix are
+  outlined. For simplicity, the parameter names follow the FITS header
+  convention (8 characters), however it may be more useful and
+  flexible to group them using ESO /hierarchical keywords/ (which are
+  not currently supported by all FITS tools and libraries). In that
+  case the keyword names should be e.g. '~HIERARCH CTA <Group>
+  <Parameter>~'
 
-    | Parameter   | Description                                                   |
-    |-------------+---------------------------------------------------------------|
-    | ~COSZENITH~ | cos(\theta), \theta is the zenith angle of the pointing direction (deg) |
-    | ~AZIMUTH~   | azimuthal angle of pointing direction (deg)                   |
-    |             |                                                               |
+** Fixed simulation parameters:
+   These parameters are stored in the header of each response matrix
+   file and may be used for interpolation or identification of the
+   origin of the matrix. In some cases these correspond to the MC
+   header information in the Event-List definition.
+
+
+   | Group    | Parameter  | type  | Description                                               |
+   |----------+------------+-------+-----------------------------------------------------------|
+   | ~SOURCE~ | ~ZENITH~   | float | \theta = zenith angle of the pointing dir (deg)                |
+   |          | ~AZIMUTH~  | float | azimuthal angle of pointing direction (deg)               |
+   |          | ~OFFS_R~   | float | radial offset of events from the pointing dir (deg)       |
+   |          | ~OFFS_PHI~ | float | azimuthal direction of events from the pointing dir (deg) |
+   |          | ~SRCSIZE~  | float | opening angle of simulated source (0=point-source)        |
+   |          |            |       |                                                           |
+   |----------+------------+-------+-----------------------------------------------------------|
+   | ~ARRAY~  | ~TELESCOP~ | text  | super-array name (e.g. CTA-ULTRA1)                        |
+   |          | ~SUBARRAY~ | text  | sub-array name                                            |
+   |----------+------------+-------+-----------------------------------------------------------|
+   | ~MCVER~  | ~SHWRVER~  | text  | version of shower simulation                              |
+   |          | ~DETVER~   | text  | version of detector simulation                            |
+   |          | ~ANAVER~   | text  | analysis/reconstruction program/version                   |
+   |          | ~ANATYPE~  | text  | analysis/reconstruction type (e.g. 'Hillas')              |
+   |          |            |       |                                                           |
+
 
 ** Continuous parameters for each response
    
@@ -102,3 +142,4 @@
 *** 2D Point-Spread-Function
 
 *** Energy redistribution 
+
