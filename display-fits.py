@@ -6,13 +6,12 @@ import math
 from optparse import OptionParser
 
 parser = OptionParser()
-parser.set_usage( "display-fits.py [options] <fitsimage> [<fitsimage...]")
+parser.set_usage( "display-fits.py [options] <fitsimage> "
+                  + "[<fitsimage...]")
 parser.add_option( "-g","--gridsys", dest="gridsys", 
                    default="fk5", 
                    help="system for grid overlay")
 (opts, args) = parser.parse_args()
-
-
 
 
 nfigs = int(len(args)-1)
@@ -36,6 +35,8 @@ while (1):
     print "Loading:",fname
     ff = pyfits.open( fname )
     foundit=0
+
+    # search for an image in the FITS file
     for ii in range(100):
         im = ff[ii]
         if im.header["NAXIS"]>1:
@@ -47,7 +48,9 @@ while (1):
         ifig += 1
         continue
 
-    f = maputils.FITSimage( externalheader=im.header, externaldata=im.data)
+    # display image and graticule lines
+    f = maputils.FITSimage( externalheader=im.header, 
+                            externaldata=im.data)
 
 
     frame = fig.add_subplot(nx,nx,ifig)
@@ -58,12 +61,6 @@ while (1):
 
     img.Image()
     img.Graticule(skyout=opts.gridsys)
-
-    # galactic overlay:
-    #gr2 = img.Graticule(skyout="galactic", visible=True)
-    #gr2.setp_plotaxis(("top","right"), mode=maputils.native, color='g', visible=False)
-    #gr2.setp_tick(wcsaxis=(0,1), color='g')
-    #gr2.setp_gratline(wcsaxis=(0,1), color='g')
 
     img.plot()
     img.interact_imagecolors()

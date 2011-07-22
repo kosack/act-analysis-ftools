@@ -7,6 +7,10 @@
 #+LANGUAGE:  en
 #+OPTIONS:   H:3 num:t toc:3 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
 
+* TODO:
+  - add peak time to image info 
+  - add spectrum slope to MCENERGY
+
 * Changes
   + 2010-11-16 :: telescope-wise parameters are no longer
                   fixed-length arrays added to the EVENTS table, but
@@ -226,6 +230,9 @@
    |----------+--------+----------+--------------------------------------|
    | Keyword  | type   | standard | comment / unit                       |
    |----------+--------+----------+--------------------------------------|
+   | ORIGIN   | string | XMM      | the processing site                  |
+   | FILENAME | string | XMM      | name of file (original)              |
+   | CREATOR  | string | XMM      | system generating the file + version |
    | CALIBVER | string |          | calibration version info             |
    | GEOMVER  | string |          | geometry reconstruction version info |
    | ENERGVER | string |          | energy reconstruction version        |

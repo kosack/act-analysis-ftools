@@ -57,7 +57,7 @@ def makeRadialProfile(events,bins=14,range=[0,10],
     else:
         D = np.sqrt(X**2 + Y**2)
 
-    th2hist,ed = np.histogram( D*D,bins=bins, range=range,normed=False, new=True)
+    th2hist,ed = np.histogram( D*D,bins=bins, range=range,normed=False)
     th2hist = th2hist.astype(np.float64)
 
     nevents = sum(th2hist)
