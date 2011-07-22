@@ -1,0 +1,215 @@
+#+TITLE:     CTA Response Database Requirements
+#+AUTHOR:    Karl Kosack, Martin Raue, Jim Hinton, etc.
+#+EMAIL:     karl.kosack@cea.fr
+#+DATE:      2011-07-21 Thu
+#+DESCRIPTION: 
+#+KEYWORDS: 
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+
+
+
+* Intro
+
+  This document describes the requirements for a CTA response file
+  database. 
+
+  In the design of such a database, it is important to distinguish
+  between simulated information that is /continuous/ vs /fixed/ in the
+  simulations.   For example, the Monte-Carlo simulations that are produced for CTA
+  generally  are produced with fixed zenith/azimuthal angle, offset in
+  the camera, array configuration, night-sky-background level, etc.,
+  while parameters such as energy are continuous (and simulated with
+  e.g. a power-law distribution).  As more simulations are produced,
+  additional points in the distribution of fixed parameters will be
+  generated, therefore the file structure should make it simple enough
+  to add new simulation information when it is available without
+  re-generating all of the files.  For this reason, fixed parameters
+  should not be a dimension in the underlying array used to store the
+  response histograms.
+
+  The database described here is a "global" response database, storing
+  matrices for all possible simulations for CTA.  General analysis users will
+  use a reduced set of response files that can be generated from this
+  global database by interpolation and weighted averaging. 
+
+
+** Glossary of terms:
+   - response file :: A FITS file containing a response matrix for a
+                      set of fixed parameters
+
+   - fixed parameters :: parameters of the Monte-Carlo simulation that do not
+        change between events for a Monte-Carlo dataset (e.g. zenith
+        angle for a point-source simulation). 
+
+   - continuous parameters :: parameters that change freely between
+        events in a Monte-Carlo dataset (e.g. energy)
+
+   - observation :: a contiguous set of data from the telescope array
+                    pointed at a single observation position (which
+                    may be fixed in RA/Dec or Alt/Az coordinates)
+
+   - Monte-Carlo dataset :: a set of Monte-Carlo event data for a
+        fixed array and simulation configuration
+
+ 
+
+* Response file requirements:
+
+  - the response files are in FITS format
+  - there is one response file for each set of fixed parameters
+    (though these may be merged into multiple extensions if need be)
+  - the fixed parameters are stored in the header of the file/extension
+  - the data portion of the file contains either an N-dimensional array, where
+    N is the number of continuous parameters for that response, or a
+    functional representation of the response with the same number of parameters.
+    
+    
+
+* Response tool requirements:
+
+
+  - a tool will be provided that can interpolate between bins in the
+    fixed and continuous parameters of the simulation database, and
+    produce a "realistic" response for a true observation.
+
+  - the tools should not assume that the number of bins in the
+    internal array of each response table is the same
+
+  - a tool should be provided that extracts the meta-data (headers
+    containing fixed parameter information) from a set of response
+    files and produces an index table (which may be a FITS table,
+    relational database, etc).
+    
+
+* Array-wise Instrumental response matrices:
+
+  Here the parameters that go into each response matrix are
+  outlined. For simplicity, the parameter names follow the FITS header
+  convention (8 characters), however it may be more useful and
+  flexible to group them using ESO /hierarchical keywords/ (which are
+  not currently supported by all FITS tools and libraries). In that
+  case the keyword names should be e.g. '~HIERARCH CTA <Group>
+  <Parameter>~'
+
+** Fixed simulation parameters:
+   These parameters are stored in the header of each response matrix
+   file and may be used for interpolation or identification of the
+   origin of the matrix. In some cases these correspond to the MC
+   header information in the Event-List definition.
+
+
+   | Group    | Parameter   | type  | Description                                                 |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~SOURCE~ | ~ZENITH~    | float | \theta = zenith angle of the pointing dir (deg)                  |
+   |          | ~AZIMUTH~   | float | azimuthal angle of pointing direction (deg)                 |
+   |          | ~OFFS_R~    | float | radial offset of events from the pointing dir (deg)         |
+   |          | ~OFFS_PHI~  | float | azimuthal direction of events from the pointing dir (deg)   |
+   |          | ~SRCSIZE~   | float | opening angle of simulated source (0=point-source)          |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~SKY~    | ~NSB~       | float | Night-sky-background level                                  |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~ARRAY~  | ~TELESCOP~  | text  | super-array name (e.g. CTA-ULTRA1)                          |
+   |          | ~SUBARRAY~  | text  | sub-array name                                              |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~MCVER~  | ~SHWRVER~   | text  | version of shower simulation                                |
+   |          | ~DETVER~    | text  | version of detector simulation                              |
+   |          | ~ANAVER~    | text  | analysis/reconstruction program/version                     |
+   |          | ~ANATYPE~   | text  | analysis/reconstruction type (e.g. 'Hillas')                |
+   |----------+-------------+-------+-------------------------------------------------------------|
+   | ~CUTS~   | ~CUTCONFIG~ | text  | name of ensemble of gamma/hadron and threshold cuts applied |
+   |          |             |       |                                                             |
+
+** Response tables
+   
+   The following describes the continuous parameters---dimensions of
+   the FITS data matrix---contained in a response file/extension for a
+   set of fixed simulation parameters. Note that the minimum, maximum,
+   and number of bins are simply reasonable suggestions and software
+   should not rely on them being fixed to those values.
+
+*** Effective Area
+
+    -  ~EFFAREA~ : effective area (m^2) 
+
+    | Dimension   | Description  | Min | Max | Bins |
+    |-------------+--------------+-----+-----+------|
+    | ~LOGENERGY~ | log_10(E/TeV) |  -3 | 2.5 |      |
+
+*** Energy redistribution 
+
+    - ~EDIST~: probability of reproducing E_reco given E_true during
+      energy reconstruction
+
+    | Dimension  | Description      | Min | Max | Bins |
+    |------------+------------------+-----+-----+------|
+    | ~LOGETRUE~ | log_10(E_true/TeV) |  -3 | 2.5 |      |
+    | ~LOGERECO~ | log_10(E_reco/TeV) |  -3 | 2.5 |      |
+   
+    
+*** 1D Point-Spread-Function 
+
+*** 2D Point-Spread-Function
+
+* Telescope-wise Instrumental Response Matrices
+
+  The response matrices required by shower reconstruction algorithms
+  typically vary depending on the algorithm used.  Shown below are the
+  tables uses for a simple Hillas-parameter based shower
+  reconstruction, however more tables will exist for other methods.
+
+** Telescope Response tables
+ 
+*** Energy Responses
+    Energy can be reconstructed from the integrated shower image amplitude and
+    impact distance (in addition to each fixed simulation parameter)
+    via the following response matrices:
+    
+    Responses:
+    - ~ENERGY~ :  reconstructed energy (stored as log_10(E) )
+    - ~ENERGY_RMS~ : standard deviation of reconstructed energy (stored as log_10(E) )
+
+    | Dimension | Description                                  | Min | Max | Bins |
+    |-----------+----------------------------------------------+-----+-----+------|
+    | ~LOGSIZE~ | log_10(image amplitude) of the cleaned shower |     |     |      |
+    | ~IMPACT~  | impact distance (m) from the telescope       |     |     |      |
+    
+
+*** Scaled Parameter responses (for Hillas Analysis)
+
+    These response tables are needed to calcualte the
+    /mean-reduced-scaled-length/ and /mean-reduced-scaled-width/
+    parameters used for gamma-hadron separation in a standard
+    Hillas-based analysis.
+
+    Responses:
+    -  ~LENGTH~ :  reduced length of shower image
+    -  ~LENGTH_RMS~ :  RMS error on reduced length 
+    -  ~WIDTH~ :  reduced width of shower image
+    -  ~WIDTH_RMS~ :  RMS error on reduced width 
+
+    | Dimension | Description                                  | Min | Max | Bins |
+    |-----------+----------------------------------------------+-----+-----+------|
+    | ~LOGSIZE~ | log_10(image amplitude) of the cleaned shower |     |     |      |
+    | ~IMPACT~  | impact distance (m) from the telescope       |     |     |      |
+
+
+*** Shower displacement response:
+    
+    For a simple Hillas-based analysis, the shower origin can be
+    estimated for a single telscope, and later using an ensemble of
+    parameters, combined in stereo to give an even more accurate
+    view of the shower geometry. 
+
+    - ~DISP~: (deg) gives the angular displacement of the
+      point-of-origin from the shower image centroid, used for a
+      single telescope reconstruction method. This value may also be used
+      in stereo-reconstruction to improve the reconstruction.
+    - ~DISP_RMS~: RMS error on the displacement
+
+    | Dimension | Description                                       | Min | Max | Bins |
+    |-----------+---------------------------------------------------+-----+-----+------|
+    | ~ELONG~   | elongation factor of image                        |     |     |      |
+    | ~DIST~    | distance of image centroid from the camera center |     |     |      |
