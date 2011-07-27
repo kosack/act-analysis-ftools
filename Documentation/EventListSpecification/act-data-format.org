@@ -289,35 +289,35 @@ generated for different analysis techniques.
     data), are described later in the [[Monte-Carlo Shower Parameters]]
     section
 
-   |--------------+---------+----------+--------------------------------------------|
-   | field        | type    | standard | comment                                    |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~EVENT_ID~   | uint    |          | event number                               |
-   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)    |
-   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time          |
-   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)      |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~MULTIP~     | short   |          | multiplicity of tels used in recon (\star) |
-   | ~TELMASK~    | bitmask |          | bit pattern of triggered tels              |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~RA~         | real    | OGIP1    | reconstructed position RA                  |
-   | ~DEC~        | real    | OGIP1    | reconstructed position DEC                 |
-   | ~DIR_ERR~    | real    |          | measure of error in position (\ddag)       |
-   | ~DETX~       | real    |          | tangential coord in nominal sys            |
-   | ~DETY~       | real    |          | tangential coord in nominal sys            |
-   | ~ALT~        | real    |          | event altitude (\oplus)                    |
-   | ~AZ~         | real    |          | event azimuth  (\oplus)                    |
-   | ~COREX~      | real    |          | position on ground [m]                     |
-   | ~COREY~      | real    |          | position on ground [m]                     |
-   | ~CORE_ERR~   | real    |          | error on core reconstruction [m]           |
-   | ~XMAX~       | real    |          | position of shower max [g/cm^2]            |
-   | ~XMAX_ERR~   | real    |          | error on shower-max [g/cm^2]               |
-   | ~SHWIDTH~    | real    |          | intrinsic shower width (if known) [m]      |
-   | ~SHLENGTH~   | real    |          | intrinsic shower length (if known) [m]     |
-   |--------------+---------+----------+--------------------------------------------|
-   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                        |
-   | ~ENERGY_ERR~ | real    |          | error on energy (TeV)                      |
-   |--------------+---------+----------+--------------------------------------------|
+   |--------------+---------+----------+----------------------------------------------|
+   | field        | type    | standard | comment                                      |
+   |--------------+---------+----------+----------------------------------------------|
+   | ~EVENT_ID~   | uint    |          | event number                                 |
+   | ~OBS_ID~     | uint    |          | associated observation run ID (\dagger)      |
+   | ~TIME~       | double  | OGIP1    | time stamp of event, elapsed time            |
+   | ~TLIVE~      | double  |          | time stamp of event (livetime so far)        |
+   |--------------+---------+----------+----------------------------------------------|
+   | ~MULTIP~     | short   |          | multiplicity of tels used in recon (\star)   |
+   | ~TELMASK~    | bitmask |          | bit pattern of telescopes used in this event |
+   |--------------+---------+----------+----------------------------------------------|
+   | ~RA~         | real    | OGIP1    | reconstructed position RA                    |
+   | ~DEC~        | real    | OGIP1    | reconstructed position DEC                   |
+   | ~DIR_ERR~    | real    |          | measure of error in position (\ddag)         |
+   | ~DETX~       | real    |          | tangential coord in nominal sys              |
+   | ~DETY~       | real    |          | tangential coord in nominal sys              |
+   | ~ALT~        | real    |          | event altitude (\oplus)                      |
+   | ~AZ~         | real    |          | event azimuth  (\oplus)                      |
+   | ~COREX~      | real    |          | position on ground [m]                       |
+   | ~COREY~      | real    |          | position on ground [m]                       |
+   | ~CORE_ERR~   | real    |          | error on core reconstruction [m]             |
+   | ~XMAX~       | real    |          | position of shower max [g/cm^2]              |
+   | ~XMAX_ERR~   | real    |          | error on shower-max [g/cm^2]                 |
+   | ~SHWIDTH~    | real    |          | intrinsic shower width (if known) [m]        |
+   | ~SHLENGTH~   | real    |          | intrinsic shower length (if known) [m]       |
+   |--------------+---------+----------+----------------------------------------------|
+   | ~ENERGY~     | real    | OGIP1    | shower energy (TeV)                          |
+   | ~ENERGY_ERR~ | real    |          | error on energy (TeV)                        |
+   |--------------+---------+----------+----------------------------------------------|
 
     Comments:
     - \dagger :: the observation id can be used to cross reference the
