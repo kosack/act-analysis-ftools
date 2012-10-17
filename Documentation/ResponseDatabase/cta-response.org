@@ -1,5 +1,5 @@
 #+TITLE:     CTA Response Database Requirements
-#+AUTHOR:    Karl Kosack, Martin Raue, Jim Hinton, etc.
+#+AUTHOR:    Karl Kosack, Martin Raue, Jim Hinton, etc. for DAFA
 #+EMAIL:     karl.kosack@cea.fr
 #+DATE:      2011-07-21 Thu
 #+DESCRIPTION: 
@@ -37,15 +37,26 @@
 
 
 ** Glossary of terms:
-   - response file :: A FITS file containing a response matrix for a
-                      set of fixed parameters
 
-   - fixed parameters :: parameters of the Monte-Carlo simulation that do not
-        change between events for a Monte-Carlo dataset (e.g. zenith
-        angle for a point-source simulation). 
+   - response matrix/function :: a N-dimensional array or N-parameter function
+        that serves as a lookup table to transform a set of dependent
+        parameters into a value describing some part of the
+        instrumental response.  There is one such response matrix for
+        each bin in the M-dimensional fixed parameter space.
+
+   - response file :: A FITS file containing a response matrix or
+                      function definition for a set of fixed
+                      parameters
+
+   - fixed parameters :: a set of M parameters of the Monte-Carlo
+        simulation that do not change between events for a Monte-Carlo
+        dataset (e.g. zenith angle for a point-source
+        simulation). These are used as metadata for retrieving each response
+        matrix, and allow essentially for (N+M)-dimensional "super" tables.
 
    - continuous parameters :: parameters that change freely between
-        events in a Monte-Carlo dataset (e.g. energy)
+        events in a Monte-Carlo dataset (e.g. energy). These are used
+        as dimensions of each response matrix
 
    - observation :: a contiguous set of data from the telescope array
                     pointed at a single observation position (which
@@ -54,7 +65,21 @@
    - Monte-Carlo dataset :: a set of Monte-Carlo event data for a
         fixed array and simulation configuration
 
- 
+
+** FAQ:
+
+***  Why don't we just use a huge (N+M)-dimensional data hypercube? 
+     because 1) it would be prohibitively large to fit in memory,
+     and 2) it would be difficult to later add detail (extra bins)
+     to the array. The advantage of many small N-dimensional arrays
+     is that one can dynamically load or add new matrices to the
+     database without having to change the files
+     themselves. Additionally the bins in M-space do not have to be
+     regularly spaced, while in N-space they do.
+
+
+
+  
 
 * Response file requirements:
 
@@ -94,7 +119,7 @@
   case the keyword names should be e.g. '~HIERARCH CTA <Group>
   <Parameter>~'
 
-** Fixed simulation parameters:
+** Fixed simulation parameters (metadata):
    These parameters are stored in the header of each response matrix
    file and may be used for interpolation or identification of the
    origin of the matrix. In some cases these correspond to the MC
@@ -122,21 +147,53 @@
    | ~CUTS~   | ~CUTCONFIG~ | text  | name of ensemble of gamma/hadron and threshold cuts applied |
    |          |             |       |                                                             |
 
-** Response tables
+   *PLEASE ADD MORE! ...*
+
+** Response tables (file data)
    
    The following describes the continuous parameters---dimensions of
    the FITS data matrix---contained in a response file/extension for a
    set of fixed simulation parameters. Note that the minimum, maximum,
    and number of bins are simply reasonable suggestions and software
    should not rely on them being fixed to those values.
+     
 
 *** Effective Area
 
-    -  ~EFFAREA~ : effective area (m^2) 
+    -  ~EFFAREA~ : effective area (m^2) including analysis efficiency
 
-    | Dimension   | Description  | Min | Max | Bins |
-    |-------------+--------------+-----+-----+------|
-    | ~LOGENERGY~ | log_10(E/TeV) |  -3 | 2.5 |      |
+    | Dimension  | Description      | Min | Max | Bins |
+    |------------+------------------+-----+-----+------|
+    | ~LOGERECO~ | log_10(E_reco/TeV) |  -3 | 2.5 |      |
+
+    -  ~TEFFAREA~ : effective area (m^2) for true energy
+
+    | Dimension  | Description      | Min | Max | Bins |
+    |------------+------------------+-----+-----+------|
+    | ~LOGETRUE~ | log_10(E_true/TeV) |  -3 | 2.5 |      |
+
+    
+*** Background Rate
+    
+    - ~BGRATE~ : background rate from cosmic rays, per square degree
+      (Hz)
+
+    | Dimension  | Description      | Min | Max | Bins |
+    |------------+------------------+-----+-----+------|
+    | ~LOGETRUE~ | log_10(E_true/TeV) |  -3 | 2.5 |      |
+
+*** Background Acceptance
+
+    - ~ACCEPT~ : acceptance of background events across the field of
+      view, typically generated from real background events.
+      Normalized to 1.0 at the peak.  The Phi dimension may be a
+      single bin in the case of radial symmetry. 
+
+    | Dimension  | Description                                    | Min | Max | Bins |
+    |------------+------------------------------------------------+-----+-----+------|
+    | ~R~        | radius from true source position (deg)         |     |     |      |
+    | ~PHI~      | azimith angle from true source position (deg)  |     |     |      |
+    | ~LOGERECO~ | log_10(E_reco/TeV)                               |  -3 | 2.5 |      |
 
 *** Energy redistribution 
 
@@ -147,11 +204,34 @@
     |------------+------------------+-----+-----+------|
     | ~LOGETRUE~ | log_10(E_true/TeV) |  -3 | 2.5 |      |
     | ~LOGERECO~ | log_10(E_reco/TeV) |  -3 | 2.5 |      |
-   
     
-*** 1D Point-Spread-Function 
+*** Point-Spread-Functions 
 
-*** 2D Point-Spread-Function
+    Gives the probability of reconstructing an event at position /p'/ 
+    from the true position /p/.  PSF primarily depends on /energy/,
+    and /offset/ as fixed parameters. Therefore, for convenience sake,
+    these may be stored as continuous parameters (energy is shown
+    continuous below).
+
+**** ~PSF~: polar 2D psf probability 
+     (the phi dimension may be a single bin in the case of radial symmetry)
+
+     | Dimension  | Description                                    | Min | Max | Bins |
+     |------------+------------------------------------------------+-----+-----+------|
+     | ~R~        | radius from true source position (deg)         |     |     |      |
+     | ~PHI~      | azimith angle  from true source position (deg) |     |     |      |
+     | ~LOGERECO~ | log10(E_reco)                                   |     |     |      |
+**** ~PSFXY~: cartesian 2D psf probability 
+
+     (useful for visualizing PSF)
+
+     | Dimension   | Description                              | Min | Max | Bins |
+     |-------------+------------------------------------------+-----+-----+------|
+     | ~DX~        | x-offset from true source position (deg) |     |     |      |
+     | ~DY~        | y-offset from true source position (deg) |     |     |      |
+     | ~LOGENERGY~ | log10(E_reco)                             |     |     |      |
+
+
 
 * Telescope-wise Instrumental Response Matrices
 
@@ -159,6 +239,7 @@
   typically vary depending on the algorithm used.  Shown below are the
   tables uses for a simple Hillas-parameter based shower
   reconstruction, however more tables will exist for other methods.
+
 
 ** Telescope Response tables
  
