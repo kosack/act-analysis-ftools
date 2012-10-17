@@ -6,6 +6,7 @@
 #+KEYWORDS: 
 #+LANGUAGE:  en
 #+OPTIONS:   H:3 num:t toc:3 \n:nil @:t ::t |:t ^:t -:t f:t *:t TeX:t LaTeX:t skip:t d:nil tags:not-in-toc
+##    +LaTeX_CLASS: org-ctadoc
 
 * TODO:
   - add peak time to image info 
