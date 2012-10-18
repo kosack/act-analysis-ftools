@@ -64,7 +64,7 @@ print "done."
 subplot(2,1,1)
 
 title("Training: {0} gammas, {1} protons".format(len(gmsw),len(pmsw)))
-subtitle("Max depth = {0}".format(MAXTREEDEPTH))
+suptitle("tree depth = {0}".format(MAXTREEDEPTH))
 ghist,xe,pat = hist(gmsw, range=[-3,10], bins=100,label="Gammas")
 phist,xe,pat = hist(pmsw, range=[-3,10], bins=100, label="Protons")
 
