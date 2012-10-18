@@ -6,7 +6,7 @@ from glob import glob
 import os
 
 DATADIR=os.path.expanduser("~kosack/Data/FITS/HESS/Simulations/Phase1b")
-
+MAXTREEDEPTH = 6
 
 def loadData( filepattern, maxevents=50000 ):
     """ 
@@ -55,7 +55,7 @@ x= np.concatenate([gmsw,pmsw])[newaxis].T # the array of gamma, proton values
 y= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
 
 print "Training..."
-cl = tree.DecisionTreeClassifier(max_depth=6)
+cl = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
 cl.fit(x,y)
 print "done."
 
@@ -64,6 +64,7 @@ print "done."
 subplot(2,1,1)
 
 title("Training: {0} gammas, {1} protons".format(len(gmsw),len(pmsw)))
+subtitle("Max depth = {0}".format(MAXTREEDEPTH))
 ghist,xe,pat = hist(gmsw, range=[-3,10], bins=100,label="Gammas")
 phist,xe,pat = hist(pmsw, range=[-3,10], bins=100, label="Protons")
 
