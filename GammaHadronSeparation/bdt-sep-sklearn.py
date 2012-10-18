@@ -44,9 +44,7 @@ x= np.concatenate([gmsw,pmsw])[newaxis].T # the array of gamma, proton values
 y= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
 
 print "Training..."
-cl = tree.DecisionTreeClassifier(max_depth=4,
-                                 min_samples_split=100,
-                                 min_samples_leaf=100)
+cl = tree.DecisionTreeClassifier(max_depth=4)
 cl.fit(x,y)
 print "done."
 
