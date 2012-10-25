@@ -1,5 +1,6 @@
 from pylab import * 
 from sklearn import tree
+from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier
 from sklearn import cross_validation
 import pyfits
 from glob import glob
@@ -50,56 +51,81 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
         raise ValueError("no data found")
 
     return data
+
+def separation_plot(classfier, X_test, Y_test, bins=10):
+    """
     
-#======================================================================
-# Set up the data:
+    Arguments:
+    - `classfier`:
+    - `X_signal`:
+    - `Y_signal`:
+    """
+    
+    probgamma = classifier.predict_proba(X_test[Y_test==0])[:,0] 
+    probproton = classifier.predict_proba(X_test[Y_test==1])[:,0] 
 
-cols = ['HIL_MSW','HIL_MSL',"XMAX"]
+    title("Separation Power: " + "+".join(cols))
+    hist( probgamma, range=[0,1], bins=bins, color='g', 
+          label="gammas", normed=True )
+    hist( probproton, range=[0,1], bins=bins, color='r', alpha=0.5, 
+          label="protons",normed=True)
+    xlabel("Gamma probability")
+    legend()
+    figtext( 0.12,0.8, str(classifier), fontsize=8)
 
-gammas = loadData(DATADIR+"/Gamma/0.7deg/run_00006*_eventlist.fits.gz",
-                  maxevents=100000,cols=cols)
-protons = loadData(DATADIR+"/Proton/run_*.fits.gz",
-                   maxevents=300000,cols=cols)
+if __name__ == '__main__':
+    
+    
+    #======================================================================
+    # Set up the data:
 
+    cols = ['HIL_MSW','HIL_MSL',"XMAX"]
 
-gtype = ones_like(gammas[cols[0]])   # gammas are labeled 1
-ptype = zeros_like(protons[cols[0]]) # protons are labeled 0
-Y_all= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
-
-X_gammas = np.column_stack( gammas[col] for col in gammas )
-X_protons = np.column_stack( protons[col] for col in protons )
-X_all = np.concatenate( [X_gammas,X_protons] )
-
-# separate into training and test sets
-
-X_train,X_test,Y_train,Y_test = cross_validation.train_test_split( X_all,Y_all,
-                                                                   test_size=0.5)
-
-
-# Train the classifier:
-
-print "Training using ", cols, "..."
-classifier = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
-classifier.fit( X_train, Y_train )
-print "done."
-print "Score = ", classifier.score(X_test,Y_test)
-
-# Now plot the results of the classification
-
-outfile = tree.export_graphviz(classifier,"classifier.dot")
-outfile.close()
+    gammas = loadData(DATADIR+"/Gamma/0.7deg/run_00006*_eventlist.fits.gz",
+                      maxevents=100000,cols=cols)
+    protons = loadData(DATADIR+"/Proton/run_*.fits.gz",
+                       maxevents=300000,cols=cols)
 
 
-figure()
-subplot(1,1,1)
+    gtype = ones_like(gammas[cols[0]])   # gammas are labeled 1
+    ptype = zeros_like(protons[cols[0]]) # protons are labeled 0
+    Y_all= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
 
-probgamma = classifier.predict_proba(X_test[Y_test==0])[:,0] 
-probproton = classifier.predict_proba(X_test[Y_test==1])[:,0] 
+    X_gammas = np.column_stack( gammas[col] for col in gammas )
+    X_protons = np.column_stack( protons[col] for col in protons )
+    X_all = np.concatenate( [X_gammas,X_protons] )
 
-title("Separation Power: " + "+".join(cols))
-hist( probgamma, range=[0,1], bins=10, color='g', label="gammas", normed=True )
-hist( probproton, range=[0,1], bins=10, color='r', alpha=0.5, label="protons",normed=True)
-xlabel("Gamma probability")
-legend()
+    # separate into training and test sets
 
-show()
+    X_train,X_test,\
+        Y_train,Y_test = cross_validation.train_test_split( X_all,Y_all,
+                                                            test_size=0.5)
+
+
+    # Train the classifier:
+
+    classifier = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
+    #classifier = RandomForestClassifier(n_estimators = 10)
+    #classifier = GradientBoostingClassifier()
+
+    print classifier
+    print "Training using ", cols, "..."
+
+
+    classifier.fit( X_train, Y_train )
+    print "done."
+    print "Score = ", classifier.score(X_test,Y_test)
+
+    # Now plot the results of the classification
+
+    if hasattr(classifier,"tree_") :
+        outfile = tree.export_graphviz(classifier,"classifier.dot")
+        outfile.close()
+
+
+    figure()
+    subplot(1,1,1)
+
+    separation_plot( classifier, X_test, Y_test )
+
+    show()
