@@ -2,6 +2,7 @@ from pylab import *
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier
 from sklearn import cross_validation
+from sklearn.linear_model import Perceptron
 import pyfits
 from glob import glob
 import os
@@ -71,7 +72,8 @@ def separation_plot(classfier, X_test, Y_test, bins=10):
           label="protons",normed=True)
     xlabel("Gamma probability")
     legend()
-    figtext( 0.12,0.8, str(classifier), fontsize=8)
+    figtext( 0.2,0.8, str(classifier), fontsize=8, ha='left', va='top')
+    suptitle("score={0}".format(classifier.score(X_test,Y_test)))
 
 if __name__ == '__main__':
     
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     #======================================================================
     # Set up the data:
 
-    cols = ['HIL_MSW','HIL_MSL',"XMAX"]
+    cols = ['HIL_MSW','HIL_MSL',"XMAX","MC_ENERGY"]
 
     gammas = loadData(DATADIR+"/Gamma/0.7deg/run_00006*_eventlist.fits.gz",
                       maxevents=100000,cols=cols)
@@ -103,29 +105,37 @@ if __name__ == '__main__':
 
 
     # Train the classifier:
+    classifiers = [tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH),
+                   RandomForestClassifier(n_estimators = 10),
+                   GradientBoostingClassifier()]
 
-    classifier = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
-    #classifier = RandomForestClassifier(n_estimators = 10)
-    #classifier = GradientBoostingClassifier()
+    count =0
+    for classifier in classifiers:
 
-    print classifier
-    print "Training using ", cols, "..."
-
-
-    classifier.fit( X_train, Y_train )
-    print "done."
-    print "Score = ", classifier.score(X_test,Y_test)
-
-    # Now plot the results of the classification
-
-    if hasattr(classifier,"tree_") :
-        outfile = tree.export_graphviz(classifier,"classifier.dot")
-        outfile.close()
+        name = str(classifier)
+        name = name[0:name.find('(')]
+        print classifier
+        print "Training",name,"using ", cols, "..."
 
 
-    figure()
-    subplot(1,1,1)
 
-    separation_plot( classifier, X_test, Y_test )
+        classifier.fit( X_train, Y_train )
+        print "done."
+        print "Score = ", classifier.score(X_test,Y_test)
+
+        # Now plot the results of the classification
+
+        if hasattr(classifier,"tree_") :
+            outfile = tree.export_graphviz(classifier,"classifier.dot")
+            outfile.close()
+
+
+        figure()
+        subplot(1,1,1)
+        separation_plot( classifier, X_test, Y_test, bins=30 )
+        savefig("classifier-{0}-{1}.pdf".format("-".join(cols),name))
+
+
+        count += 1
 
     show()
