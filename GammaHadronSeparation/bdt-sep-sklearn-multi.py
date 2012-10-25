@@ -7,7 +7,7 @@ import os
 from collections import defaultdict
 
 DATADIR=os.path.expanduser("~kosack/Data/FITS/HESS/Simulations/Phase1b")
-MAXTREEDEPTH = 6
+MAXTREEDEPTH = 10
 
 def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
     """ 
@@ -54,30 +54,27 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
 #======================================================================
 # Set up the data:
 
-cols = ['HIL_MSW','HIL_MSL']
+cols = ['HIL_MSW','HIL_MSL',"XMAX"]
 
 gammas = loadData(DATADIR+"/Gamma/0.7deg/run_00006*_eventlist.fits.gz",
-                  maxevents=10000,cols=cols)
-protons = loadData(DATADIR+"/Proton/run_000104*.fits.gz",
-                   maxevents=30000,cols=cols)
+                  maxevents=100000,cols=cols)
+protons = loadData(DATADIR+"/Proton/run_*.fits.gz",
+                   maxevents=300000,cols=cols)
 
-testgammas = loadData(DATADIR+"/Gamma/0.7deg/run_00007*_eventlist.fits.gz",
-                      maxevents=10000,cols=cols)
-testprotons = loadData(DATADIR+"/Proton/run_00010[6789]*.fits.gz",
-                       maxevents=30000,cols=cols)
 
 gtype = ones_like(gammas[cols[0]])   # gammas are labeled 1
 ptype = zeros_like(protons[cols[0]]) # protons are labeled 0
+Y_all= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
 
-X_train_gammas = np.column_stack( gammas[col] for col in gammas )
-X_train_protons = np.column_stack( protons[col] for col in protons )
-X_train = np.concatenate( [X_train_gammas,X_train_protons] )
+X_gammas = np.column_stack( gammas[col] for col in gammas )
+X_protons = np.column_stack( protons[col] for col in protons )
+X_all = np.concatenate( [X_gammas,X_protons] )
 
-X_test_gammas = np.column_stack( testgammas[col] for col in testgammas )
-X_test_protons = np.column_stack( testprotons[col] for col in testprotons )
-X_test = np.concatenate( [X_test_gammas,X_test_protons] )
+# separate into training and test sets
 
-Y_train= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
+X_train,X_test,Y_train,Y_test = cross_validation.train_test_split( X_all,Y_all,
+                                                                   test_size=0.5)
+
 
 # Train the classifier:
 
@@ -85,10 +82,24 @@ print "Training using ", cols, "..."
 classifier = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
 classifier.fit( X_train, Y_train )
 print "done."
+print "Score = ", classifier.score(X_test,Y_test)
 
 # Now plot the results of the classification
 
 outfile = tree.export_graphviz(classifier,"classifier.dot")
 outfile.close()
+
+
+figure()
+subplot(1,1,1)
+
+probgamma = classifier.predict_proba(X_test[Y_test==0])[:,0] 
+probproton = classifier.predict_proba(X_test[Y_test==1])[:,0] 
+
+title("Separation Power: " + "+".join(cols))
+hist( probgamma, range=[0,1], bins=10, color='g', label="gammas", normed=True )
+hist( probproton, range=[0,1], bins=10, color='r', alpha=0.5, label="protons",normed=True)
+xlabel("Gamma probability")
+legend()
 
 show()
