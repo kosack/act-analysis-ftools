@@ -69,21 +69,21 @@ testprotons = loadData(DATADIR+"/Proton/run_00010[6789]*.fits.gz",
 gtype = ones_like(gammas[cols[0]])   # gammas are labeled 1
 ptype = zeros_like(protons[cols[0]]) # protons are labeled 0
 
-Xgammas = np.column_stack( gammas[col] for col in gammas )
-Xprotons = np.column_stack( protons[col] for col in protons )
-X = np.concatenate( [Xgammas,Xprotons] )
+X_train_gammas = np.column_stack( gammas[col] for col in gammas )
+X_train_protons = np.column_stack( protons[col] for col in protons )
+X_train = np.concatenate( [X_train_gammas,X_train_protons] )
 
-Xtestgammas = np.column_stack( testgammas[col] for col in testgammas )
-Xtestprotons = np.column_stack( testprotons[col] for col in testprotons )
-Xtest = np.concatenate( [Xtestgammas,Xtestprotons] )
+X_test_gammas = np.column_stack( testgammas[col] for col in testgammas )
+X_test_protons = np.column_stack( testprotons[col] for col in testprotons )
+X_test = np.concatenate( [X_test_gammas,X_test_protons] )
 
-Y= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
+Y_train= np.concatenate([gtype,ptype]) # the array of gamma, proton labels
 
 # Train the classifier:
 
-print "Training..."
+print "Training using ", cols, "..."
 classifier = tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH)
-classifier.fit(X,Y)
+classifier.fit( X_train, Y_train )
 print "done."
 
 # Now plot the results of the classification
