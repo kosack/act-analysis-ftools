@@ -7,6 +7,7 @@ import pyfits
 from glob import glob
 import os
 from collections import defaultdict
+from cPickle import dump,load
 
 DATADIR=os.path.expanduser("~kosack/Data/FITS/HESS/Simulations/Phase1b")
 MAXTREEDEPTH = 10
@@ -29,17 +30,19 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
 
     """
 
-    print filepattern
     data = defaultdict(list)
     count =0
 
+    print "Reading",filepattern,"..."
+
     for thefile in glob( filepattern ) :
-        print "\t reading",thefile
+        # print "\t reading",thefile
+
         fits = pyfits.open(thefile)['EVENTS']
 
         for column in cols:
             data[column].extend( fits.data.field(column) )
-            
+
         del fits
 
         if len(data[cols[0]]) > maxevents:
@@ -81,7 +84,7 @@ if __name__ == '__main__':
     #======================================================================
     # Set up the data:
 
-    cols = ['HIL_MSW','HIL_MSL',"XMAX","MC_ENERGY"]
+    cols = ['HIL_MSW','HIL_MSL','XMAX','XMAX_ERR']
 
     gammas = loadData(DATADIR+"/Gamma/0.7deg/run_00006*_eventlist.fits.gz",
                       maxevents=100000,cols=cols)
@@ -114,14 +117,23 @@ if __name__ == '__main__':
 
         name = str(classifier)
         name = name[0:name.find('(')]
-        print classifier
-        print "Training",name,"using ", cols, "..."
+
+        try: 
+            # load up a saved classifier if it exists
+            infile = open("{0}-{1}.pickle".format("-".join(cols),name),"r")
+            print "Loading",infile,"..."
+            classifier = load( infile ) 
+            infile.close()
+            
+        except:
+            # otherwise, train a new one
+            print "Training",name,"using ", cols, "..."
+            classifier.fit( X_train, Y_train )
+            print "done."
 
 
-
-        classifier.fit( X_train, Y_train )
-        print "done."
         print "Score = ", classifier.score(X_test,Y_test)
+        print classifier
 
         # Now plot the results of the classification
 
@@ -135,6 +147,9 @@ if __name__ == '__main__':
         separation_plot( classifier, X_test, Y_test, bins=30 )
         savefig("classifier-{0}-{1}.pdf".format("-".join(cols),name))
 
+        outfile =open("{0}-{1}.pickle".format("-".join(cols),name),"w")
+        dump(classifier,outfile)
+        outfile.close()
 
         count += 1
 
