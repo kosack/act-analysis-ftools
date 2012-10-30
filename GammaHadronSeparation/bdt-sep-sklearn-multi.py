@@ -12,22 +12,19 @@ from cPickle import dump,load
 DATADIR=os.path.expanduser("~kosack/Data/FITS/HESS/Simulations/Phase1b")
 MAXTREEDEPTH = 10
 
-def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
+def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000,
+              verbose=False):
     """ 
     returns array of MSW values for given data
 
-    - filepattern: shell pattern for file(s) to open (e.g. proton-*.fits)
-      . If it matches more than one file, all files will be opened and
-      the result concatinated.
+    - filepattern: shell pattern for file(s) to open
+      (e.g. "proton-*.fits") . If it matches more than one file, files
+      will be opened in sequence and the data will be accumulated from
+      each.
 
     - maxevents: keep loading data from files in the filepattern until
       this number of events is reached (discarding everything
       afterward)
-
-      TODO: change to include columns=['HIL_MSW','HIL_MSL','ENERGY'],
-      which returns not just the msw as now, but the appropriate
-      column stack of the requested values
-
     """
 
     data = defaultdict(list)
@@ -36,7 +33,7 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
     print "Reading",filepattern,"..."
 
     for thefile in glob( filepattern ) :
-        # print "\t reading",thefile
+        print "\t reading",thefile if verbose
 
         fits = pyfits.open(thefile)['EVENTS']
 
@@ -58,11 +55,13 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000 ):
 
 def separation_plot(classfier, X_test, Y_test, bins=10):
     """
-    
+    Plot a the probability distributions for separation between gamma
+    and hadron
+
     Arguments:
-    - `classfier`:
-    - `X_signal`:
-    - `Y_signal`:
+    - `classfier`: the classifier object used
+    - `X_test`: the test data set 
+    - `Y_test`: the test label set (array with actual event type)
     """
     
     probgamma = classifier.predict_proba(X_test[Y_test==0])[:,0] 
@@ -78,9 +77,11 @@ def separation_plot(classfier, X_test, Y_test, bins=10):
     figtext( 0.2,0.8, str(classifier), fontsize=8, ha='left', va='top')
     suptitle("score={0}".format(classifier.score(X_test,Y_test)))
 
+
+
+
 if __name__ == '__main__':
-    
-    
+       
     #======================================================================
     # Set up the data:
 
@@ -107,12 +108,15 @@ if __name__ == '__main__':
                                                             test_size=0.5)
 
 
-    # Train the classifier:
+    # Construct several different types of classifier, loop over each
+    # one, train it, and print out the results.  If the classifier
+    # already has been trained and exists on disk (as a pickled
+    # archive), load it instead of training a new one.
+
     classifiers = [tree.DecisionTreeClassifier(max_depth=MAXTREEDEPTH),
                    RandomForestClassifier(n_estimators = 10),
                    GradientBoostingClassifier()]
-
-    count =0
+    
     for classifier in classifiers:
 
         name = str(classifier)
@@ -150,7 +154,5 @@ if __name__ == '__main__':
         outfile =open("{0}-{1}.pickle".format("-".join(cols),name),"w")
         dump(classifier,outfile)
         outfile.close()
-
-        count += 1
 
     show()
