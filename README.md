@@ -12,5 +12,6 @@ Features:
 - generate IRFs from simulations
 - auto-parallelization and efficient workflows via Make
 
+Generates a [workflow like this](deps.pdf)
 
 
