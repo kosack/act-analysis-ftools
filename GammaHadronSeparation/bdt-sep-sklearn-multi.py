@@ -33,7 +33,7 @@ def loadData( filepattern, cols=['HIL_MSW','HIL_MSL'], maxevents=50000,
     print "Reading",filepattern,"..."
 
     for thefile in glob( filepattern ) :
-        print "\t reading",thefile if verbose
+        print "\t reading",thefile 
 
         fits = pyfits.open(thefile)['EVENTS']
 
